@@ -1,13 +1,19 @@
-// src/App.tsx
 import React from "react";
-import Login from "./inicio/login";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+import Login from "./auth/login";
+import Home from "./inicio/home";
 
 const App: React.FC = () => {
   return (
-    <>
-      <Login />
-    </>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/home" element={<Home />} />
+      </Routes>
+    </Router>
   );
 };
 
 export default App;
+

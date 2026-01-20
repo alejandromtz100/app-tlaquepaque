@@ -5,6 +5,7 @@ import Login from "./auth/login";
 import Home from "./inicio/home";
 import Tramites from "./catalogos/tramites";
 import Menu from "./layout/menu";
+<<<<<<< HEAD
  
  
 
@@ -14,6 +15,11 @@ import Usuarios from "./usuarios/usuarios";
 
 import Colonias from "./catalogos/Colonias"
 
+=======
+import Colonias from "./catalogos/Colonias"
+import Usuarios from "./usuarios/usuarios";
+
+>>>>>>> 2575ab7 (Catalogo Colonias Pre Back)
 
 
 const App: React.FC = () => {

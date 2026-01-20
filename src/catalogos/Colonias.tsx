@@ -16,6 +16,9 @@ const Colonias: React.FC = () => {
   nombre: "",
   densidad: "Densidad alta",
 });
+const [isEditing, setIsEditing] = useState(false);
+const [editingId, setEditingId] = useState<number | null>(null);
+
 
   // 🔹 Datos temporales (luego vendrán del backend)
   const [colonias, setColonias] = useState<Colonia[]>([
@@ -24,20 +27,50 @@ const Colonias: React.FC = () => {
   { id_colonias: 3, nombre: "Miravalle", densidad: "Densidad baja" },
 ]);
 
-const handleAddColonia = () => {
-  if (!newColonia.nombre.trim()) return;
-
-  const nueva: Colonia = {
-    id_colonias: colonias.length + 1,
-    nombre: newColonia.nombre,
-    densidad: newColonia.densidad,
-  };
-
-  setColonias([...colonias, nueva]);
-  setNewColonia({ nombre: "", densidad: "Densidad alta" });
-  setShowModal(false);
+const handleEditColonia = (colonia: Colonia) => {
+  setNewColonia({
+    nombre: colonia.nombre,
+    densidad: colonia.densidad,
+  });
+  setEditingId(colonia.id_colonias);
+  setIsEditing(true);
+  setShowModal(true);
 };
 
+const handleSaveColonia = () => {
+  if (!newColonia.nombre.trim()) return;
+
+  if (isEditing && editingId !== null) {
+    // ✏️ Editar
+    setColonias(
+      colonias.map((c) =>
+        c.id_colonias === editingId
+          ? { ...c, nombre: newColonia.nombre, densidad: newColonia.densidad }
+          : c
+      )
+    );
+  } else {
+    // ➕ Crear
+    const nueva: Colonia = {
+      id_colonias: colonias.length + 1,
+      nombre: newColonia.nombre,
+      densidad: newColonia.densidad,
+    };
+    setColonias([...colonias, nueva]);
+  }
+
+  // Reset
+  setNewColonia({ nombre: "", densidad: "Densidad alta" });
+  setShowModal(false);
+  setIsEditing(false);
+  setEditingId(null);
+};
+
+const handleDeleteColonia = (id: number) => {
+  if (!window.confirm("¿Seguro que deseas eliminar esta colonia?")) return;
+
+  setColonias(colonias.filter((c) => c.id_colonias !== id));
+};
 
   const filteredColonias = colonias.filter((c) => {
   const matchNombre = c.nombre
@@ -114,53 +147,64 @@ const handleAddColonia = () => {
 
           {/* Tabla */}
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-gray-100 text-left text-sm">
-                  <th className="p-3 border">ID</th>
-                  <th className="p-3 border">Nombre</th>
-                  <th className="p-3 border">Densidad</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredColonias.map((colonia) => (
-                  <tr
-                    key={colonia.id_colonias}
-                    className="hover:bg-gray-50 text-sm"
-                  >
-                    <td className="p-3 border">
-                      {colonia.id_colonias}
-                    </td>
-                    <td className="p-3 border">
-                      {colonia.nombre}
-                    </td>
-                    <td className="p-3 border">
-                      {colonia.densidad}
-                    </td>
-                  </tr>
-                ))}
+           <table className="w-full border-collapse">
+  <thead>
+    <tr className="bg-gray-100 text-left text-sm">
+      <th className="p-3 border">ID</th>
+      <th className="p-3 border">Nombre</th>
+      <th className="p-3 border">Densidad</th>
+      <th className="p-3 border">Acciones</th>
+    </tr>
+  </thead>
 
-                {filteredColonias.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={3}
-                      className="p-4 text-center text-gray-500"
-                    >
-                      No se encontraron colonias
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+             <tbody>
+  {filteredColonias.map((colonia) => (
+    <tr
+      key={colonia.id_colonias}
+      className="hover:bg-gray-50 text-sm"
+    >
+      <td className="p-3 border">{colonia.id_colonias}</td>
+      <td className="p-3 border">{colonia.nombre}</td>
+      <td className="p-3 border">{colonia.densidad}</td>
+      <td className="p-3 border flex gap-2">
+        <button
+          onClick={() => handleEditColonia(colonia)}
+          className="px-3 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700"
+        >
+          Editar
+        </button>
+
+        <button
+          onClick={() => handleDeleteColonia(colonia.id_colonias)}
+          className="px-3 py-1 text-sm rounded bg-red-600 text-white hover:bg-red-700"
+        >
+          Eliminar
+        </button>
+      </td>
+    </tr>
+  ))}
+
+  {filteredColonias.length === 0 && (
+    <tr>
+      <td colSpan={4} className="p-4 text-center text-gray-500">
+        No se encontraron colonias
+      </td>
+    </tr>
+  )}
+</tbody>
+</table>
+</div>
           
-        </div>
+</div>
         
-      </main>
+ </main>
       {showModal && (
   <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
     <div className="bg-white rounded-2xl shadow-lg p-6 w-96">
-      <h2 className="text-lg font-bold mb-4">Agregar colonia</h2>
+      <h2 className="text-lg font-bold mb-4">
+  {isEditing ? "Editar colonia" : "Agregar colonia"}
+</h2>
+
 
       <input
         type="text"
@@ -179,6 +223,7 @@ const handleAddColonia = () => {
         }
         className="border rounded-xl px-4 py-2 w-full mb-6"
       >
+        <option>Ninguna</option>
         <option>Densidad alta</option>
         <option>Densidad media</option>
         <option>Densidad baja</option>
@@ -192,13 +237,12 @@ const handleAddColonia = () => {
         >
           Cancelar
         </button>
-
         <button
-          onClick={handleAddColonia}
-          className="px-4 py-2 rounded-xl bg-black text-white hover:bg-gray-800"
-        >
-          Guardar
-        </button>
+  onClick={handleSaveColonia}
+  className="px-4 py-2 rounded-xl bg-black text-white hover:bg-gray-800"
+>
+  {isEditing ? "Actualizar" : "Guardar"}
+</button>
       </div>
     </div>
   </div>

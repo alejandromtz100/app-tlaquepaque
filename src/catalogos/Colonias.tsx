@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { FaSignOutAlt } from "react-icons/fa";
 import Menu from "../layout/menu";
 
 interface Colonia {
@@ -50,18 +51,25 @@ const handleAddColonia = () => {
 });
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      {/* Header */}
-      <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <h1 className="text-xl font-bold text-gray-800">
-            Catálogo de Colonias
-          </h1>
-          <p className="text-sm text-gray-500">
-            H. Ayuntamiento de Tlaquepaque
-          </p>
-        </div>
-      </header>
+      <div className="min-h-screen bg-gray-100 flex flex-col">
+        {/* HEADER */}
+        <header className="bg-white shadow-md">
+          <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div>
+              <h1 className="text-xl font-bold text-gray-800">
+                Sistema de Control de la Edificación ALCH
+              </h1>
+              <p className="text-sm text-gray-500">
+                H. Ayuntamiento de Tlaquepaque
+              </p>
+            </div>
+  
+            <button className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm bg-gray-100 text-gray-700 hover:bg-red-600 hover:text-white transition">
+              <FaSignOutAlt />
+              <span className="hidden sm:inline">Salir</span>
+            </button>
+          </div>
+        </header>
 
       {/* Menu reutilizado */}
       <Menu />

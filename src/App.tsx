@@ -5,11 +5,15 @@ import Login from "./auth/login";
 import Home from "./inicio/home";
 import Tramites from "./catalogos/tramites";
 import Menu from "./layout/menu";
-<<<<<<< HEAD
-import Colonias from "./catalogos/colonias"
-=======
+ 
+ 
+
+
 import Usuarios from "./usuarios/usuarios";
->>>>>>> aedd297 (ruta usuarios menu registrados)
+
+
+import Colonias from "./catalogos/Colonias"
+
 
 
 const App: React.FC = () => {

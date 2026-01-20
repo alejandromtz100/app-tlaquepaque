@@ -5,7 +5,11 @@ import Login from "./auth/login";
 import Home from "./inicio/home";
 import Tramites from "./catalogos/tramites";
 import Menu from "./layout/menu";
+<<<<<<< HEAD
 import Colonias from "./catalogos/colonias"
+=======
+import Usuarios from "./usuarios/usuarios";
+>>>>>>> aedd297 (ruta usuarios menu registrados)
 
 
 const App: React.FC = () => {
@@ -16,6 +20,7 @@ const App: React.FC = () => {
         <Route path="/home" element={<Home />} />
         
         <Route path="/catalogos/tramites" element={<Tramites />} />
+        <Route path="/usuarios" element={<Usuarios />} />
         <Route path="/layout/menu" element={<Menu />} />
 
         <Route path="/catalogos/colonias" element={<Colonias />} />

@@ -5,6 +5,7 @@ import Login from "./auth/login";
 import Home from "./inicio/home";
 import Tramites from "./catalogos/tramites";
 import Menu from "./layout/menu";
+import Colonias from "./catalogos/colinias"
 
 
 const App: React.FC = () => {
@@ -15,6 +16,9 @@ const App: React.FC = () => {
         <Route path="/home" element={<Home />} />
         
         <Route path="/catalogos/tramites" element={<Tramites />} />
+        <Route path="/layout/menu" element={<Menu />} />
+
+        <Route path="/catalogos/colonias" element={<Colonias />} />
         <Route path="/layout/menu" element={<Menu />} />
       </Routes>
     </Router>

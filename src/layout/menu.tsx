@@ -32,7 +32,7 @@ const Menu: React.FC = () => {
           open={openMenu === "catalogos"}
           onClick={() => toggleMenu("catalogos")}
           items={[
-            { label: "Colonias", path: "/catalogos/colonias" },
+            { label: "Colonias", path: "/catalogos/Colonias" },
             { label: "Trámites", path: "/catalogos/tramites" },
             { label: "Conceptos", path: "/catalogos/conceptos" },
             { label: "Directores de obra", path: "/catalogos/directores" },

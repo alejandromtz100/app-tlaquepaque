@@ -1,14 +1,23 @@
 import { useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { Lock } from "lucide-react";
 
-export default function Login() {
-  const [usuario, setUsuario] = useState("");
-  const [clave, setClave] = useState("");
-  const [recordar, setRecordar] = useState(false);
+const Login: React.FC = () => {
+  const [usuario, setUsuario] = useState<string>("");
+  const [clave, setClave] = useState<string>("");
+  const [recordar, setRecordar] = useState<boolean>(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log({ usuario, clave, recordar });
+  };
+
+  const handleUsuarioChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setUsuario(e.target.value);
+  };
+
+  const handleClaveChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setClave(e.target.value);
   };
 
   return (
@@ -37,7 +46,7 @@ export default function Login() {
             <input
               type="text"
               value={usuario}
-              onChange={(e) => setUsuario(e.target.value)}
+              onChange={handleUsuarioChange}
               className="w-full mt-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
               placeholder="Ingresa tu usuario"
               required
@@ -51,7 +60,7 @@ export default function Login() {
             <input
               type="password"
               value={clave}
-              onChange={(e) => setClave(e.target.value)}
+              onChange={handleClaveChange}
               className="w-full mt-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
               placeholder="********"
               required
@@ -89,4 +98,6 @@ export default function Login() {
       </div>
     </div>
   );
-}
+};
+
+export default Login;

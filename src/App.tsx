@@ -5,20 +5,8 @@ import Login from "./auth/login";
 import Home from "./inicio/home";
 import Tramites from "./catalogos/tramites";
 import Menu from "./layout/menu";
-
- 
- 
-
-
 import Usuarios from "./usuarios/usuarios";
 import Colonias from "./catalogos/Colonias"
-
-
-
-
-
-
-
 const App: React.FC = () => {
   return (
     <Router>

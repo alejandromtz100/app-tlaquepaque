@@ -6,13 +6,14 @@ import Home from "./inicio/home";
 import Tramites from "./catalogos/tramites";
 import Menu from "./layout/menu";
 <<<<<<< HEAD
+<<<<<<< HEAD
  
  
 
 
+=======
+>>>>>>> 06cf39a (Actualización App, Trámites y Usuarios)
 import Usuarios from "./usuarios/usuarios";
-
-
 import Colonias from "./catalogos/Colonias"
 
 =======

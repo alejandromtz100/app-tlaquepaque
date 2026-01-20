@@ -18,9 +18,7 @@ const Login: React.FC = () => {
     try {
       const response = await fetch("http://localhost:3001/usuarios/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nombre: usuario,
           clave: clave,
@@ -33,13 +31,11 @@ const Login: React.FC = () => {
 
       const data = await response.json();
 
-      if (recordar) {
-        localStorage.setItem("usuario", JSON.stringify(data.usuario));
-      }
+      // 👉 Guardar sesión
+      localStorage.setItem("usuario", JSON.stringify(data.usuario));
 
-      // 👉 REDIRECCIÓN CUANDO TODO ESTÁ BIEN
+      // 👉 Redirigir
       navigate("/home");
-
     } catch (err: any) {
       setError(err.message);
     }
@@ -48,7 +44,6 @@ const Login: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-300">
       <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-8">
-
         <div className="flex flex-col items-center mb-6">
           <div className="bg-black p-4 rounded-full mb-3">
             <Lock className="text-white" size={32} />

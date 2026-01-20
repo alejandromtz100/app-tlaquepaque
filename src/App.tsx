@@ -5,7 +5,7 @@ import Login from "./auth/login";
 import Home from "./inicio/home";
 import Tramites from "./catalogos/tramites";
 import Menu from "./layout/menu";
-import Colonias from "./catalogos/colinias"
+import Colonias from "./catalogos/colonias"
 
 
 const App: React.FC = () => {

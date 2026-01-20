@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import Login from "./auth/login";
 import Home from "./inicio/home";
+import Tramites from "./catalogos/tramites";
+import Menu from "./layout/menu";
+
 
 const App: React.FC = () => {
   return (
@@ -10,6 +13,9 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/home" element={<Home />} />
+        
+        <Route path="/catalogos/tramites" element={<Tramites />} />
+        <Route path="/layout/menu" element={<Menu />} />
       </Routes>
     </Router>
   );

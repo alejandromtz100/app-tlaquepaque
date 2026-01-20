@@ -1,20 +1,14 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   FaKey,
   FaSearch,
   FaEdit,
   FaPlusCircle,
   FaSignOutAlt,
-  FaChevronDown,
 } from "react-icons/fa";
+import Menu from "../layout/menu";
 
 const Home: React.FC = () => {
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
-
-  const toggleMenu = (menu: string) => {
-    setOpenMenu(openMenu === menu ? null : menu);
-  };
-
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Header */}
@@ -35,78 +29,8 @@ const Home: React.FC = () => {
         </div>
       </header>
 
-      {/* Menu */}
-      <nav className="bg-black text-white">
-        <div className="max-w-7xl mx-auto px-6 py-2 flex justify-center gap-10 text-sm font-medium relative">
-          <span className="cursor-pointer hover:text-gray-300">Inicio</span>
-
-          {/* Catálogos */}
-          <div className="relative">
-            <button
-              onClick={() => toggleMenu("catalogos")}
-              className="flex items-center gap-1 hover:text-gray-300"
-            >
-              Catálogos <FaChevronDown size={12} />
-            </button>
-            {openMenu === "catalogos" && (
-              <div className="absolute top-8 left-0 bg-white text-black rounded-xl shadow-lg w-56 py-2 z-50">
-                <MenuItem text="Colonias" />
-                <MenuItem text="Trámites" />
-                <MenuItem text="Conceptos" />
-                <MenuItem text="Directores de obra" />
-                <MenuItem text="Listado de conceptos" />
-              </div>
-            )}
-          </div>
-
-          {/* Usuarios */}
-          <div className="relative">
-            <button
-              onClick={() => toggleMenu("usuarios")}
-              className="flex items-center gap-1 hover:text-gray-300"
-            >
-              Usuarios <FaChevronDown size={12} />
-            </button>
-            {openMenu === "usuarios" && (
-              <div className="absolute top-8 left-0 bg-white text-black rounded-xl shadow-lg w-56 py-2 z-50">
-                <MenuItem text="Usuarios registrados" />
-                <MenuItem text="Asignaciones especiales" />
-              </div>
-            )}
-          </div>
-
-          {/* Obras */}
-          <div className="relative">
-            <button
-              onClick={() => toggleMenu("obras")}
-              className="flex items-center gap-1 hover:text-gray-300"
-            >
-              Obras <FaChevronDown size={12} />
-            </button>
-            {openMenu === "obras" && (
-              <div className="absolute top-8 left-0 bg-white text-black rounded-xl shadow-lg w-56 py-2 z-50">
-                <MenuItem text="Listado de obras registradas" />
-              </div>
-            )}
-          </div>
-
-          {/* Reportes */}
-          <div className="relative">
-            <button
-              onClick={() => toggleMenu("reportes")}
-              className="flex items-center gap-1 hover:text-gray-300"
-            >
-              Reportes <FaChevronDown size={12} />
-            </button>
-            {openMenu === "reportes" && (
-              <div className="absolute top-8 left-0 bg-white text-black rounded-xl shadow-lg w-56 py-2 z-50">
-                <MenuItem text="Reportes del sistema" />
-                <MenuItem text="Reporte de conceptos" />
-              </div>
-            )}
-          </div>
-        </div>
-      </nav>
+      {/* Menu separado */}
+      <Menu />
 
       {/* Content */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -141,12 +65,6 @@ const Home: React.FC = () => {
     </div>
   );
 };
-
-const MenuItem = ({ text }: { text: string }) => (
-  <div className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm">
-    {text}
-  </div>
-);
 
 const Action = ({ icon, text }: { icon: React.ReactNode; text: string }) => (
   <button className="flex items-center gap-3 p-3 border rounded-xl hover:bg-gray-100 transition">

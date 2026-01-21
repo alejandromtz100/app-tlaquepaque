@@ -1,47 +1,85 @@
-import React, { useState } from "react";
-
+import React, { useEffect, useState } from "react";
 import Menu from "../layout/menu";
-
-interface Tramite {
-  id: number;
-  nombre: string;
-  letra: string;
-}
+import { TramitesService } from "../services/tramites.service";
+import type { Tramite } from "../services/tramites.service";
 
 const Tramites: React.FC = () => {
-  const [tramites, setTramites] = useState<Tramite[]>([
-    { id: 1, nombre: "Alineamiento", letra: "A" },
-    { id: 2, nombre: "AMPLIACION HABITACIONAL MENOR", letra: "L" },
-    { id: 3, nombre: "Habitabilidad", letra: "H" },
-    { id: 4, nombre: "Licencia Mayor", letra: "L" },
-    { id: 5, nombre: "Licencia Menor", letra: "L" },
-    { id: 6, nombre: "Licencia sin conceptos", letra: "L" },
-    { id: 7, nombre: "Prueba", letra: "P" },
-    { id: 8, nombre: "Trámite de Prueba", letra: "J" },
-  ]);
-
+  const [tramites, setTramites] = useState<Tramite[]>([]);
   const [nombre, setNombre] = useState("");
   const [letra, setLetra] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [tramiteEditando, setTramiteEditando] = useState<Tramite | null>(null);
 
-  const agregarTramite = () => {
+  useEffect(() => {
+    cargarTramites();
+  }, []);
+
+  const cargarTramites = async () => {
+    try {
+      const data = await TramitesService.getAll();
+      setTramites(data);
+    } catch (error) {
+      console.error(error);
+      alert("Error al cargar trámites");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const editarTramite = (tramite: Tramite) => {
+    setTramiteEditando(tramite);
+    setNombre(tramite.nombre);
+    setLetra(tramite.letra);
+  };
+
+  const guardarTramite = async () => {
     if (!nombre || !letra) return;
 
-    setTramites([
-      ...tramites,
-      { id: Date.now(), nombre, letra },
-    ]);
+    try {
+      if (tramiteEditando) {
+        const actualizado = await TramitesService.update(tramiteEditando.id, {
+          nombre,
+          letra,
+        });
 
-    setNombre("");
-    setLetra("");
+        setTramites(
+          tramites.map((t) =>
+            t.id === actualizado.id ? actualizado : t
+          )
+        );
+      } else {
+        const nuevo = await TramitesService.create({ nombre, letra });
+        setTramites([nuevo, ...tramites]);
+      }
+
+      setNombre("");
+      setLetra("");
+      setTramiteEditando(null);
+    } catch (error) {
+      console.error(error);
+      alert("Error al guardar trámite");
+    }
+  };
+
+  const eliminarTramite = async (id: number) => {
+    if (!confirm("¿Seguro que deseas eliminar este trámite?")) return;
+
+    try {
+      await TramitesService.remove(id);
+      setTramites(tramites.filter((t) => t.id !== id));
+    } catch (error) {
+      console.error(error);
+      alert("Error al eliminar trámite");
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      {/* Header */}
+      {/* HEADER */}
       <header className="bg-white shadow-md">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <h1 className="text-xl font-bold text-gray-800">
-             Sistema de Control de la Edificación ALCH
+            Sistema de Control de la Edificación ALCH
           </h1>
           <p className="text-sm text-gray-500">
             H. Ayuntamiento de Tlaquepaque
@@ -49,12 +87,10 @@ const Tramites: React.FC = () => {
         </div>
       </header>
 
-      {/* MENU */}
       <Menu />
 
-      {/* CONTENIDO */}
       <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8 space-y-8">
-        {/* TABLA DE TRÁMITES */}
+        {/* TABLA */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="bg-black text-white text-center py-2 font-semibold">
             Trámites
@@ -65,39 +101,61 @@ const Tramites: React.FC = () => {
               Total de Registros: {tramites.length}
             </p>
 
-            <table className="w-full border border-gray-300 text-left">
-              <thead className="bg-gray-200">
-                <tr>
-                  <th className="border px-3 py-2">Trámite</th>
-                  <th className="border px-3 py-2 w-20">Letra</th>
-                  <th className="border px-3 py-2 w-64">Opciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tramites.map((t) => (
-                  <tr key={t.id} className="hover:bg-gray-100">
-                    <td className="border px-3 py-2">{t.nombre}</td>
-                    <td className="border px-3 py-2 text-center">{t.letra}</td>
-                    <td className="border px-3 py-2 text-blue-600 space-x-2">
-                      <button className="hover:underline">
-                        Modificar Trámite
-                      </button>
-                      /
-                      <button className="hover:underline">
-                        Definir Conceptos
-                      </button>
-                    </td>
+            {loading ? (
+              <p>Cargando...</p>
+            ) : (
+              <table className="w-full border border-gray-300 text-left">
+                <thead className="bg-gray-200">
+                  <tr>
+                    <th className="border px-3 py-2">Trámite</th>
+                    <th className="border px-3 py-2 w-20">Letra</th>
+                    <th className="border px-3 py-2 w-64">Opciones</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {tramites.map((t) => (
+                    <tr key={t.id} className="hover:bg-gray-100">
+                      <td className="border px-3 py-2">{t.nombre}</td>
+                      <td className="border px-3 py-2 text-center">
+                        {t.letra}
+                      </td>
+                      <td className="border px-3 py-2 space-x-2 text-sm">
+  <button
+    onClick={() => editarTramite(t)}
+    className="text-blue-600 hover:underline"
+  >
+    Modificar Trámite
+  </button>
+
+  /
+
+  <button
+    className="text-green-600 hover:underline"
+  >
+    Definir Conceptos
+  </button>
+
+  /
+
+  <button
+    onClick={() => eliminarTramite(t.id)}
+    className="text-red-600 hover:underline"
+  >
+    Eliminar
+  </button>
+</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
 
-        {/* AGREGAR / EDITAR */}
+        {/* FORMULARIO */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="bg-black text-white text-center py-2 font-semibold">
-            Agregar / Editar Trámite
+            {tramiteEditando ? "Editar Trámite" : "Agregar Trámite"}
           </div>
 
           <div className="p-6 space-y-4 text-sm">
@@ -116,21 +174,25 @@ const Tramites: React.FC = () => {
                 maxLength={1}
                 className="w-20 border rounded px-3 py-2"
                 value={letra}
-                onChange={(e) => setLetra(e.target.value.toUpperCase())}
+                onChange={(e) =>
+                  setLetra(e.target.value.toUpperCase())
+                }
               />
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
               <button
-                onClick={agregarTramite}
+                onClick={guardarTramite}
                 className="bg-black text-white px-5 py-2 rounded-full text-sm hover:bg-gray-800"
               >
-                Agregar
+                {tramiteEditando ? "Actualizar" : "Agregar"}
               </button>
+
               <button
                 onClick={() => {
                   setNombre("");
                   setLetra("");
+                  setTramiteEditando(null);
                 }}
                 className="bg-gray-300 px-5 py-2 rounded-full text-sm hover:bg-gray-400"
               >
@@ -141,7 +203,6 @@ const Tramites: React.FC = () => {
         </div>
       </main>
 
-      {/* FOOTER */}
       <footer className="bg-black text-white text-center py-3 text-sm">
         Informática · H. Ayuntamiento de Tlaquepaque
       </footer>

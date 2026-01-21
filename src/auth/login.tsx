@@ -31,11 +31,32 @@ const Login: React.FC = () => {
 
       const data = await response.json();
 
+<<<<<<< HEAD
       // 👉 Guardar sesión
       localStorage.setItem("usuario", JSON.stringify(data.usuario));
 
       // 👉 Redirigir
       navigate("/home");
+=======
+      /* ======================
+         VALIDAR ESTADO
+      ====================== */
+      if (data.usuario.estado !== "Activo") {
+        throw new Error("Tu usuario está inactivo. Contacta al administrador.");
+      }
+
+      /* ======================
+         GUARDAR SESIÓN
+      ====================== */
+      localStorage.setItem("usuario", JSON.stringify(data.usuario));
+
+      /* ======================
+         REDIRECCIÓN POR ROL
+      ====================== */
+      navigate("/home");
+
+
+>>>>>>> 0cbeb15 (modificar usuario actal)
     } catch (err: any) {
       setError(err.message);
     }

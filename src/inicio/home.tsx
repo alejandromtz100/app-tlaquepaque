@@ -9,6 +9,7 @@ import {
 } from "react-icons/fa";
 import Menu from "../layout/menu";
 
+<<<<<<< HEAD
 interface Usuario {
   id: number;
   nombre: string;
@@ -17,6 +18,8 @@ interface Usuario {
   estado: string;
   funcion: string;
 }
+=======
+>>>>>>> 0cbeb15 (modificar usuario actal)
 
 const Home: React.FC = () => {
   const [usuario, setUsuario] = useState<Usuario | null>(null);

@@ -26,35 +26,27 @@ const Login: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error("Usuario o contraseña incorrectos");
+        throw new Error("Tu usuario está inactivo. Contacta al administrador.");
       }
 
       const data = await response.json();
 
+/* ======================
+   VALIDAR ESTADO
+====================== */
+if (data.usuario.estado !== "Activo") {
+  throw new Error("Tu usuario está inactivo. Contacta al administrador.");
+}
 
-      // 👉 Guardar sesión
-      localStorage.setItem("usuario", JSON.stringify(data.usuario));
+/* ======================
+   GUARDAR SESIÓN
+====================== */
+localStorage.setItem("usuario", JSON.stringify(data.usuario));
 
-      // 👉 Redirigir
-      navigate("/home");
-
-      /* ======================
-         VALIDAR ESTADO
-      ====================== */
-      if (data.usuario.estado !== "Activo") {
-        throw new Error("Tu usuario está inactivo. Contacta al administrador.");
-      }
-
-      /* ======================
-         GUARDAR SESIÓN
-      ====================== */
-      localStorage.setItem("usuario", JSON.stringify(data.usuario));
-
-      /* ======================
-         REDIRECCIÓN POR ROL
-      ====================== */
-      navigate("/home");
-
+/* ======================
+   REDIRECCIÓN
+====================== */
+navigate("/home");
 
 
     } catch (err: any) {

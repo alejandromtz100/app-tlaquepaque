@@ -8,6 +8,8 @@ import Menu from "./layout/menu";
 import Usuarios from "./usuarios/usuarios";
 import Colonias from "./catalogos/Colonias";
 import Asignaciones from "./usuarios/asignaciones";
+import Directores from "./catalogos/directores";
+
 
 const App: React.FC = () => {
   return (
@@ -22,6 +24,8 @@ const App: React.FC = () => {
 
         <Route path="/usuarios" element={<Usuarios />} />
         <Route path="/usuarios/asignaciones" element={<Asignaciones />} />
+        <Route path="/catalogos/directores" element={<Directores />} />
+
       </Routes>
     </Router>
   );

@@ -14,18 +14,24 @@ interface Cargo {
   nombre: string;
 }
 
+interface FuncionUsuario {
+  id_funcion: number;
+  nombre: string;
+}
+
 interface Usuario {
   id_usuarios?: number; // opcional para nuevo usuario
   nombre: string;
   ap_paterno?: string;
   ap_materno?: string;
   telefono?: string;
+  usuario?: string;
+  clave?: string;
   rol?: string;
   estado?: string;
-  funcion?: string;
   area?: Area;
-  cargo?: Cargo; // 🔹 añadimos cargo
-  clave?: string; // 🔹 añadimos clave
+  cargo?: Cargo;
+  funcionEspecial?: FuncionUsuario;
   fechaCreacion?: string;
 }
 
@@ -35,6 +41,7 @@ interface Usuario {
 const Usuarios: React.FC = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
+  const [funciones, setFunciones] = useState<FuncionUsuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
   const [nuevoUsuario, setNuevoUsuario] = useState<Usuario | null>(null);
@@ -43,21 +50,24 @@ const Usuarios: React.FC = () => {
   const esAdmin = usuarioLogueado?.rol === "ADMIN";
 
   /* ======================
-     CARGAR USUARIOS Y AREAS
+     CARGAR USUARIOS, AREAS Y FUNCIONES
   ====================== */
   useEffect(() => {
-    const fetchUsuariosYAreas = async () => {
+    const fetchDatos = async () => {
       try {
-        const [resUsuarios, resAreas] = await Promise.all([
+        const [resUsuarios, resAreas, resFunciones] = await Promise.all([
           fetch("http://localhost:3001/usuarios"),
           fetch("http://localhost:3001/areas"),
+          fetch("http://localhost:3001/asignaciones/funciones"),
         ]);
 
         const dataUsuarios = await resUsuarios.json();
         const dataAreas = await resAreas.json();
+        const dataFunciones = await resFunciones.json();
 
         setUsuarios(dataUsuarios);
         setAreas(dataAreas);
+        setFunciones(dataFunciones);
         setLoading(false);
       } catch (error) {
         console.error("Error al cargar datos:", error);
@@ -65,7 +75,7 @@ const Usuarios: React.FC = () => {
       }
     };
 
-    fetchUsuariosYAreas();
+    fetchDatos();
   }, []);
 
   /* ======================
@@ -95,8 +105,13 @@ const Usuarios: React.FC = () => {
 
     const payload = {
       ...usuarioEditando,
+      usuario: usuarioEditando.usuario,
+      clave: usuarioEditando.clave,
       area: usuarioEditando.area ? { id_area: usuarioEditando.area.id_area } : null,
-      cargo: usuarioEditando.cargo?.nombre || null, // 🔹 enviamos solo el nombre
+      cargo: usuarioEditando.cargo?.nombre || null,
+      funcionEspecial: usuarioEditando.funcionEspecial
+        ? { id_funcion: usuarioEditando.funcionEspecial.id_funcion }
+        : null,
     };
 
     const res = await fetch(
@@ -120,15 +135,25 @@ const Usuarios: React.FC = () => {
   };
 
   /* ======================
-     AGREGAR NUEVO USUARIO
+     GUARDAR NUEVO USUARIO
   ====================== */
   const guardarNuevoUsuario = async () => {
     if (!nuevoUsuario) return;
 
     const payload = {
-      ...nuevoUsuario,
+      nombre: nuevoUsuario.nombre,
+      ap_paterno: nuevoUsuario.ap_paterno,
+      ap_materno: nuevoUsuario.ap_materno,
+      telefono: nuevoUsuario.telefono,
+      usuario: nuevoUsuario.usuario,
+      clave: nuevoUsuario.clave,
+      rol: nuevoUsuario.rol,
+      estado: nuevoUsuario.estado,
       area: nuevoUsuario.area ? { id_area: nuevoUsuario.area.id_area } : null,
-      cargo: nuevoUsuario.cargo?.nombre || null, // 🔹 enviamos solo el nombre
+      cargo: nuevoUsuario.cargo?.nombre || null,
+      funcionEspecial: nuevoUsuario.funcionEspecial
+        ? { id_funcion: nuevoUsuario.funcionEspecial.id_funcion }
+        : null,
     };
 
     const res = await fetch("http://localhost:3001/usuarios", {
@@ -138,7 +163,6 @@ const Usuarios: React.FC = () => {
     });
 
     const data = await res.json();
-
     setUsuarios([...usuarios, data]);
     setNuevoUsuario(null);
   };
@@ -189,11 +213,13 @@ const Usuarios: React.FC = () => {
                         ap_paterno: "",
                         ap_materno: "",
                         telefono: "",
+                        usuario: "",
+                        clave: "",
                         rol: "",
                         estado: "Activo",
                         area: undefined,
-                        cargo: { nombre: "" }, // 🔹 cargo vacío
-                        clave: "",
+                        cargo: { nombre: "" },
+                        funcionEspecial: undefined,
                       })
                     }
                   >
@@ -215,6 +241,7 @@ const Usuarios: React.FC = () => {
                         <th className="border px-3 py-2">Estado</th>
                         <th className="border px-3 py-2">Área</th>
                         <th className="border px-3 py-2">Cargo</th>
+                        <th className="border px-3 py-2">Función</th>
                         <th className="border px-3 py-2">Fecha Creación</th>
                         <th className="border px-3 py-2">Opciones</th>
                       </tr>
@@ -230,6 +257,7 @@ const Usuarios: React.FC = () => {
                           <td className="border px-3 py-2">{u.estado}</td>
                           <td className="border px-3 py-2">{u.area?.nombre || "-"}</td>
                           <td className="border px-3 py-2">{u.cargo?.nombre || "-"}</td>
+                          <td className="border px-3 py-2">{u.funcionEspecial?.nombre || "-"}</td>
                           <td className="border px-3 py-2">
                             {u.fechaCreacion
                               ? new Date(u.fechaCreacion).toLocaleDateString()
@@ -292,7 +320,15 @@ const Usuarios: React.FC = () => {
                 />
               ))}
 
-              {/* Clave */}
+              <input
+                className="border p-2 rounded"
+                placeholder="Usuario"
+                value={usuarioEditando.usuario || ""}
+                onChange={(e) =>
+                  setUsuarioEditando({ ...usuarioEditando, usuario: e.target.value })
+                }
+              />
+
               <input
                 type="password"
                 className="border p-2 rounded"
@@ -303,7 +339,6 @@ const Usuarios: React.FC = () => {
                 }
               />
 
-              {/* Cargo manual */}
               <input
                 className="border p-2 rounded"
                 placeholder="Cargo"
@@ -359,6 +394,24 @@ const Usuarios: React.FC = () => {
                   </option>
                 ))}
               </select>
+
+              {/* Select función */}
+              <select
+                className="border p-2 rounded"
+                value={usuarioEditando.funcionEspecial?.id_funcion || ""}
+                onChange={(e) => {
+                  const id_funcion = Number(e.target.value);
+                  const funcion = funciones.find((f) => f.id_funcion === id_funcion);
+                  setUsuarioEditando({ ...usuarioEditando, funcionEspecial: funcion });
+                }}
+              >
+                <option value="">Selecciona una función</option>
+                {funciones.map((f) => (
+                  <option key={f.id_funcion} value={f.id_funcion}>
+                    {f.nombre}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="mt-4 flex gap-3">
@@ -396,7 +449,15 @@ const Usuarios: React.FC = () => {
                 />
               ))}
 
-              {/* Clave */}
+              <input
+                className="border p-2 rounded"
+                placeholder="Usuario"
+                value={nuevoUsuario.usuario || ""}
+                onChange={(e) =>
+                  setNuevoUsuario({ ...nuevoUsuario, usuario: e.target.value })
+                }
+              />
+
               <input
                 type="password"
                 className="border p-2 rounded"
@@ -407,7 +468,6 @@ const Usuarios: React.FC = () => {
                 }
               />
 
-              {/* Cargo manual */}
               <input
                 className="border p-2 rounded"
                 placeholder="Cargo"
@@ -457,6 +517,24 @@ const Usuarios: React.FC = () => {
                 {areas.map((a) => (
                   <option key={a.id_area} value={a.id_area}>
                     {a.nombre}
+                  </option>
+                ))}
+              </select>
+
+              {/* Select función */}
+              <select
+                className="border p-2 rounded"
+                value={nuevoUsuario.funcionEspecial?.id_funcion || ""}
+                onChange={(e) => {
+                  const id_funcion = Number(e.target.value);
+                  const funcion = funciones.find((f) => f.id_funcion === id_funcion);
+                  setNuevoUsuario({ ...nuevoUsuario, funcionEspecial: funcion });
+                }}
+              >
+                <option value="">Selecciona una función</option>
+                {funciones.map((f) => (
+                  <option key={f.id_funcion} value={f.id_funcion}>
+                    {f.nombre}
                   </option>
                 ))}
               </select>

@@ -1,95 +1,150 @@
 import React, { useEffect, useState } from "react";
+import { FaSignOutAlt } from "react-icons/fa";
 import Menu from "../layout/menu";
 import { TramitesService } from "../services/tramites.service";
 import type { Tramite } from "../services/tramites.service";
 
 const Tramites: React.FC = () => {
   const [tramites, setTramites] = useState<Tramite[]>([]);
+  const [search, setSearch] = useState("");
+
+  const [showForm, setShowForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
   const [nombre, setNombre] = useState("");
   const [letra, setLetra] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [tramiteEditando, setTramiteEditando] = useState<Tramite | null>(null);
+
+  /* PAGINACIÓN */
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     cargarTramites();
   }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
   const cargarTramites = async () => {
+    const data = await TramitesService.getAll();
+    setTramites(data);
+  };
+
+  const handleEdit = (t: Tramite) => {
+    setNombre(t.nombre);
+    setLetra(t.letra);
+    setEditingId(t.id);
+    setIsEditing(true);
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    if (!nombre || !letra) return;
+
     try {
-      const data = await TramitesService.getAll();
-      setTramites(data);
-    } catch (error) {
-      console.error(error);
-      alert("Error al cargar trámites");
+      setLoading(true);
+
+      if (isEditing && editingId !== null) {
+        await TramitesService.update(editingId, { nombre, letra });
+      } else {
+        await TramitesService.create({ nombre, letra });
+      }
+
+      await cargarTramites();
+      setSuccess(true);
+
+      setTimeout(() => {
+        setShowForm(false);
+        setSuccess(false);
+        setIsEditing(false);
+        setEditingId(null);
+        setNombre("");
+        setLetra("");
+      }, 1200);
+    } catch {
+      alert("Error al guardar trámite");
     } finally {
       setLoading(false);
     }
   };
 
-  const editarTramite = (tramite: Tramite) => {
-    setTramiteEditando(tramite);
-    setNombre(tramite.nombre);
-    setLetra(tramite.letra);
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("¿Seguro que deseas eliminar este trámite?")) return;
+    await TramitesService.remove(id);
+    await cargarTramites();
   };
 
-  const guardarTramite = async () => {
-    if (!nombre || !letra) return;
+  /* FILTRO */
+  const filteredTramites = tramites.filter((t) =>
+    t.nombre.toLowerCase().includes(search.toLowerCase())
+  );
 
-    try {
-      if (tramiteEditando) {
-        const actualizado = await TramitesService.update(tramiteEditando.id, {
-          nombre,
-          letra,
-        });
+  /* PAGINACIÓN */
+  const totalPages = Math.ceil(filteredTramites.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentTramites = filteredTramites.slice(startIndex, endIndex);
 
-        setTramites(
-          tramites.map((t) =>
-            t.id === actualizado.id ? actualizado : t
-          )
-        );
-      } else {
-        const nuevo = await TramitesService.create({ nombre, letra });
-        setTramites([nuevo, ...tramites]);
-      }
+  const maxButtons = 5;
+  let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+  let endPage = startPage + maxButtons - 1;
 
-      setNombre("");
-      setLetra("");
-      setTramiteEditando(null);
-    } catch (error) {
-      console.error(error);
-      alert("Error al guardar trámite");
-    }
-  };
-
-  const eliminarTramite = async (id: number) => {
-    if (!confirm("¿Seguro que deseas eliminar este trámite?")) return;
-
-    try {
-      await TramitesService.remove(id);
-      setTramites(tramites.filter((t) => t.id !== id));
-    } catch (error) {
-      console.error(error);
-      alert("Error al eliminar trámite");
-    }
-  };
+  if (endPage > totalPages) {
+    endPage = totalPages;
+    startPage = Math.max(1, endPage - maxButtons + 1);
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* HEADER */}
       <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <h1 className="text-xl font-bold text-gray-800">
-            Sistema de Control de la Edificación ALCH
-          </h1>
-          <p className="text-sm text-gray-500">
-            H. Ayuntamiento de Tlaquepaque
-          </p>
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-bold text-gray-800">
+              Sistema de Control de la Edificación ALCH
+            </h1>
+            <p className="text-sm text-gray-500">
+              H. Ayuntamiento de Tlaquepaque
+            </p>
+          </div>
+
+          <button className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm bg-gray-100 text-gray-700 hover:bg-red-600 hover:text-white transition">
+            <FaSignOutAlt />
+            <span className="hidden sm:inline">Salir</span>
+          </button>
         </div>
       </header>
 
       <Menu />
 
-      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8 space-y-8">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-8 space-y-6">
+        {/* BUSCADOR */}
+        <div className="bg-white rounded-2xl shadow-lg p-4 flex flex-wrap gap-4 items-center">
+          <input
+            type="text"
+            placeholder="Buscar trámite..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="border rounded-xl px-4 py-2 w-64"
+          />
+
+          <button
+            onClick={() => {
+              setShowForm(true);
+              setIsEditing(false);
+              setNombre("");
+              setLetra("");
+            }}
+            className="bg-black text-white px-4 py-2 rounded-xl hover:bg-gray-800"
+          >
+            + Agregar trámite
+          </button>
+        </div>
+
         {/* TABLA */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="bg-black text-white text-center py-2 font-semibold">
@@ -97,111 +152,141 @@ const Tramites: React.FC = () => {
           </div>
 
           <div className="p-4 text-sm">
-            <p className="mb-2 font-medium">
-              Total de Registros: {tramites.length}
-            </p>
-
-            {loading ? (
-              <p>Cargando...</p>
-            ) : (
-              <table className="w-full border border-gray-300 text-left">
-                <thead className="bg-gray-200">
-                  <tr>
-                    <th className="border px-3 py-2">Trámite</th>
-                    <th className="border px-3 py-2 w-20">Letra</th>
-                    <th className="border px-3 py-2 w-64">Opciones</th>
+            <table className="w-full border border-gray-300">
+              <thead className="bg-gray-200">
+                <tr>
+                  <th className="border px-3 py-2">ID</th>
+                  <th className="border px-3 py-2">Nombre</th>
+                  <th className="border px-3 py-2">Letra</th>
+                  <th className="border px-3 py-2 w-48">Opciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentTramites.map((t) => (
+                  <tr key={t.id} className="hover:bg-gray-100 transition">
+                    <td className="border px-3 py-2">{t.id}</td>
+                    <td className="border px-3 py-2">{t.nombre}</td>
+                    <td className="border px-3 py-2 text-center">{t.letra}</td>
+                    <td className="border px-3 py-2 space-x-3 text-sm">
+                      <button
+                        onClick={() => handleEdit(t)}
+                        className="text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Editar
+                      </button>
+                      |
+                      <button
+                        onClick={() => handleDelete(t.id)}
+                        className="text-red-600 hover:text-red-800 font-medium"
+                      >
+                        Eliminar
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {tramites.map((t) => (
-                    <tr key={t.id} className="hover:bg-gray-100">
-                      <td className="border px-3 py-2">{t.nombre}</td>
-                      <td className="border px-3 py-2 text-center">
-                        {t.letra}
-                      </td>
-                      <td className="border px-3 py-2 space-x-2 text-sm">
-  <button
-    onClick={() => editarTramite(t)}
-    className="text-blue-600 hover:underline"
-  >
-    Modificar Trámite
-  </button>
+                ))}
+              </tbody>
+            </table>
 
-  /
+            {/* PAGINACIÓN */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 text-sm">
+              <span className="text-gray-600">
+                Mostrando {startIndex + 1} -{" "}
+                {Math.min(endIndex, filteredTramites.length)} de{" "}
+                {filteredTramites.length} registros
+              </span>
 
-  <button
-    className="text-green-600 hover:underline"
-  >
-    Definir Conceptos
-  </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 rounded-lg border hover:bg-gray-100 disabled:opacity-40"
+                >
+                  «
+                </button>
 
-  /
-
-  <button
-    onClick={() => eliminarTramite(t.id)}
-    className="text-red-600 hover:underline"
-  >
-    Eliminar
-  </button>
-</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-
-        {/* FORMULARIO */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="bg-black text-white text-center py-2 font-semibold">
-            {tramiteEditando ? "Editar Trámite" : "Agregar Trámite"}
-          </div>
-
-          <div className="p-6 space-y-4 text-sm">
-            <div className="grid grid-cols-4 gap-4 items-center">
-              <label className="font-medium">Nombre del Trámite</label>
-              <input
-                type="text"
-                className="col-span-3 border rounded px-3 py-2"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-              />
-
-              <label className="font-medium">Letra</label>
-              <input
-                type="text"
-                maxLength={1}
-                className="w-20 border rounded px-3 py-2"
-                value={letra}
-                onChange={(e) =>
-                  setLetra(e.target.value.toUpperCase())
-                }
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                onClick={guardarTramite}
-                className="bg-black text-white px-5 py-2 rounded-full text-sm hover:bg-gray-800"
-              >
-                {tramiteEditando ? "Actualizar" : "Agregar"}
-              </button>
-
-              <button
-                onClick={() => {
-                  setNombre("");
-                  setLetra("");
-                  setTramiteEditando(null);
-                }}
-                className="bg-gray-300 px-5 py-2 rounded-full text-sm hover:bg-gray-400"
-              >
-                Cancelar
-              </button>
+                {Array.from({ length: endPage - startPage + 1 }).map((_, i) => {
+                  const page = startPage + i;
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1 rounded-lg border transition ${
+                        currentPage === page
+                          ? "bg-black text-white"
+                          : "hover:bg-gray-100"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
       </main>
+
+      {/* PANEL LATERAL */}
+      {showForm && (
+        <div className="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-white shadow-2xl z-50 flex flex-col border-l">
+          <div className="px-6 py-4 border-b flex justify-between items-center">
+            <h2 className="text-lg font-bold">
+              {isEditing ? "Editar trámite" : "Nuevo trámite"}
+            </h2>
+            <button
+              onClick={() => setShowForm(false)}
+              className="text-gray-500 hover:text-black text-xl"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="p-6 space-y-4 flex-1 overflow-auto">
+            {success && (
+              <div className="bg-green-100 text-green-700 px-4 py-2 rounded">
+                ✔ Trámite guardado correctamente
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Nombre</label>
+              <input
+                type="text"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                className="border rounded-xl px-3 py-2 w-full"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Letra</label>
+              <input
+                type="text"
+                maxLength={1}
+                value={letra}
+                onChange={(e) => setLetra(e.target.value.toUpperCase())}
+                className="border rounded-xl px-3 py-2 w-full"
+              />
+            </div>
+          </div>
+
+          <div className="p-6 border-t flex justify-end gap-3">
+            <button
+              onClick={() => setShowForm(false)}
+              className="px-4 py-2 rounded border hover:bg-gray-100"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={loading}
+              className="bg-black text-white px-4 py-2 rounded-xl"
+            >
+              {loading ? "Guardando..." : isEditing ? "Actualizar" : "Guardar"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <footer className="bg-black text-white text-center py-3 text-sm">
         Informática · H. Ayuntamiento de Tlaquepaque

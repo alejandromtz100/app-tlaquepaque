@@ -9,6 +9,7 @@ import Usuarios from "./usuarios/usuarios";
 import Colonias from "./catalogos/Colonias";
 import Asignaciones from "./usuarios/asignaciones";
 import Directores from "./catalogos/directores";
+import Conceptos from "./catalogos/conceptos";
 
 
 const App: React.FC = () => {
@@ -20,6 +21,8 @@ const App: React.FC = () => {
 
         <Route path="/catalogos/tramites" element={<Tramites />} />
         <Route path="/catalogos/colonias" element={<Colonias />} />
+        <Route path="/catalogos/conceptos" element={<Conceptos />} />
+
         <Route path="/menu" element={<Menu />} />
 
         <Route path="/usuarios" element={<Usuarios />} />

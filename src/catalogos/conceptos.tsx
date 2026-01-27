@@ -4,6 +4,10 @@ import Menu from "../layout/menu";
 import { getConceptosArbol } from "../services/conceptos.service";
 import type { Concepto } from "../types/concepto";
 import { updateConcepto } from "../services/conceptos.service";
+import { createConcepto } from "../services/conceptos.service";
+import { deleteConcepto } from "../services/conceptos.service";
+
+
 
 const Conceptos: React.FC = () => {
   const [conceptos, setConceptos] = useState<Concepto[]>([]);
@@ -12,6 +16,11 @@ const Conceptos: React.FC = () => {
   const [form, setForm] = useState<Partial<Concepto>>({});
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const [nuevo, setNuevo] = useState<Partial<Concepto>>({});
+  const [deleting, setDeleting] = useState(false);
+
+
 
   useEffect(() => {
     cargarConceptos();
@@ -84,6 +93,7 @@ const filtrarArbol = (
          onClick={() => {
            setSelected(c);
             setIsEditing(false);
+            setIsCreating(false);
             setForm(c);
             }}
           className={`cursor-pointer px-3 py-1 rounded-xl text-sm
@@ -101,6 +111,64 @@ const filtrarArbol = (
       </div>
     ));
   };
+
+  const crearConcepto = async () => {
+  if (!nuevo.nombre) {
+    alert("El nombre es obligatorio");
+    return;
+  }
+
+  try {
+    setSaving(true);
+
+    const creado = await createConcepto({
+      nombre: nuevo.nombre,
+      observaciones: nuevo.observaciones,
+      medicion: nuevo.medicion,
+      costo: nuevo.costo,
+      porcentaje: nuevo.porcentaje,
+      estado: nuevo.estado ?? true,
+      parent_id: nuevo.parent_id,
+      cuenta_tesoreria: nuevo.cuenta_tesoreria,
+    });
+
+    await cargarConceptos();
+    setSelected(creado);
+    setIsCreating(false);
+    setNuevo({});
+  } catch {
+    alert("Error al crear concepto");
+  } finally {
+    setSaving(false);
+  }
+};
+
+const eliminarConcepto = async () => {
+  if (!selected) return;
+
+  const confirmar = window.confirm(
+    `¿Deseas eliminar el concepto "${selected.nombre}"?\n\nEsta acción no se puede deshacer.`
+  );
+
+  if (!confirmar) return;
+
+  try {
+    setDeleting(true);
+    await deleteConcepto(selected.id);
+    await cargarConceptos();
+
+    setSelected(null);
+    setIsEditing(false);
+    setIsCreating(false);
+  } catch {
+    alert(
+      "No se puede eliminar el concepto.\n\nVerifica que no tenga conceptos hijos."
+    );
+  } finally {
+    setDeleting(false);
+  }
+};
+
 
 const conceptosFiltrados = filtrarArbol(conceptos, search);
 
@@ -132,8 +200,8 @@ const conceptosFiltrados = filtrarArbol(conceptos, search);
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
         <div className="bg-white rounded-2xl shadow-lg p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          {/* Árbol */}
-          <div className="border rounded-xl p-4 overflow-y-auto max-h-[600px]">
+        {/* Árbol */}
+<div className="border rounded-xl p-4 overflow-y-auto max-h-[600px]">
   <h2 className="font-bold mb-3">Conceptos</h2>
 
   <input
@@ -144,16 +212,132 @@ const conceptosFiltrados = filtrarArbol(conceptos, search);
     className="mb-3 w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black"
   />
 
+  <button
+    onClick={() => {
+      setIsCreating(true);
+      setIsEditing(false);
+      setSelected(null);
+      setNuevo({
+        parent_id: undefined,
+        estado: true,
+      });
+    }}
+    className="mb-4 w-full px-3 py-2 rounded-xl bg-black text-white hover:bg-gray-800 text-sm"
+  >
+    + Nuevo concepto
+  </button>
+
   {renderArbol(conceptosFiltrados)}
 </div>
+{/* DETALLE */}
+<div className="md:col-span-2 border rounded-xl p-6">
 
-          {/* Detalle */}
-          <div className="md:col-span-2 border rounded-xl p-6">
-  {!selected ? (
-    <p className="text-gray-500">
-      Selecciona un concepto para ver su información
-    </p>
-  ) : (
+  {/* ===== CREAR CONCEPTO ===== */}
+  {isCreating && (
+    <>
+      <h2 className="text-xl font-bold mb-4">
+        Nuevo concepto
+      </h2>
+      {nuevo.parent_id && selected && (
+  <p className="mb-3 text-sm text-gray-600">
+    Se creará como sub-concepto de:{" "}
+    <span className="font-semibold">
+      {selected.nombre}
+    </span>
+  </p>
+)}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+
+        <Campo
+          label="Nombre"
+          value={nuevo.nombre ?? ""}
+          onChange={(v) =>
+            setNuevo({ ...nuevo, nombre: v })
+          }
+        />
+
+        <Campo
+          label="Medición"
+          value={nuevo.medicion ?? ""}
+          onChange={(v) =>
+            setNuevo({ ...nuevo, medicion: v })
+          }
+        />
+
+        <Campo
+          label="Costo"
+          type="number"
+          value={nuevo.costo ?? ""}
+          onChange={(v) =>
+            setNuevo({ ...nuevo, costo: Number(v) })
+          }
+        />
+
+        <Campo
+          label="Porcentaje"
+          type="number"
+          value={nuevo.porcentaje ?? ""}
+          onChange={(v) =>
+            setNuevo({ ...nuevo, porcentaje: Number(v) })
+          }
+        />
+
+        <div className="md:col-span-2">
+          <Campo
+            label="Observaciones"
+            textarea
+            value={nuevo.observaciones ?? ""}
+            onChange={(v) =>
+              setNuevo({ ...nuevo, observaciones: v })
+            }
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold mb-1">
+            Estado
+          </label>
+          <select
+            value={nuevo.estado ? "true" : "false"}
+            onChange={(e) =>
+              setNuevo({
+                ...nuevo,
+                estado: e.target.value === "true",
+              })
+            }
+            className="border rounded-xl px-3 py-2 w-full"
+          >
+            <option value="true">Activo</option>
+            <option value="false">Inactivo</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="mt-6 flex gap-3">
+        <button
+          onClick={() => {
+            setIsCreating(false);
+            setNuevo({});
+          }}
+          className="px-4 py-2 rounded-xl border"
+        >
+          Cancelar
+        </button>
+
+        <button
+          disabled={saving}
+          onClick={crearConcepto}
+          className="px-4 py-2 rounded-xl bg-black text-white hover:bg-gray-800"
+        >
+          Crear concepto
+        </button>
+      </div>
+    </>
+  )}
+
+  {/* ===== VER / EDITAR CONCEPTO ===== */}
+  {!isCreating && selected && (
     <>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">
@@ -168,23 +352,35 @@ const conceptosFiltrados = filtrarArbol(conceptos, search);
             Editar
           </button>
         )}
+        {!isEditing && (
+    <button
+      onClick={eliminarConcepto}
+      disabled={deleting}
+      className="px-4 py-2 rounded-xl bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+    >
+      Eliminar
+    </button>
+  )}
       </div>
 
-      {/* FORMULARIO */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
 
         <Campo
           label="Nombre"
           value={form.nombre ?? ""}
           disabled={!isEditing}
-          onChange={(v) => setForm({ ...form, nombre: v })}
+          onChange={(v) =>
+            setForm({ ...form, nombre: v })
+          }
         />
 
         <Campo
           label="Medición"
           value={form.medicion ?? ""}
           disabled={!isEditing}
-          onChange={(v) => setForm({ ...form, medicion: v })}
+          onChange={(v) =>
+            setForm({ ...form, medicion: v })
+          }
         />
 
         <Campo
@@ -192,7 +388,9 @@ const conceptosFiltrados = filtrarArbol(conceptos, search);
           type="number"
           value={form.costo ?? ""}
           disabled={!isEditing}
-          onChange={(v) => setForm({ ...form, costo: Number(v) })}
+          onChange={(v) =>
+            setForm({ ...form, costo: Number(v) })
+          }
         />
 
         <Campo
@@ -205,15 +403,17 @@ const conceptosFiltrados = filtrarArbol(conceptos, search);
           }
         />
 
-        <Campo
-          label="Observaciones"
-          textarea
-          value={form.observaciones ?? ""}
-          disabled={!isEditing}
-          onChange={(v) =>
-            setForm({ ...form, observaciones: v })
-          }
-        />
+        <div className="md:col-span-2">
+          <Campo
+            label="Observaciones"
+            textarea
+            value={form.observaciones ?? ""}
+            disabled={!isEditing}
+            onChange={(v) =>
+              setForm({ ...form, observaciones: v })
+            }
+          />
+        </div>
 
         <div>
           <label className="block text-xs font-semibold mb-1">
@@ -221,19 +421,37 @@ const conceptosFiltrados = filtrarArbol(conceptos, search);
           </label>
           <select
             disabled={!isEditing}
-            value={form.estado ?? "ACTIVO"}
+            value={form.estado ? "true" : "false"}
             onChange={(e) =>
-              setForm({ ...form, estado: e.target.value as any })
+              setForm({
+                ...form,
+                estado: e.target.value === "true",
+              })
             }
             className="border rounded-xl px-3 py-2 w-full disabled:bg-gray-100"
           >
-            <option value="ACTIVO">Activo</option>
-            <option value="INACTIVO">Inactivo</option>
+            <option value="true">Activo</option>
+            <option value="false">Inactivo</option>
           </select>
         </div>
+        <button
+  onClick={() => {
+    setIsCreating(true);
+    setIsEditing(false);
+
+    setNuevo({
+      parent_id: selected.id,
+      estado: true,
+    });
+  }}
+  className="px-4 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700"
+>
+  + Crear sub-concepto
+</button>
+
+
       </div>
 
-      {/* BOTONES */}
       {isEditing && (
         <div className="mt-6 flex gap-3">
           <button
@@ -253,11 +471,21 @@ const conceptosFiltrados = filtrarArbol(conceptos, search);
           >
             Guardar cambios
           </button>
+          
         </div>
       )}
     </>
   )}
+
+  {/* ===== NADA SELECCIONADO ===== */}
+  {!isCreating && !selected && (
+    <p className="text-gray-500">
+      Selecciona un concepto o crea uno nuevo
+    </p>
+  )}
+
 </div>
+
 
         </div>
       </main>

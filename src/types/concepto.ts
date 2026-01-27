@@ -8,7 +8,9 @@ export interface Concepto {
   medicion?: string;
   costo?: number;
   porcentaje?: number;
-  estado?: "ACTIVO" | "INACTIVO";
+  estado?: boolean;
+
+  cuenta_tesoreria?: string;
 
   children?: Concepto[];
 }

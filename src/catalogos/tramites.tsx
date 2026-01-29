@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Menu from "../layout/menu";
 import { TramitesService } from "../services/tramites.service";
 import type { Tramite } from "../services/tramites.service";
-
+import TramiteConceptosPanel from "../components/TramiteConceptosPanel";
 const Tramites: React.FC = () => {
   const [tramites, setTramites] = useState<Tramite[]>([]);
   const [search, setSearch] = useState("");
@@ -15,6 +15,7 @@ const Tramites: React.FC = () => {
 
   const [nombre, setNombre] = useState("");
   const [letra, setLetra] = useState("");
+  const [tramiteConceptos, setTramiteConceptos] = useState<Tramite | null>(null);
 
   /* PAGINACIÓN */
   const [currentPage, setCurrentPage] = useState(1);
@@ -33,14 +34,20 @@ const Tramites: React.FC = () => {
     setTramites(data);
   };
 
-  const handleEdit = (t: Tramite) => {
-    setNombre(t.nombre);
-    setLetra(t.letra);
-    setEditingId(t.id);
-    setIsEditing(true);
-    setShowForm(true);
-  };
+ const handleEdit = (t: Tramite) => {
+  setTramiteConceptos(null); // 👈 importante
+  setNombre(t.nombre);
+  setLetra(t.letra);
+  setEditingId(t.id);
+  setIsEditing(true);
+  setShowForm(true);
+};
 
+ const openConceptos = (t: Tramite) => {
+  setTramiteConceptos(t);
+  setShowForm(true);
+  setIsEditing(false);
+};
   const handleSave = async () => {
     if (!nombre || !letra) return;
 
@@ -78,8 +85,12 @@ const Tramites: React.FC = () => {
   };
 
   /* FILTRO */
-  const filteredTramites = tramites.filter((t) =>
+  const filteredTramites = tramites
+  .filter((t) =>
     t.nombre.toLowerCase().includes(search.toLowerCase())
+  )
+  .sort((a, b) =>
+    a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" })
   );
 
   /* PAGINACIÓN */
@@ -132,6 +143,7 @@ const Tramites: React.FC = () => {
             onClick={() => {
               setShowForm(true);
               setIsEditing(false);
+              setTramiteConceptos(null); // 👈 también
               setNombre("");
               setLetra("");
             }}
@@ -164,20 +176,27 @@ const Tramites: React.FC = () => {
                     <td className="border px-3 py-2">{t.nombre}</td>
                     <td className="border px-3 py-2 text-center">{t.letra}</td>
                     <td className="border px-3 py-2 space-x-3 text-sm">
-                      <button
-                        onClick={() => handleEdit(t)}
-                        className="text-blue-600 hover:text-blue-800 font-medium"
-                      >
-                        Editar
-                      </button>
-                      |
-                      <button
-                        onClick={() => handleDelete(t.id)}
-                        className="text-red-600 hover:text-red-800 font-medium"
-                      >
-                        Eliminar
-                      </button>
-                    </td>
+  <button
+    onClick={() => handleEdit(t)}
+    className="text-blue-600 hover:text-blue-800 font-medium"
+  >
+    Editar
+  </button>
+  |
+  <button
+    onClick={() => handleDelete(t.id)}
+    className="text-red-600 hover:text-red-800 font-medium"
+  >
+    Eliminar
+  </button>
+  |
+  <button
+    onClick={() => openConceptos(t)}
+    className="text-green-600 hover:text-green-800 font-medium"
+  >
+    Conceptos
+  </button>
+</td>
                   </tr>
                 ))}
               </tbody>
@@ -223,27 +242,44 @@ const Tramites: React.FC = () => {
       </main>
 
       {/* PANEL LATERAL */}
-      {showForm && (
-        <div className="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-white shadow-2xl z-50 flex flex-col border-l">
-          <div className="px-6 py-4 border-b flex justify-between items-center">
-            <h2 className="text-lg font-bold">
-              {isEditing ? "Editar trámite" : "Nuevo trámite"}
-            </h2>
-            <button
-              onClick={() => setShowForm(false)}
-              className="text-gray-500 hover:text-black text-xl"
-            >
-              ✕
-            </button>
-          </div>
+     {showForm && (
+  <div className="fixed top-0 right-0 h-full w-full sm:w-[420px] bg-white shadow-2xl z-50 flex flex-col border-l">
+    
+    {/* HEADER */}
+    <div className="px-6 py-4 border-b flex justify-between items-center">
+      <h2 className="text-lg font-bold">
+        {tramiteConceptos
+          ? "Definir conceptos del trámite"
+          : isEditing
+          ? "Editar trámite"
+          : "Nuevo trámite"}
+      </h2>
+      <button
+        onClick={() => {
+          setShowForm(false);
+          setTramiteConceptos(null);
+        }}
+        className="text-gray-500 hover:text-black text-xl"
+      >
+        ✕
+      </button>
+    </div>
 
-          <div className="p-6 space-y-4 flex-1 overflow-auto">
-            {success && (
-              <div className="bg-green-100 text-green-700 px-4 py-2 rounded">
-                 Trámite guardado correctamente
-              </div>
-            )}
+    {/* CONTENIDO */}
+    <div className="flex-1 overflow-auto p-6">
+      {tramiteConceptos ? (
+        /* 🔹 PANEL DE CONCEPTOS */
+        <TramiteConceptosPanel tramite={tramiteConceptos} />
+      ) : (
+        /* 🔹 FORMULARIO DE TRÁMITE */
+        <>
+          {success && (
+            <div className="bg-green-100 text-green-700 px-4 py-2 rounded mb-4">
+              Trámite guardado correctamente
+            </div>
+          )}
 
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">Nombre</label>
               <input
@@ -265,24 +301,31 @@ const Tramites: React.FC = () => {
               />
             </div>
           </div>
-
-          <div className="p-6 border-t flex justify-end gap-3">
-            <button
-              onClick={() => setShowForm(false)}
-              className="px-4 py-2 rounded border hover:bg-gray-100"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={loading}
-              className="bg-black text-white px-4 py-2 rounded-xl"
-            >
-              {loading ? "Guardando..." : isEditing ? "Actualizar" : "Guardar"}
-            </button>
-          </div>
-        </div>
+        </>
       )}
+    </div>
+
+    {/* FOOTER */}
+    {!tramiteConceptos && (
+      <div className="p-6 border-t flex justify-end gap-3">
+        <button
+          onClick={() => setShowForm(false)}
+          className="px-4 py-2 rounded border hover:bg-gray-100"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={loading}
+          className="bg-black text-white px-4 py-2 rounded-xl"
+        >
+          {loading ? "Guardando..." : isEditing ? "Actualizar" : "Guardar"}
+        </button>
+      </div>
+    )}
+  </div>
+)}
+
 
       <footer className="bg-black text-white text-center py-3 text-sm">
         Informática · H. Ayuntamiento de Tlaquepaque

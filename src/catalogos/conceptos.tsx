@@ -63,20 +63,26 @@ const filtrarArbol = (
 ): Concepto[] => {
   if (!texto) return items;
 
+  const lower = texto.toLowerCase();
+
   return items
     .map((item) => {
-      const hijos = item.children
+      const coincide = item.nombre.toLowerCase().includes(lower);
+
+      // Si el padre coincide → regresar TODO el subárbol
+      if (coincide) {
+        return item;
+      }
+
+      // Si no coincide, revisar hijos
+      const hijosFiltrados = item.children
         ? filtrarArbol(item.children, texto)
         : [];
 
-      const coincide = item.nombre
-        .toLowerCase()
-        .includes(texto.toLowerCase());
-
-      if (coincide || hijos.length > 0) {
+      if (hijosFiltrados.length > 0) {
         return {
           ...item,
-          children: hijos,
+          children: hijosFiltrados,
         };
       }
 
@@ -84,6 +90,7 @@ const filtrarArbol = (
     })
     .filter(Boolean) as Concepto[];
 };
+
 
 
   const renderArbol = (items: Concepto[], nivel = 0) => {

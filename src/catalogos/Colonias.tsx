@@ -10,7 +10,7 @@ import {
 interface Colonia {
   id_colonia: number;
   nombre: string;
-  densidad: string;
+  densidad: string | null; // Permitir null
 }
 
 const Colonias: React.FC = () => {
@@ -30,7 +30,7 @@ const Colonias: React.FC = () => {
 
   const [newColonia, setNewColonia] = useState({
     nombre: "",
-    densidad: "Densidad alta",
+    densidad: null as string | null, // Inicializar como null
   });
 
   useEffect(() => {
@@ -76,7 +76,7 @@ const Colonias: React.FC = () => {
         setSuccess(false);
         setIsEditing(false);
         setEditingId(null);
-        setNewColonia({ nombre: "", densidad: "Densidad alta" });
+        setNewColonia({ nombre: "", densidad: null }); // Resetear a null
       }, 1200);
     } catch {
       alert("Error al guardar colonia");
@@ -94,7 +94,9 @@ const Colonias: React.FC = () => {
   /* FILTRO */
   const filteredColonias = colonias.filter((c) => {
     const matchNombre = c.nombre.toLowerCase().includes(search.toLowerCase());
-    const matchDensidad = densidad === "TODAS" || c.densidad === densidad;
+    const matchDensidad = densidad === "TODAS" || 
+                         (densidad === "NULL" && c.densidad === null) ||
+                         c.densidad === densidad;
     return matchNombre && matchDensidad;
   });
 
@@ -126,8 +128,6 @@ const Colonias: React.FC = () => {
               H. Ayuntamiento de Tlaquepaque
             </p>
           </div>
-
-          
         </div>
       </header>
 
@@ -154,13 +154,14 @@ const Colonias: React.FC = () => {
             <option>Densidad media</option>
             <option>Densidad baja</option>
             <option>Densidad mínima</option>
+            <option value="NULL">Sin densidad</option>
           </select>
 
           <button
             onClick={() => {
               setShowForm(true);
               setIsEditing(false);
-              setNewColonia({ nombre: "", densidad: "Densidad alta" });
+              setNewColonia({ nombre: "", densidad: null });
             }}
             className="bg-black text-white px-4 py-2 rounded-xl hover:bg-gray-800"
           >
@@ -189,7 +190,9 @@ const Colonias: React.FC = () => {
                   <tr key={c.id_colonia} className="hover:bg-gray-100 transition">
                     <td className="border px-3 py-2">{c.id_colonia}</td>
                     <td className="border px-3 py-2">{c.nombre}</td>
-                    <td className="border px-3 py-2">{c.densidad}</td>
+                    <td className="border px-3 py-2">
+                      {c.densidad || <span className="text-gray-400">-</span>}
+                    </td>
                     <td className="border px-3 py-2 space-x-3 text-sm">
                       <button
                         onClick={() => handleEditColonia(c)}
@@ -312,12 +315,16 @@ const Colonias: React.FC = () => {
             <div>
               <label className="block text-sm font-medium mb-1">Densidad</label>
               <select
-                value={newColonia.densidad}
+                value={newColonia.densidad || ""}
                 onChange={(e) =>
-                  setNewColonia({ ...newColonia, densidad: e.target.value })
+                  setNewColonia({ 
+                    ...newColonia, 
+                    densidad: e.target.value === "" ? null : e.target.value 
+                  })
                 }
                 className="border rounded-xl px-3 py-2 w-full focus:ring-2 focus:ring-black outline-none"
               >
+                <option value="">Ninguna</option>
                 <option>Densidad alta</option>
                 <option>Densidad media</option>
                 <option>Densidad baja</option>

@@ -36,7 +36,7 @@ const Menu: React.FC = () => {
             { label: "Trámites", path: "/catalogos/tramites" },
             { label: "Conceptos", path: "/catalogos/conceptos" },
             { label: "Directores de obra", path: "/catalogos/directores" },
-            { label: "Listado de conceptos", path: "/catalogos/listado-conceptos" },
+            { label: "Listado de conceptos", path: "/catalogos/ListaConceptos" },
           ]}
           onSelect={goTo}
         />

@@ -1,3 +1,6 @@
+/* ======================
+   INTERFACES
+====================== */
 export interface Area {
   id_area: number;
   nombre: string;
@@ -8,86 +11,216 @@ export interface Cargo {
   nombre: string;
 }
 
+export interface FuncionUsuario {
+  id_funcion: number;
+  nombre: string;
+}
+
 export interface Usuario {
   id_usuarios?: number;
-  usuario?: string;
   nombre: string;
   ap_paterno?: string;
   ap_materno?: string;
   telefono?: string;
+  usuario?: string;
+  clave?: string;
   rol?: string;
   estado?: string;
-  funcion?: string;
   area?: Area;
   cargo?: Cargo;
-  clave?: string;
+  funcionEspecial?: FuncionUsuario;
   fechaCreacion?: string;
 }
 
-const API_URL = "http://localhost:3001";
+/* ======================
+   USUARIOS SERVICE
+====================== */
+class UsuariosService {
+  private baseUrl = "http://localhost:3001";
 
-export const usuariosService = {
-  obtenerUsuarios: async (): Promise<Usuario[]> => {
-    const res = await fetch(`${API_URL}/usuarios`);
-    if (!res.ok) throw new Error("Error al obtener usuarios");
-    return res.json();
-  },
+  // Obtener todos los usuarios
+  async obtenerUsuarios(): Promise<Usuario[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/usuarios`);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener usuarios:", error);
+      throw error;
+    }
+  }
 
-  obtenerAreas: async (): Promise<Area[]> => {
-    const res = await fetch(`${API_URL}/areas`);
-    if (!res.ok) throw new Error("Error al obtener áreas");
-    return res.json();
-  },
+  // Obtener todas las áreas
+  async obtenerAreas(): Promise<Area[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/areas`);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener áreas:", error);
+      throw error;
+    }
+  }
 
-  crearUsuario: async (usuario: Usuario): Promise<Usuario> => {
-    const payload = {
-      ...usuario,
-      area: usuario.area ? { id_area: usuario.area.id_area } : null,
-      cargo: usuario.cargo?.nombre || null,
+  // Obtener todas las funciones
+  async obtenerFunciones(): Promise<FuncionUsuario[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/asignaciones/funciones`);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error al obtener funciones:", error);
+      throw error;
+    }
+  }
+
+  // Crear un nuevo usuario
+  async crearUsuario(usuario: Usuario): Promise<any> {
+    try {
+      const payload = this.prepararPayloadUsuario(usuario);
+      
+      const response = await fetch(`${this.baseUrl}/usuarios`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error ${response.status}: ${errorText || "Error desconocido"}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al crear usuario:", error);
+      throw error;
+    }
+  }
+
+  // Actualizar un usuario existente
+  async actualizarUsuario(id: number, usuario: Usuario): Promise<any> {
+    try {
+      const payload = this.prepararPayloadUsuario(usuario);
+      
+      const response = await fetch(`${this.baseUrl}/usuarios/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error ${response.status}: ${errorText || "Error desconocido"}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al actualizar usuario:", error);
+      throw error;
+    }
+  }
+
+  // Eliminar un usuario
+  async eliminarUsuario(id: number): Promise<void> {
+    try {
+      const response = await fetch(`${this.baseUrl}/usuarios/${id}`, {
+        method: "DELETE"
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error("Error al eliminar usuario:", error);
+      throw error;
+    }
+  }
+
+  // Cambiar estado de usuario
+  async cambiarEstadoUsuario(id: number, estado: string): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseUrl}/usuarios/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ estado })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error al cambiar estado:", error);
+      throw error;
+    }
+  }
+
+  // Preparar payload para enviar al servidor
+  private prepararPayloadUsuario(usuario: Usuario): any {
+    const payload: any = {
+      nombre: String(usuario.nombre || "").trim(),
+      ap_paterno: String(usuario.ap_paterno || ""),
+      ap_materno: String(usuario.ap_materno || ""),
+      telefono: String(usuario.telefono || ""),
+      usuario: String(usuario.usuario || "").trim(),
+      rol: usuario.rol || "USUARIO",
+      estado: usuario.estado || "Activo",
+      cargo: usuario.cargo?.nombre || ""
     };
 
-    const res = await fetch(`${API_URL}/usuarios`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    // Solo incluir clave si está definida y no está vacía
+    if (usuario.clave && usuario.clave.trim()) {
+      payload.clave = usuario.clave;
+    }
 
-    if (!res.ok) throw new Error("Error al crear usuario");
-    return res.json();
-  },
+    // Incluir área si existe
+    if (usuario.area?.id_area) {
+      payload.area = { id_area: usuario.area.id_area };
+    }
 
-  actualizarUsuario: async (id: number, usuario: Usuario): Promise<Usuario> => {
-    const payload = {
-      ...usuario,
-      area: usuario.area ? { id_area: usuario.area.id_area } : null,
-      cargo: usuario.cargo?.nombre || null,
-    };
+    // Incluir función especial si existe
+    if (usuario.funcionEspecial?.id_funcion) {
+      payload.funcionEspecial = { id_funcion: usuario.funcionEspecial.id_funcion };
+    }
 
-    const res = await fetch(`${API_URL}/usuarios/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    return payload;
+  }
 
-    if (!res.ok) throw new Error("Error al actualizar usuario");
-    return res.json();
-  },
+  // Obtener todos los datos iniciales (usuarios, áreas, funciones)
+  async obtenerTodosLosDatos(): Promise<{
+    usuarios: Usuario[];
+    areas: Area[];
+    funciones: FuncionUsuario[];
+  }> {
+    try {
+      const [usuarios, areas, funciones] = await Promise.all([
+        this.obtenerUsuarios(),
+        this.obtenerAreas(),
+        this.obtenerFunciones()
+      ]);
 
-  cambiarEstadoUsuario: async (id: number, estado: string): Promise<void> => {
-    const res = await fetch(`${API_URL}/usuarios/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ estado }),
-    });
+      return { usuarios, areas, funciones };
+    } catch (error) {
+      console.error("Error al cargar todos los datos:", error);
+      throw error;
+    }
+  }
+}
 
-    if (!res.ok) throw new Error("Error al cambiar estado");
-  },
-
-  eliminarUsuario: async (id: number): Promise<void> => {
-    const res = await fetch(`${API_URL}/usuarios/${id}`, {
-      method: "DELETE",
-    });
-
-    if (!res.ok) throw new Error("Error al eliminar usuario");
-  },
-};
+export default new UsuariosService();

@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { FaSignOutAlt } from "react-icons/fa";
 import Menu from "../layout/menu";
 import {
   getColonias,
@@ -128,10 +127,7 @@ const Colonias: React.FC = () => {
             </p>
           </div>
 
-          <button className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm bg-gray-100 text-gray-700 hover:bg-red-600 hover:text-white transition">
-            <FaSignOutAlt />
-            <span className="hidden sm:inline">Salir</span>
-          </button>
+          
         </div>
       </header>
 
@@ -297,7 +293,7 @@ const Colonias: React.FC = () => {
           <div className="p-6 space-y-4 flex-1 overflow-auto">
             {success && (
               <div className="bg-green-100 text-green-700 px-4 py-2 rounded">
-                ✔ Colonia guardada correctamente
+                 Colonia guardada correctamente
               </div>
             )}
 

@@ -1,40 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { FaSignOutAlt } from "react-icons/fa";
 import Menu from "../layout/menu";
-
-/* ======================
-   INTERFACES
-====================== */
-interface Area {
-  id_area: number;
-  nombre: string;
-}
-
-interface Cargo {
-  idcargo?: number;
-  nombre: string;
-}
-
-interface FuncionUsuario {
-  id_funcion: number;
-  nombre: string;
-}
-
-interface Usuario {
-  id_usuarios?: number;
-  nombre: string;
-  ap_paterno?: string;
-  ap_materno?: string;
-  telefono?: string;
-  usuario?: string;
-  clave?: string;
-  rol?: string;
-  estado?: string;
-  area?: Area;
-  cargo?: Cargo;
-  funcionEspecial?: FuncionUsuario;
-  fechaCreacion?: string;
-}
+import usuariosService, { 
+  type Usuario, 
+  type Area, 
+  type FuncionUsuario 
+} from "../services/usuarios.service";
 
 const Usuarios: React.FC = () => {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -89,19 +59,10 @@ const Usuarios: React.FC = () => {
   const cargarDatos = async () => {
     setLoading(true);
     try {
-      const [resUsuarios, resAreas, resFunciones] = await Promise.all([
-        fetch("http://localhost:3001/usuarios"),
-        fetch("http://localhost:3001/areas"),
-        fetch("http://localhost:3001/asignaciones/funciones"),
-      ]);
-
-      const dataUsuarios = await resUsuarios.json();
-      const dataAreas = await resAreas.json();
-      const dataFunciones = await resFunciones.json();
-
-      setUsuarios(dataUsuarios);
-      setAreas(dataAreas);
-      setFunciones(dataFunciones);
+      const data = await usuariosService.obtenerTodosLosDatos();
+      setUsuarios(data.usuarios);
+      setAreas(data.areas);
+      setFunciones(data.funciones);
     } catch (error) {
       console.error("Error al cargar datos:", error);
       alert("Error al cargar los datos");
@@ -120,7 +81,7 @@ const Usuarios: React.FC = () => {
       ap_materno: usuario.ap_materno || "",
       telefono: usuario.telefono || "",
       usuario: usuario.usuario || "",
-      clave: usuario.clave || "", // Aseguramos que sea string
+      clave: "", // No mostrar la clave actual por seguridad
       rol: usuario.rol || "USUARIO",
       estado: usuario.estado || "Activo",
       area: usuario.area,
@@ -135,7 +96,7 @@ const Usuarios: React.FC = () => {
   const handleSaveUsuario = async () => {
     // Validaciones
     const nombre = String(nuevoUsuario.nombre || "").trim();
-    const usuario = String(nuevoUsuario.usuario || "").trim();
+    const usuarioNombre = String(nuevoUsuario.usuario || "").trim();
     const clave = String(nuevoUsuario.clave || "");
 
     if (!nombre) {
@@ -143,7 +104,7 @@ const Usuarios: React.FC = () => {
       return;
     }
 
-    if (!usuario) {
+    if (!usuarioNombre) {
       alert("El nombre de usuario es obligatorio");
       return;
     }
@@ -156,65 +117,10 @@ const Usuarios: React.FC = () => {
     try {
       setLoading(true);
       
-      // Preparar el payload
-      const payload: any = {
-        nombre: nombre,
-        ap_paterno: String(nuevoUsuario.ap_paterno || ""),
-        ap_materno: String(nuevoUsuario.ap_materno || ""),
-        telefono: String(nuevoUsuario.telefono || ""),
-        usuario: usuario,
-        rol: nuevoUsuario.rol || "USUARIO",
-        estado: nuevoUsuario.estado || "Activo",
-        cargo: nuevoUsuario.cargo?.nombre || "",
-      };
-
-      // Solo incluir clave si está definida y no está vacía
-      if (clave.trim()) {
-        payload.clave = clave;
-      }
-
-      // Incluir área si existe
-      if (nuevoUsuario.area?.id_area) {
-        payload.area = { id_area: nuevoUsuario.area.id_area };
-      }
-
-      // Incluir función especial si existe
-      if (nuevoUsuario.funcionEspecial?.id_funcion) {
-        payload.funcionEspecial = { id_funcion: nuevoUsuario.funcionEspecial.id_funcion };
-      }
-
-      let url = "http://localhost:3001/usuarios";
-      let method = "POST";
-
       if (isEditing && editingId !== null) {
-        url = `http://localhost:3001/usuarios/${editingId}`;
-        method = "PUT";
-      }
-
-      console.log("Enviando datos:", { url, method, payload });
-
-      const response = await fetch(url, {
-        method: method,
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const responseText = await response.text();
-      console.log("Respuesta del servidor:", responseText);
-
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${responseText || "Error desconocido"}`);
-      }
-
-      // Verificar si la respuesta es JSON válido
-      try {
-        JSON.parse(responseText);
-        console.log("Respuesta JSON válida");
-      } catch {
-        console.log("Respuesta no es JSON, pero fue exitosa");
+        await usuariosService.actualizarUsuario(editingId, nuevoUsuario);
+      } else {
+        await usuariosService.crearUsuario(nuevoUsuario);
       }
 
       // Recargar los datos
@@ -222,23 +128,7 @@ const Usuarios: React.FC = () => {
       setSuccess(true);
 
       setTimeout(() => {
-        setShowForm(false);
-        setSuccess(false);
-        setIsEditing(false);
-        setEditingId(null);
-        setNuevoUsuario({
-          nombre: "",
-          ap_paterno: "",
-          ap_materno: "",
-          telefono: "",
-          usuario: "",
-          clave: "",
-          rol: "USUARIO",
-          estado: "Activo",
-          area: undefined,
-          cargo: { nombre: "" },
-          funcionEspecial: undefined,
-        });
+        resetForm();
       }, 1200);
     } catch (error: any) {
       console.error("Error completo:", error);
@@ -252,14 +142,7 @@ const Usuarios: React.FC = () => {
     if (!window.confirm("¿Seguro que deseas eliminar este usuario?")) return;
     
     try {
-      const response = await fetch(`http://localhost:3001/usuarios/${id}`, { 
-        method: "DELETE" 
-      });
-      
-      if (!response.ok) {
-        throw new Error("Error al eliminar usuario");
-      }
-      
+      await usuariosService.eliminarUsuario(id);
       await cargarDatos();
       alert("Usuario eliminado correctamente");
     } catch (error) {
@@ -274,32 +157,36 @@ const Usuarios: React.FC = () => {
       `¿Seguro que deseas ${nuevoEstado === "Activo" ? "activar" : "desactivar"} a ${usuario.nombre}?`
     );
     
-    if (!confirmacion) return;
+    if (!confirmacion || !usuario.id_usuarios) return;
     
     try {
-      const payload = {
-        estado: nuevoEstado
-      };
-      
-      const response = await fetch(`http://localhost:3001/usuarios/${usuario.id_usuarios}`, {
-        method: "PUT",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Error al cambiar estado");
-      }
-
+      await usuariosService.cambiarEstadoUsuario(usuario.id_usuarios, nuevoEstado);
       await cargarDatos();
       alert(`Estado de ${usuario.nombre} cambiado a ${nuevoEstado}`);
     } catch (error) {
       console.error("Error al cambiar estado:", error);
       alert("Error al cambiar estado");
     }
+  };
+
+  const resetForm = () => {
+    setShowForm(false);
+    setSuccess(false);
+    setIsEditing(false);
+    setEditingId(null);
+    setNuevoUsuario({
+      nombre: "",
+      ap_paterno: "",
+      ap_materno: "",
+      telefono: "",
+      usuario: "",
+      clave: "",
+      rol: "USUARIO",
+      estado: "Activo",
+      area: undefined,
+      cargo: { nombre: "" },
+      funcionEspecial: undefined,
+    });
   };
 
   /* ======================
@@ -353,11 +240,6 @@ const Usuarios: React.FC = () => {
               H. Ayuntamiento de Tlaquepaque
             </p>
           </div>
-
-          <button className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm bg-gray-100 text-gray-700 hover:bg-red-600 hover:text-white transition">
-            <FaSignOutAlt />
-            <span className="hidden sm:inline">Salir</span>
-          </button>
         </div>
       </header>
 
@@ -511,7 +393,7 @@ const Usuarios: React.FC = () => {
                                 </button>
                                 <span className="text-gray-300">|</span>
                                 <button
-                                  onClick={() => handleDeleteUsuario(u.id_usuarios!)}
+                                  onClick={() => u.id_usuarios && handleDeleteUsuario(u.id_usuarios)}
                                   className="text-red-600 hover:text-red-800 font-medium px-1"
                                 >
                                   Eliminar
@@ -612,7 +494,7 @@ const Usuarios: React.FC = () => {
           <div className="p-6 space-y-4 flex-1 overflow-auto">
             {success && (
               <div className="bg-green-100 text-green-700 px-4 py-2 rounded">
-                ✔ Usuario guardado correctamente
+                 Usuario guardado correctamente
               </div>
             )}
 

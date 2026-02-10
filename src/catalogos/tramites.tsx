@@ -194,7 +194,7 @@ const Tramites: React.FC = () => {
     onClick={() => openConceptos(t)}
     className="text-green-600 hover:text-green-800 font-medium"
   >
-    Conceptos
+   Definir Conceptos
   </button>
 </td>
                   </tr>

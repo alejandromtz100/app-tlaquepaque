@@ -11,6 +11,7 @@ export interface TramiteConcepto {
   concepto: {
     id: number;
     nombre: string;
+    nivel: number;
     medicion?: string;
     costo?: number;
   };

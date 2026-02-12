@@ -12,8 +12,9 @@ import Directores from "./catalogos/directores";
 import Conceptos from "./catalogos/conceptos";
 import ListaConceptos from "./catalogos/ListaConceptos";
 import Obras from './obras/Obras';
-
-
+import ReporteNumeroOficialesObra from './reportes/ReporteNumeroOficialesObra';
+import RepLicenciasPage from "./reportes/rep_Licencias/RepLicenciasPage";
+import RepObrasPage from "./reportes/rep_obras/RepObrasPage";
 
 const App: React.FC = () => {
   return (
@@ -33,6 +34,10 @@ const App: React.FC = () => {
         <Route path="/catalogos/directores" element={<Directores />} />
         <Route path="/catalogos/ListaConceptos" element={<ListaConceptos />}/>
         <Route path="/obras" element={<Obras />} />
+
+        <Route path="/reportes/numero-oficiales-obra" element={<ReporteNumeroOficialesObra />} />
+        <Route path="/reportes/rep_Licencias/RepLicenciasPage" element={<RepLicenciasPage />} />
+        <Route path="/reportes/rep_obras/RepObrasPage" element={<RepObrasPage />} />
       </Routes>
     </Router>
   );

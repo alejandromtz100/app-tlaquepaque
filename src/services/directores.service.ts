@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { PDFDirector } from '../services/pdfdirector';
 
 export interface DirectorObra {
   id: number;
@@ -25,7 +26,7 @@ export interface DirectorObra {
   rp_infraestructura: boolean;
   imagen?: string | null;
   fecha_registro?: string;
-  fecha_actualizacion?: string;
+  fecha_actualizacion?: string | null;
   fecha_baja?: string;
   activo: boolean;
 }
@@ -61,6 +62,7 @@ export const emptyForm: Partial<DirectorObra> = {
   rp_urbanizacion: false,
   rp_infraestructura: false,
   imagen: '',
+  fecha_actualizacion: null,
   activo: true,
 };
 
@@ -112,10 +114,30 @@ export const DirectoresService = {
     const formData = new FormData();
 
     Object.entries(form).forEach(([key, value]) => {
-      if (typeof value === 'boolean') {
+      if (key === 'fecha_actualizacion') {
+        if (value && value !== '') {
+          formData.append(key, String(value));
+        } else {
+          formData.append(key, ''); // Enviar vacío para null
+        }
+      } else if (key === 'imagen') {
+        // Manejar eliminación de imagen
+        if (value === '' || value === null) {
+          formData.append('eliminar_imagen', 'true');
+        }
+        // No agregar el campo imagen al formData si es un string
+      } else if (typeof value === 'boolean') {
         formData.append(key, value ? 'true' : 'false');
       } else if (value !== undefined && value !== null && value !== '') {
-        formData.append(key, String(value));
+        // Para los oficios, enviar vacío como string vacío
+        if (key.includes('oficio_autorizacion')) {
+          formData.append(key, String(value));
+        } else {
+          formData.append(key, String(value));
+        }
+      } else if (value === '' && key.includes('oficio_autorizacion')) {
+        // Enviar string vacío explícitamente para oficios
+        formData.append(key, '');
       }
     });
 
@@ -128,6 +150,22 @@ export const DirectoresService = {
 
   // Preparar datos del formulario para edición
   prepareEditData(director: DirectorObra): Partial<DirectorObra> {
+    // Función para extraer YYYY-MM-DD de cualquier fecha
+    const extractYMD = (dateString: string | null | undefined): string | null => {
+      if (!dateString) return null;
+      
+      try {
+        const date = new Date(dateString);
+        // Extraer componentes locales (no UTC)
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      } catch {
+        return null;
+      }
+    };
+
     return {
       clave_director: director.clave_director || '',
       nombre_completo: director.nombre_completo,
@@ -139,9 +177,12 @@ export const DirectoresService = {
       rfc: director.rfc,
       cedula_federal: director.cedula_federal || '',
       cedula_estatal: director.cedula_estatal || '',
+      
+      // Manejar null para los oficios
       oficio_autorizacion_ro: director.oficio_autorizacion_ro || '',
       oficio_autorizacion_rp: director.oficio_autorizacion_rp || '',
       oficio_autorizacion_pu: director.oficio_autorizacion_pu || '',
+      
       ro_edificacion: Boolean(director.ro_edificacion),
       ro_restauracion: Boolean(director.ro_restauracion),
       ro_urbanizacion: Boolean(director.ro_urbanizacion),
@@ -151,6 +192,7 @@ export const DirectoresService = {
       rp_urbanizacion: Boolean(director.rp_urbanizacion),
       rp_infraestructura: Boolean(director.rp_infraestructura),
       imagen: director.imagen || '',
+      fecha_actualizacion: extractYMD(director.fecha_actualizacion),
       activo: Boolean(director.activo),
     };
   },
@@ -159,7 +201,13 @@ export const DirectoresService = {
   getImagenUrl(imagenPath: string | null | undefined): string {
     if (!imagenPath) return '/no-image.png';
     
-    const path = imagenPath.startsWith('directores/') ? imagenPath : `directores/${imagenPath}`;
+    // Verificar si la ruta ya contiene "directores/"
+    // Si la imagen ya viene con el prefijo "directores/", úsala tal cual
+    // Si no, agregar el directorio "directores/"
+    const path = imagenPath.startsWith('directores/') 
+      ? imagenPath 
+      : `directores/${imagenPath}`;
+    
     return `${UPLOADS_BASE}/${path}`;
   },
 
@@ -210,7 +258,7 @@ export const DirectoresService = {
   },
 
   // Formatear fecha
-  formatFecha(fechaString?: string): string {
+  formatFecha(fechaString?: string | null): string {
     if (!fechaString) return '01/01/0000';
     const fecha = new Date(fechaString);
     return fecha.toLocaleDateString('es-MX', {
@@ -218,6 +266,12 @@ export const DirectoresService = {
       month: '2-digit',
       year: 'numeric'
     });
+  },
+
+  // Formatear fecha para input type="date"
+  formatFechaParaInput(fechaString?: string | null): string {
+    if (!fechaString) return '';
+    return String(fechaString);
   },
 
   // Obtener datos paginados
@@ -258,30 +312,55 @@ export const DirectoresService = {
   },
 
   // Función para imprimir formato de Responsable de Obra
-  imprimirResponsableObra(director: DirectorObra): void {
-    alert(`Generando formato de Responsable de Obra para ${director.nombre_completo}`);
+  imprimirResponsableObra: async (director: DirectorObra): Promise<void> => {
+    try {
+      await PDFDirector.generarResponsableObra(director);
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      alert('Error al generar el PDF. Por favor, intente nuevamente.');
+    }
   },
 
   // Función para imprimir formato de Responsable de Proyecto
-  imprimirResponsableProyecto(director: DirectorObra): void {
-    alert(`Generando formato de Responsable de Proyecto para ${director.nombre_completo}`);
+  imprimirResponsableProyecto: async (director: DirectorObra): Promise<void> => {
+    try {
+      await PDFDirector.generarResponsableProyecto(director);
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      alert('Error al generar el PDF. Por favor, intente nuevamente.');
+    }
   },
 
-  // Verificar si tiene formatos de Responsable de Obra
+  // Nueva función para imprimir formato de Responsable de Planeación Urbana
+  imprimirResponsablePlaneacionUrbana: async (director: DirectorObra): Promise<void> => {
+    try {
+      await PDFDirector.generarResponsablePlaneacionUrbana(director);
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      alert('Error al generar el PDF. Por favor, intente nuevamente.');
+    }
+  },
+
+  // Verificar si tiene formatos de Responsable de Obra (MODIFICADO: solo requiere oficio)
   hasResponsableObra(director: DirectorObra): boolean {
-    return director.ro_edificacion || 
-           director.ro_restauracion || 
-           director.ro_urbanizacion || 
-           director.ro_infraestructura;
+    // Solo requiere que tenga oficio (no requiere checkboxes)
+    return !!director.oficio_autorizacion_ro && 
+           director.oficio_autorizacion_ro.trim() !== '';
   },
 
-  // Verificar si tiene formatos de Responsable de Proyecto
+  // Verificar si tiene formatos de Responsable de Proyecto (MODIFICADO: solo requiere oficio)
   hasResponsableProyecto(director: DirectorObra): boolean {
-    return director.rp_edificacion || 
-           director.rp_restauracion || 
-           director.rp_urbanizacion || 
-           director.rp_infraestructura;
+    // Solo requiere que tenga oficio (no requiere checkboxes)
+    return !!director.oficio_autorizacion_rp && 
+           director.oficio_autorizacion_rp.trim() !== '';
+  },
+
+  // Verificar si tiene formato de Responsable de Planeación Urbana
+  hasResponsablePlaneacionUrbana(director: DirectorObra): boolean {
+    // Retorna true si tiene un oficio de autorización
+    return !!director.oficio_autorizacion_pu && 
+           director.oficio_autorizacion_pu.trim() !== '';
   },
 };
 
-export default DirectoresService;
+export default DirectoresService;  

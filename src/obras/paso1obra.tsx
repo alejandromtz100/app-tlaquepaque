@@ -1,0 +1,876 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { useLocation, useNavigate } from "react-router-dom";
+
+const api = "http://localhost:3001/op_obras";
+
+// Componente Input reutilizable
+const Input = ({ 
+  name, 
+  value, 
+  onChange, 
+  label, 
+  required = false, 
+  type = "text",
+  placeholder = ""
+}: any) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      {label} {required && <span className="text-red-500">*</span>}
+    </label>
+    <input
+      type={type}
+      name={name}
+      value={value || ""}
+      onChange={onChange}
+      placeholder={placeholder}
+      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+    />
+  </div>
+);
+
+// Componente Select reutilizable
+const Select = ({ 
+  name, 
+  value, 
+  onChange, 
+  label, 
+  required = false, 
+  options = [],
+  placeholder = "Seleccionar Valor"
+}: any) => {
+  const allOptions = [...options];
+  if (value && !allOptions.some(opt => opt.value === value)) {
+    allOptions.push({ value, label: value });
+  }
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <select
+        name={name}
+        value={value || ""}
+        onChange={onChange}
+        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+      >
+        <option value="">{placeholder}</option>
+        {allOptions.map((opt: any) => (
+          <option key={opt.value || opt} value={opt.value || opt}>
+            {opt.label || opt}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
+
+// Componente Checkbox reutilizable
+const Checkbox = ({ name, checked, onChange, label }: any) => (
+  <label className="flex items-center space-x-2">
+    <input
+      type="checkbox"
+      name={name}
+      checked={checked}
+      onChange={onChange}
+      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+    />
+    <span className="text-sm text-gray-700">{label}</span>
+  </label>
+);
+
+// Componente para números oficiales
+const NumerosOficiales = ({ numeros, onAdd, onRemove }: any) => {
+  const [nuevoNumero, setNuevoNumero] = useState({ calle: "", numeroOficial: "" });
+
+  const handleAdd = () => {
+    if (nuevoNumero.calle && nuevoNumero.numeroOficial) {
+      onAdd({ 
+        calle: nuevoNumero.calle.trim(), 
+        numeroOficial: nuevoNumero.numeroOficial.trim() 
+      });
+      setNuevoNumero({ calle: "", numeroOficial: "" });
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <h3 className="font-medium text-gray-700">Calle y Número Oficial *</h3>
+      
+      <div className="grid grid-cols-2 gap-3">
+        <input
+          type="text"
+          placeholder="Calle"
+          value={nuevoNumero.calle}
+          onChange={(e) => setNuevoNumero({ ...nuevoNumero, calle: e.target.value })}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+        />
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Número"
+            value={nuevoNumero.numeroOficial}
+            onChange={(e) => setNuevoNumero({ ...nuevoNumero, numeroOficial: e.target.value })}
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          />
+          <button
+            type="button"
+            onClick={handleAdd}
+            className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Agregar
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {numeros?.map((num: any, index: number) => (
+          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+            <span className="text-sm">
+              {num.calle}, No. {num.numeroOficial}
+            </span>
+            <button
+              type="button"
+              onClick={() => onRemove(index)}
+              className="text-red-600 hover:text-red-800"
+            >
+              Quitar
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Componente para documentos adicionales
+const DocumentosAdicionales = ({ documentos, onAdd, onRemove }: any) => {
+  const [selectedDocument, setSelectedDocument] = useState("Seleccionar Valor");
+
+  const handleAddFromSelect = () => {
+    if (selectedDocument && selectedDocument !== "Seleccionar Valor") {
+      onAdd(selectedDocument);
+      setSelectedDocument("Seleccionar Valor");
+    }
+  };
+
+  const opcionesDocumentos = [
+    "Seleccionar Valor",
+    "Acta Constitutiva",
+    "Anuencia de Condominios",
+    "Alineamiento",
+    "Bitacora",
+    "Calculo Estructural",
+    "Carta Compromiso",
+    "Carta de Colonos",
+    "Carta de Poder",
+    "Comprobante de domicilio",
+    "Dictamen",
+    "Dictamen de uso de suelos",
+    "Ficha Técnica",
+    "Fideicomiso",
+    "Oficio",
+    "Orden del SIAPA",
+    "Permisos Anteriores",
+    "Pago de negocios jurídicos",
+    "Planos",
+    "Predial"
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2 items-end">
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Agregar Documento
+          </label>
+          <select
+            value={selectedDocument}
+            onChange={(e) => setSelectedDocument(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          >
+            {opcionesDocumentos.map((doc) => (
+              <option key={doc} value={doc}>
+                {doc}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={handleAddFromSelect}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 h-10"
+        >
+          Agregar
+        </button>
+      </div>
+
+      <div className="space-y-2">
+        {documentos?.map((doc: string, index: number) => (
+          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+            <span className="text-sm">{doc}</span>
+            <button
+              type="button"
+              onClick={() => onRemove(index)}
+              className="text-red-600 hover:text-red-800"
+            >
+              Quitar
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const Paso1Obra: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const id = location.state?.id || null;
+
+  // Estado inicial solo con campos usados en el formulario
+  const [form, setForm] = useState<any>({
+    consecutivo: "",               // ← Ahora este es el campo correcto
+    tipoPropietario: "",
+    nombrePropietario: "",
+    representanteLegal: "",
+    identificacion: "",
+    tipoIdentificacion: "",
+    domicilioPropietario: "",
+    coloniaPropietario: "",
+    municipioPropietario: "",
+    entidadPropietario: "",
+    telefonoPropietario: "",
+    rfcPropietario: "",
+    codigoPostalPropietario: "",
+    documentoAcreditaPropiedad: "",
+    tipoDocumentoAcreditaPropiedad: "",
+    nombreColoniaObra: "",
+    idDensidadColoniaObra: "",
+    manzanaObra: "",
+    loteObra: "",
+    etapaObra: "",
+    condominioObra: "",
+    numerosPrediosContiguosObra: "",
+    entreCalle1Obra: "",
+    entreCalle2Obra: "",
+    destinoActualProyecto: "",
+    destinoPropuestoProyecto: "",
+    aguaPotable: "Si",
+    drenaje: "Si",
+    electricidad: "Si",
+    alumbradoPublico: "Si",
+    machuelos: "Si",
+    banquetas: "Si",
+    pavimento: "Si",
+    servidumbreFrontal: "",
+    servidumbreLateral: "",
+    servidumbrePosterior: "",
+    coeficienteOcupacion: "",
+    coeficienteUtilizacion: "",
+    descripcionProyecto: "",
+    revisor: "",
+    cuantificador: "",
+    vigencia: "",
+  });
+
+  const [numerosOficiales, setNumerosOficiales] = useState<any[]>([]);
+  const [documentosAdicionales, setDocumentosAdicionales] = useState<string[]>([]);
+
+  const handleChange = (e: any) => {
+    const { name, value, type, checked } = e.target;
+    const cleanedValue = typeof value === 'string' ? value.trim() : value;
+    setForm((prev: any) => ({
+      ...prev,
+      [name]: type === "checkbox" ? (checked ? "Si" : "No") : cleanedValue,
+    }));
+  };
+
+  const handleAddNumero = (nuevoNumero: any) => {
+    setNumerosOficiales([...numerosOficiales, nuevoNumero]);
+  };
+
+  const handleRemoveNumero = (index: number) => {
+    setNumerosOficiales(numerosOficiales.filter((_, i) => i !== index));
+  };
+
+  const handleAddDocumento = (documento: string) => {
+    const cleanedDoc = documento.trim();
+    if (!documentosAdicionales.includes(cleanedDoc) && cleanedDoc !== "Seleccionar Valor") {
+      setDocumentosAdicionales([...documentosAdicionales, cleanedDoc]);
+    }
+  };
+
+  const handleRemoveDocumento = (index: number) => {
+    setDocumentosAdicionales(documentosAdicionales.filter((_, i) => i !== index));
+  };
+
+  // Cargar datos si es edición
+  useEffect(() => {
+    if (id) {
+      axios.get(`${api}/${id}`)
+        .then((res) => {
+          const data = res.data;
+          setForm(data);
+          if (data.numerosOficiales) setNumerosOficiales(data.numerosOficiales);
+          if (data.documentosRequeridos) {
+            try {
+              const docs = typeof data.documentosRequeridos === 'string'
+                ? data.documentosRequeridos.split(',').map((d: string) => d.trim()).filter(Boolean)
+                : data.documentosRequeridos;
+              setDocumentosAdicionales(docs);
+            } catch (error) {
+              console.error("Error parsing documentosRequeridos:", error);
+            }
+          }
+        })
+        .catch(error => {
+          console.error("Error cargando datos:", error);
+          alert("Error al cargar los datos de la obra");
+        });
+    }
+  }, [id]);
+
+  const handleSave = async () => {
+    try {
+      // Validar campos obligatorios
+      if (!form.nombrePropietario || !form.tipoPropietario || 
+          !form.nombreColoniaObra || !form.idDensidadColoniaObra ||
+          !form.destinoActualProyecto || !form.destinoPropuestoProyecto ||
+          !form.descripcionProyecto || numerosOficiales.length === 0) {
+        alert("Por favor complete todos los campos obligatorios (*)");
+        return;
+      }
+
+      const obraData = {
+        ...form,
+        documentosRequeridos: documentosAdicionales.join(', '),
+        fechaCaptura: id ? form.fechaCaptura : new Date(),
+        ultimaModificacion: new Date(),
+      };
+
+      let obraId = id;
+      if (id) {
+        await axios.put(`${api}/${id}`, obraData);
+      } else {
+        const response = await axios.post(api, obraData);
+        obraId = response.data.idObra || response.data.id;
+      }
+
+      // Guardar números oficiales si hay endpoint especial
+      if (obraId && numerosOficiales.length > 0) {
+        try {
+          await axios.post(`${api}/${obraId}/numeros-manual`, { numeros: numerosOficiales });
+        } catch (error) {
+          console.warn("No se pudieron guardar los números oficiales:", error);
+        }
+      }
+
+      alert("¡Obra guardada correctamente!");
+      navigate("/paso2obra", { state: { id: obraId } });
+    } catch (error: any) {
+      console.error("Error al guardar:", error);
+      alert(`Error: ${error.response?.data?.message || error.message || "Error desconocido"}`);
+    }
+  };
+
+  // Opciones para selects
+  const tipoPropietarioOptions = [
+    { value: "Fisica", label: "Persona Física" },
+    { value: "Moral", label: "Persona Moral" },
+  ];
+
+  const tipoIdentificacionOptions = [
+    { value: "IFE", label: "IFE" },
+    { value: "INE", label: "INE" },
+    { value: "PASAPORTE", label: "Pasaporte" },
+    { value: "LICENCIA", label: "Licencia de conducir" },
+    { value: "CEDULA", label: "Cédula profesional" },
+    { value: "OTRO", label: "Otro" },
+  ];
+
+  const tipoDocumentoOptions = [
+    { value: "ESCRITURA", label: "Escritura" },
+    { value: "RESOLUCION", label: "Resolución" },
+    { value: "CONTRATO", label: "Contrato" },
+    { value: "CERTIFICADO", label: "Certificado" },
+    { value: "TITULO_PROPIEDAD", label: "Título de Propiedad" },
+  ];
+
+  const densidadOptions = [
+    { value: "ALTA", label: "Densidad alta" },
+    { value: "MEDIA", label: "Densidad media" },
+    { value: "BAJA", label: "Densidad baja" },
+    { value: "MINIMA", label: "Densidad mínima" },
+  ];
+
+  const pavimentoOptions = [
+    { value: "Si", label: "Sí" },
+    { value: "No", label: "No" },
+    { value: "No Definido", label: "No Definido" },
+  ];
+
+  const vigenciaOptions = [
+    { value: "", label: "Seleccionar Valor" },
+    { value: "180", label: "180 días" },
+    { value: "365", label: "365 días" },
+    { value: "730", label: "730 días" },
+  ];
+
+  const usuarioRevisorOptions = [
+    { value: "ARQ. ALICIA MONRAZ GONZALEZ", label: "ARQ. ALICIA MONRAZ GONZALEZ" },
+    { value: "ING. JUAN PEREZ", label: "ING. JUAN PEREZ" },
+    { value: "ARQ. MARIA RODRIGUEZ", label: "ARQ. MARIA RODRIGUEZ" },
+    { value: "LIC. CARLOS SANCHEZ", label: "LIC. CARLOS SANCHEZ" },
+    { value: "ARQ. PEDRO LOPEZ", label: "ARQ. PEDRO LOPEZ" },
+    { value: "ING. ANA GARCIA", label: "ING. ANA GARCIA" },
+  ];
+
+  const cuantificadorOptions = [
+    { value: "PORFIRIO FLORES MEZA", label: "PORFIRIO FLORES MEZA" },
+    { value: "ANA LOPEZ MARTINEZ", label: "ANA LOPEZ MARTINEZ" },
+    { value: "LUIS GARCIA HERNANDEZ", label: "LUIS GARCIA HERNANDEZ" },
+    { value: "SOFIA RAMIREZ TORRES", label: "SOFIA RAMIREZ TORRES" },
+    { value: "CARLOS MENDOZA", label: "CARLOS MENDOZA" },
+    { value: "MARIA SANCHEZ", label: "MARIA SANCHEZ" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-100 p-4 md:p-6">
+      <div className="max-w-7xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
+        <div className="bg-black text-white text-center py-4">
+          <h1 className="text-xl md:text-2xl font-bold">Obra</h1>
+          <p className="text-sm text-gray-300 mt-1">
+            Los campos requeridos están señalados con un asterisco *
+          </p>
+          {id && <p className="text-sm mt-1">Editando obra ID: {id}</p>}
+        </div>
+
+        <div className="p-4 md:p-8 space-y-8">
+          {/* ===== 1. DATOS DEL PROPIETARIO ===== */}
+          <section className="bg-gray-50 p-4 md:p-6 rounded-lg">
+            <h2 className="text-lg font-bold mb-4 text-gray-800 border-b pb-2">
+              1. DATOS DEL PROPIETARIO
+            </h2>
+            <div className="space-y-4">
+              {/* Consecutivo - AHORA USA EL CAMPO CORRECTO */}
+              <Input
+                label="Consecutivo anterior"
+                name="consecutivo"
+                value={form.consecutivo}
+                onChange={handleChange}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Nombre *"
+                  name="nombrePropietario"
+                  value={form.nombrePropietario}
+                  onChange={handleChange}
+                  required
+                />
+                <Select
+                  label="Tipo de Propietario *"
+                  name="tipoPropietario"
+                  value={form.tipoPropietario}
+                  onChange={handleChange}
+                  required
+                  options={tipoPropietarioOptions}
+                  placeholder="Seleccionar Valor"
+                />
+                <Input
+                  label="Representante Legal"
+                  name="representanteLegal"
+                  value={form.representanteLegal}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Identificación"
+                  name="identificacion"
+                  value={form.identificacion}
+                  onChange={handleChange}
+                  placeholder="Número de identificación"
+                />
+                <Select
+                  label="Tipo de Identificación"
+                  name="tipoIdentificacion"
+                  value={form.tipoIdentificacion}
+                  onChange={handleChange}
+                  options={tipoIdentificacionOptions}
+                  placeholder="Seleccionar Valor"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input
+                  label="Domicilio"
+                  name="domicilioPropietario"
+                  value={form.domicilioPropietario}
+                  onChange={handleChange}
+                  placeholder="Calle y número"
+                />
+                <Input
+                  label="Colonia"
+                  name="coloniaPropietario"
+                  value={form.coloniaPropietario}
+                  onChange={handleChange}
+                />
+                <Input
+                  label="Código Postal"
+                  name="codigoPostalPropietario"
+                  value={form.codigoPostalPropietario}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Input
+                  label="Municipio"
+                  name="municipioPropietario"
+                  value={form.municipioPropietario}
+                  onChange={handleChange}
+                />
+                <Input
+                  label="Entidad Federativa"
+                  name="entidadPropietario"
+                  value={form.entidadPropietario}
+                  onChange={handleChange}
+                />
+                <Input
+                  label="Teléfono"
+                  name="telefonoPropietario"
+                  value={form.telefonoPropietario}
+                  onChange={handleChange}
+                  type="tel"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                <Input
+                  label="RFC"
+                  name="rfcPropietario"
+                  value={form.rfcPropietario}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="bg-white p-4 rounded border">
+                <h3 className="font-medium text-gray-700 mb-3">DOCUMENTOS</h3>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Documento que Acredita la Propiedad
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input
+                      type="text"
+                      name="documentoAcreditaPropiedad"
+                      value={form.documentoAcreditaPropiedad || ""}
+                      onChange={handleChange}
+                      placeholder="Ej: RESOLUCIÓN NO.12098TL"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <Select
+                      label="Tipo de Documento"
+                      name="tipoDocumentoAcreditaPropiedad"
+                      value={form.tipoDocumentoAcreditaPropiedad}
+                      onChange={handleChange}
+                      options={tipoDocumentoOptions}
+                      placeholder="Seleccionar Valor"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-2">Documentos Adicionales Requeridos</h4>
+                  <DocumentosAdicionales
+                    documentos={documentosAdicionales}
+                    onAdd={handleAddDocumento}
+                    onRemove={handleRemoveDocumento}
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ===== 2. DATOS DE LA OBRA ===== */}
+          <section className="bg-gray-50 p-4 md:p-6 rounded-lg">
+            <h2 className="text-lg font-bold mb-4 text-gray-800 border-b pb-2">
+              2. DATOS DE LA OBRA
+            </h2>
+            <div className="space-y-6">
+              <NumerosOficiales
+                numeros={numerosOficiales}
+                onAdd={handleAddNumero}
+                onRemove={handleRemoveNumero}
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Colonia *"
+                  name="nombreColoniaObra"
+                  value={form.nombreColoniaObra}
+                  onChange={handleChange}
+                  required
+                />
+                <Select
+                  label="Densidad *"
+                  name="idDensidadColoniaObra"
+                  value={form.idDensidadColoniaObra}
+                  onChange={handleChange}
+                  required
+                  options={densidadOptions}
+                  placeholder="Seleccionar Valor"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Input
+                  label="Manzana"
+                  name="manzanaObra"
+                  value={form.manzanaObra}
+                  onChange={handleChange}
+                  placeholder="Ej: 25"
+                />
+                <Input
+                  label="Lote"
+                  name="loteObra"
+                  value={form.loteObra}
+                  onChange={handleChange}
+                  placeholder="Ej: 12"
+                />
+                <Input
+                  label="Etapa"
+                  name="etapaObra"
+                  value={form.etapaObra}
+                  onChange={handleChange}
+                  placeholder="Ej: 1"
+                />
+                <Input
+                  label="Condominio"
+                  name="condominioObra"
+                  value={form.condominioObra}
+                  onChange={handleChange}
+                  placeholder="Ej: A"
+                />
+              </div>
+
+              <Input
+                label="Números Predios Contiguos"
+                name="numerosPrediosContiguosObra"
+                value={form.numerosPrediosContiguosObra}
+                onChange={handleChange}
+                placeholder="Ej: 123, 124, 125"
+              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Entre Calle"
+                  name="entreCalle1Obra"
+                  value={form.entreCalle1Obra}
+                  onChange={handleChange}
+                  placeholder="Primera calle de referencia"
+                />
+                <Input
+                  label="Y Calle"
+                  name="entreCalle2Obra"
+                  value={form.entreCalle2Obra}
+                  onChange={handleChange}
+                  placeholder="Segunda calle de referencia"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* ===== 3. DATOS DEL PROYECTO ===== */}
+          <section className="bg-gray-50 p-4 md:p-6 rounded-lg">
+            <h2 className="text-lg font-bold mb-4 text-gray-800 border-b pb-2">
+              3. DATOS DEL PROYECTO
+            </h2>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Destino Actual del Proyecto *"
+                  name="destinoActualProyecto"
+                  value={form.destinoActualProyecto}
+                  onChange={handleChange}
+                  required
+                  placeholder="Ej: LOTE"
+                />
+                <Input
+                  label="Destino Propuesto Proyecto *"
+                  name="destinoPropuestoProyecto"
+                  value={form.destinoPropuestoProyecto}
+                  onChange={handleChange}
+                  required
+                  placeholder="Ej: CONSTRUCCIÓN COMERCIAL"
+                />
+              </div>
+
+              <div className="bg-white p-4 rounded border">
+                <h3 className="font-medium text-gray-700 mb-3">Servicios</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <Checkbox
+                    name="aguaPotable"
+                    checked={form.aguaPotable === "Si"}
+                    onChange={handleChange}
+                    label="Agua Potable"
+                  />
+                  <Checkbox
+                    name="drenaje"
+                    checked={form.drenaje === "Si"}
+                    onChange={handleChange}
+                    label="Drenaje"
+                  />
+                  <Checkbox
+                    name="electricidad"
+                    checked={form.electricidad === "Si"}
+                    onChange={handleChange}
+                    label="Electricidad"
+                  />
+                  <Checkbox
+                    name="alumbradoPublico"
+                    checked={form.alumbradoPublico === "Si"}
+                    onChange={handleChange}
+                    label="Alumbrado Público"
+                  />
+                  <Checkbox
+                    name="machuelos"
+                    checked={form.machuelos === "Si"}
+                    onChange={handleChange}
+                    label="Machuelos"
+                  />
+                  <Checkbox
+                    name="banquetas"
+                    checked={form.banquetas === "Si"}
+                    onChange={handleChange}
+                    label="Banquetas"
+                  />
+                </div>
+                <div className="mt-4">
+                  <Select
+                    label="Pavimento"
+                    name="pavimento"
+                    value={form.pavimento}
+                    onChange={handleChange}
+                    options={pavimentoOptions}
+                    placeholder="No Definido"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded border">
+                <h3 className="font-medium text-gray-700 mb-3">RESTRICCIONES</h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Input
+                    label="Servidumbre Frontal (m)"
+                    name="servidumbreFrontal"
+                    value={form.servidumbreFrontal}
+                    onChange={handleChange}
+                    placeholder="2.0"
+                  />
+                  <Input
+                    label="Servidumbre Lateral (m)"
+                    name="servidumbreLateral"
+                    value={form.servidumbreLateral}
+                    onChange={handleChange}
+                    placeholder="0.0"
+                  />
+                  <Input
+                    label="Servidumbre Posterior (m)"
+                    name="servidumbrePosterior"
+                    value={form.servidumbrePosterior}
+                    onChange={handleChange}
+                    placeholder="3.0"
+                  />
+                  <div></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <Input
+                    label="Coeficiente Ocupación (COS)"
+                    name="coeficienteOcupacion"
+                    value={form.coeficienteOcupacion}
+                    onChange={handleChange}
+                    placeholder="0.8"
+                  />
+                  <Input
+                    label="Coeficiente Utilización (CUS)"
+                    name="coeficienteUtilizacion"
+                    value={form.coeficienteUtilizacion}
+                    onChange={handleChange}
+                    placeholder="1.6"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descripción Proyecto *
+                </label>
+                <textarea
+                  name="descripcionProyecto"
+                  value={form.descripcionProyecto || ""}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-32"
+                  placeholder="Describa el proyecto..."
+                  required
+                />
+              </div>
+
+              <div className="bg-white p-4 rounded border">
+                <h3 className="font-medium text-gray-700 mb-3">VIGENCIA</h3>
+                <Select
+                  label="Vigencia (días)"
+                  name="vigencia"
+                  value={form.vigencia}
+                  onChange={handleChange}
+                  options={vigenciaOptions}
+                  placeholder="Seleccionar Valor"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Select
+                  label="Usuario que recibió documentación"
+                  name="revisor"
+                  value={form.revisor}
+                  onChange={handleChange}
+                  options={usuarioRevisorOptions}
+                  placeholder="Seleccionar Valor"
+                />
+                <Select
+                  label="Cuantificador"
+                  name="cuantificador"
+                  value={form.cuantificador}
+                  onChange={handleChange}
+                  options={cuantificadorOptions}
+                  placeholder="Seleccionar Valor"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* ===== BOTONES ===== */}
+          <div className="flex flex-col md:flex-row justify-end gap-4 pt-6 border-t">
+            <button
+              onClick={() => navigate("/obras")}
+              className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-8 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+            >
+              Guardar Cambios
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Paso1Obra;

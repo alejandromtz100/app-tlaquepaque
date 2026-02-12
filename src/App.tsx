@@ -11,6 +11,9 @@ import Asignaciones from "./usuarios/asignaciones";
 import Directores from "./catalogos/directores";
 import Conceptos from "./catalogos/conceptos";
 import ListaConceptos from "./catalogos/ListaConceptos";
+import Obras from './obras/Obras';
+
+
 
 const App: React.FC = () => {
   return (
@@ -29,7 +32,7 @@ const App: React.FC = () => {
         <Route path="/usuarios/asignaciones" element={<Asignaciones />} />
         <Route path="/catalogos/directores" element={<Directores />} />
         <Route path="/catalogos/ListaConceptos" element={<ListaConceptos />}/>
-      
+        <Route path="/obras" element={<Obras />} />
       </Routes>
     </Router>
   );

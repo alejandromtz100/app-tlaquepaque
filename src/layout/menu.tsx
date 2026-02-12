@@ -70,8 +70,7 @@ const Menu: React.FC = () => {
           open={openMenu === "reportes"}
           onClick={() => toggleMenu("reportes")}
           items={[
-            { label: "Reportes del sistema", path: "/reportes" },
-            { label: "Reporte de conceptos", path: "/reportes/conceptos" },
+            
           ]}
           onSelect={goTo}
         />

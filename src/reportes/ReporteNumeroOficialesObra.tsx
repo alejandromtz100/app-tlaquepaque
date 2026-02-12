@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import Menu from "../layout/menu";
 import type { ObraConNumerosOficiales } from "../services/numeros-oficiales.service";
 import { NumerosOficialesService } from "../services/numeros-oficiales.service";
@@ -40,31 +40,35 @@ const ReporteNumeroOficialesObra: React.FC = () => {
     }
   };
 
-  // Expandir obras: cada número oficial genera una fila
-  const filasExpandidas = obras.flatMap((obra) => {
-    if (obra.numerosOficiales.length === 0) {
-      // Si no tiene números oficiales, mostrar una fila con campos vacíos
-      return [{
+  // Expandir obras: cada número oficial genera una fila (memoizado)
+  const filasExpandidas = useMemo(() => {
+    return obras.flatMap((obra) => {
+      if (obra.numerosOficiales.length === 0) {
+        // Si no tiene números oficiales, mostrar una fila con campos vacíos
+        return [{
+          ...obra,
+          numeroOficial: "",
+          calle: "",
+        }];
+      }
+      return obra.numerosOficiales.map((num) => ({
         ...obra,
-        numeroOficial: "",
-        calle: "",
-      }];
-    }
-    return obra.numerosOficiales.map((num) => ({
-      ...obra,
-      numeroOficial: num.numerooficial,
-      calle: num.calle || "",
-    }));
-  });
+        numeroOficial: num.numerooficial,
+        calle: num.calle || "",
+      }));
+    });
+  }, [obras]);
 
-  // Filtrar obras con filtros separados (solo consecutivo, número oficial y calle)
-  const filtradas = filasExpandidas.filter((obra) => {
-    const matchConsecutivo = !filtros.consecutivo || obra.consecutivo?.toLowerCase().includes(filtros.consecutivo.toLowerCase());
-    const matchNumeroOficial = !filtros.numeroOficial || obra.numeroOficial?.toLowerCase().includes(filtros.numeroOficial.toLowerCase());
-    const matchCalle = !filtros.calle || obra.calle?.toLowerCase().includes(filtros.calle.toLowerCase());
+  // Filtrar obras con filtros separados (solo consecutivo, número oficial y calle) - memoizado
+  const filtradas = useMemo(() => {
+    return filasExpandidas.filter((obra) => {
+      const matchConsecutivo = !filtros.consecutivo || obra.consecutivo?.toLowerCase().includes(filtros.consecutivo.toLowerCase());
+      const matchNumeroOficial = !filtros.numeroOficial || obra.numeroOficial?.toLowerCase().includes(filtros.numeroOficial.toLowerCase());
+      const matchCalle = !filtros.calle || obra.calle?.toLowerCase().includes(filtros.calle.toLowerCase());
 
-    return matchConsecutivo && matchNumeroOficial && matchCalle;
-  });
+      return matchConsecutivo && matchNumeroOficial && matchCalle;
+    });
+  }, [filasExpandidas, filtros]);
 
   // Función para exportar a Excel
   const exportarAExcel = () => {
@@ -118,19 +122,28 @@ const ReporteNumeroOficialesObra: React.FC = () => {
   };
 
   // Función para limpiar filtros
-  const limpiarFiltros = () => {
+  const limpiarFiltros = useCallback(() => {
     setFiltros({
       consecutivo: "",
       numeroOficial: "",
       calle: "",
     });
-  };
+    setPaginaActual(1);
+  }, []);
 
-  // Mostrar todos los registros filtrados (sin paginación)
-  const visibles = filtradas;
+  // Paginación para mejorar rendimiento - mostrar solo una porción de los datos
+  const [paginaActual, setPaginaActual] = useState(1);
+  const registrosPorPagina = 100; // Mostrar 100 registros por página
+  
+  const visibles = useMemo(() => {
+    const inicio = (paginaActual - 1) * registrosPorPagina;
+    return filtradas.slice(inicio, inicio + registrosPorPagina);
+  }, [filtradas, paginaActual]);
+  
+  const totalPaginas = Math.ceil(filtradas.length / registrosPorPagina);
 
-  // Formatear fecha
-  const formatearFecha = (fecha: string | Date) => {
+  // Formatear fecha (memoizado con useCallback)
+  const formatearFecha = useCallback((fecha: string | Date) => {
     if (!fecha) return "-";
     const date = new Date(fecha);
     return date.toLocaleString("es-MX", {
@@ -140,7 +153,7 @@ const ReporteNumeroOficialesObra: React.FC = () => {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -254,6 +267,7 @@ const ReporteNumeroOficialesObra: React.FC = () => {
                   value={filtros.consecutivo}
                   onChange={(e) => {
                     setFiltros({ ...filtros, consecutivo: e.target.value });
+                    setPaginaActual(1); // Resetear a primera página al filtrar
                   }}
                 />
               </div>
@@ -267,6 +281,7 @@ const ReporteNumeroOficialesObra: React.FC = () => {
                   value={filtros.numeroOficial}
                   onChange={(e) => {
                     setFiltros({ ...filtros, numeroOficial: e.target.value });
+                    setPaginaActual(1); // Resetear a primera página al filtrar
                   }}
                 />
               </div>
@@ -280,6 +295,7 @@ const ReporteNumeroOficialesObra: React.FC = () => {
                   value={filtros.calle}
                   onChange={(e) => {
                     setFiltros({ ...filtros, calle: e.target.value });
+                    setPaginaActual(1); // Resetear a primera página al filtrar
                   }}
                 />
               </div>
@@ -376,10 +392,65 @@ const ReporteNumeroOficialesObra: React.FC = () => {
             </div>
           </div>
 
-          {/* INFORMACIÓN DE REGISTROS */}
+          {/* PAGINACIÓN E INFORMACIÓN DE REGISTROS */}
           <div className="p-4 border-t bg-gray-50">
-            <div className="text-sm text-gray-600 text-center">
-              Mostrando <span className="font-semibold text-gray-900">{filtradas.length}</span> de <span className="font-semibold text-gray-900">{filasExpandidas.length}</span> registros
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="text-sm text-gray-600 text-center sm:text-left">
+                Mostrando <span className="font-semibold text-gray-900">
+                  {filtradas.length > 0 ? (paginaActual - 1) * registrosPorPagina + 1 : 0}
+                </span> - <span className="font-semibold text-gray-900">
+                  {Math.min(paginaActual * registrosPorPagina, filtradas.length)}
+                </span> de <span className="font-semibold text-gray-900">{filtradas.length}</span> registros filtrados
+                {filasExpandidas.length !== filtradas.length && (
+                  <span className="text-gray-500"> (de {filasExpandidas.length} totales)</span>
+                )}
+              </div>
+              
+              {totalPaginas > 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={paginaActual === 1}
+                    onClick={() => setPaginaActual(paginaActual - 1)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                  >
+                    ◀ Anterior
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
+                      let pageNum;
+                      if (totalPaginas <= 5) {
+                        pageNum = i + 1;
+                      } else if (paginaActual <= 3) {
+                        pageNum = i + 1;
+                      } else if (paginaActual >= totalPaginas - 2) {
+                        pageNum = totalPaginas - 4 + i;
+                      } else {
+                        pageNum = paginaActual - 2 + i;
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setPaginaActual(pageNum)}
+                          className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                            paginaActual === pageNum
+                              ? "bg-black text-white"
+                              : "border border-gray-300 hover:bg-gray-100"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    disabled={paginaActual === totalPaginas}
+                    onClick={() => setPaginaActual(paginaActual + 1)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                  >
+                    Siguiente ▶
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

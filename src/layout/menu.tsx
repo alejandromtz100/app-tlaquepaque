@@ -1,10 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaChevronDown } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 const Menu: React.FC = () => {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [esAdmin, setEsAdmin] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const usuarioData = localStorage.getItem("usuario");
+    if (usuarioData) {
+      const usuario = JSON.parse(usuarioData);
+      setEsAdmin(usuario.rol === "ADMIN");
+    }
+  }, []);
 
   const toggleMenu = (menu: string) => {
     setOpenMenu(openMenu === menu ? null : menu);
@@ -73,9 +82,20 @@ const Menu: React.FC = () => {
             { label: "Reporte de número oficiales de obra", path: "/reportes/numero-oficiales-obra" },
             { label: "Reporte de licencias", path: "/reportes/rep_Licencias/RepLicenciasPage" },
             { label: "Reporte de obras", path: "/reportes/rep_obras/RepObrasPage" },
+            { label: "Estadísticas de pagos", path: "/estadisticas" },
           ]}
           onSelect={goTo}
         />
+
+        {/* Administradores - Solo visible para ADMIN */}
+        {esAdmin && (
+          <span
+            onClick={() => goTo("/administradores")}
+            className="cursor-pointer hover:text-gray-300"
+          >
+            Administradores
+          </span>
+        )}
       </div>
     </nav>
   );

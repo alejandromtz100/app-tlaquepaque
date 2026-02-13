@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Menu from "../layout/menu";
 import { Pencil, Copy, Printer, Paperclip } from "lucide-react";
@@ -70,7 +70,6 @@ const BuscarObra: React.FC = () => {
       }));
       
       setObras(obrasTransformadas);
-      setResultados(obrasTransformadas);
     } catch (error) {
       console.error("Error al cargar obras:", error);
       alert("Error al cargar las obras");

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
+import Menu from "../layout/menu";
 
 const api = "http://localhost:3001/op_obras";
 
@@ -437,15 +438,33 @@ const Paso1Obra: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
-        <div className="bg-black text-white text-center py-4">
-          <h1 className="text-xl md:text-2xl font-bold">Obra</h1>
-          <p className="text-sm text-gray-300 mt-1">
-            Los campos requeridos están señalados con un asterisco *
-          </p>
-          {id && <p className="text-sm mt-1">Editando obra ID: {id}</p>}
+    <div className="min-h-screen bg-gray-100 flex flex-col">
+      {/* HEADER */}
+      <header className="bg-white shadow-md">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-bold text-gray-800">
+              Sistema de Control de la Edificación ALCH
+            </h1>
+            <p className="text-sm text-gray-500">
+              H. Ayuntamiento de Tlaquepaque
+            </p>
+          </div>
         </div>
+      </header>
+
+      <Menu />
+
+      {/* MAIN CONTENT */}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
+        <div className="bg-white shadow-xl rounded-lg overflow-hidden">
+          <div className="bg-black text-white text-center py-4">
+            <h1 className="text-xl md:text-2xl font-bold">Obra</h1>
+            <p className="text-sm text-gray-300 mt-1">
+              Los campos requeridos están señalados con un asterisco *
+            </p>
+            {id && <p className="text-sm mt-1">Editando obra ID: {id}</p>}
+          </div>
 
         <div className="p-4 md:p-8 space-y-8">
           {/* ===== 1. DATOS DEL PROPIETARIO ===== */}
@@ -868,7 +887,13 @@ const Paso1Obra: React.FC = () => {
             </button>
           </div>
         </div>
-      </div>
+        </div>
+      </main>
+
+      {/* FOOTER */}
+      <footer className="bg-black text-white text-center py-3 text-sm">
+        Informática · H. Ayuntamiento de Tlaquepaque
+      </footer>
     </div>
   );
 };

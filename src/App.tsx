@@ -12,9 +12,12 @@ import Directores from "./catalogos/directores";
 import Conceptos from "./catalogos/conceptos";
 import ListaConceptos from "./catalogos/ListaConceptos";
 import Obras from './obras/Obras';
+import Paso1Obra from './obras/paso1obra';
+import BuscarObra from './obras/BuscarObra';
 import ReporteNumeroOficialesObra from './reportes/ReporteNumeroOficialesObra';
 import RepLicenciasPage from "./reportes/rep_Licencias/RepLicenciasPage";
 import RepObrasPage from "./reportes/rep_obras/RepObrasPage";
+import CambiarClave from "./cuenta/CambiarClave";
 
 const App: React.FC = () => {
   return (
@@ -34,6 +37,9 @@ const App: React.FC = () => {
         <Route path="/catalogos/directores" element={<Directores />} />
         <Route path="/catalogos/ListaConceptos" element={<ListaConceptos />}/>
         <Route path="/obras" element={<Obras />} />
+        <Route path="/paso1obras" element={<Paso1Obra />} />
+        <Route path="/buscar-obra" element={<BuscarObra />} />
+        <Route path="/cambiar-clave" element={<CambiarClave />} />
 
         <Route path="/reportes/numero-oficiales-obra" element={<ReporteNumeroOficialesObra />} />
         <Route path="/reportes/rep_Licencias/RepLicenciasPage" element={<RepLicenciasPage />} />

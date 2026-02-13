@@ -90,10 +90,22 @@ const Home: React.FC = () => {
           </h2>
 
           <div className="flex flex-col gap-4">
-            <Action icon={<FaPlusCircle />} text="Capturar obra" />
+            <Action 
+              icon={<FaPlusCircle />} 
+              text="Capturar obra" 
+              onClick={() => navigate("/paso1obras")}
+            />
             <Action icon={<FaEdit />} text="Modificar obra" />
-            <Action icon={<FaSearch />} text="Buscar obra" />
-            <Action icon={<FaKey />} text="Cambiar mi clave" />
+            <Action 
+              icon={<FaSearch />} 
+              text="Buscar obra" 
+              onClick={() => navigate("/buscar-obra")}
+            />
+            <Action
+              icon={<FaKey />}
+              text="Cambiar mi clave"
+              onClick={() => navigate("/cambiar-clave")}
+            />
           </div>
         </div>
       </main>
@@ -105,8 +117,11 @@ const Home: React.FC = () => {
   );
 };
 
-const Action = ({ icon, text }: { icon: React.ReactNode; text: string }) => (
-  <button className="flex items-center gap-3 p-3 border rounded-xl hover:bg-gray-100 transition">
+const Action = ({ icon, text, onClick }: { icon: React.ReactNode; text: string; onClick?: () => void }) => (
+  <button 
+    onClick={onClick}
+    className="flex items-center gap-3 p-3 border rounded-xl hover:bg-gray-100 transition w-full text-left"
+  >
     <span className="text-xl">{icon}</span>
     <span className="font-medium">{text}</span>
   </button>

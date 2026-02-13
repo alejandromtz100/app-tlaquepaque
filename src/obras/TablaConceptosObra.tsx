@@ -33,7 +33,7 @@ export default function TablaConceptosObra({
             <td>${c.costo_unitario}</td>
             <td>{c.cantidad}</td>
             <td>
-              ${(c.total ?? c.costo_unitario * c.cantidad).toFixed(2)}
+              ${Number(c.total ?? (c.costo_unitario ?? 0) * (c.cantidad ?? 0)).toFixed(2)}
             </td>
             <td>
               <button onClick={() => eliminar(c.id)}>🗑</button>

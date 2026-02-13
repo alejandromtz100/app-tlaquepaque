@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
+import { getColonias } from "../services/colonias.service";
+import Menu from "../layout/menu";
 
 const api = "http://localhost:3001/op_obras";
 
@@ -246,6 +248,7 @@ const Paso1Obra: React.FC = () => {
     codigoPostalPropietario: "",
     documentoAcreditaPropiedad: "",
     tipoDocumentoAcreditaPropiedad: "",
+    idColoniaObra: "",
     nombreColoniaObra: "",
     idDensidadColoniaObra: "",
     manzanaObra: "",
@@ -263,7 +266,7 @@ const Paso1Obra: React.FC = () => {
     alumbradoPublico: "Si",
     machuelos: "Si",
     banquetas: "Si",
-    pavimento: "Si",
+    pavimento: "No Definido",
     servidumbreFrontal: "",
     servidumbreLateral: "",
     servidumbrePosterior: "",
@@ -272,11 +275,28 @@ const Paso1Obra: React.FC = () => {
     descripcionProyecto: "",
     revisor: "",
     cuantificador: "",
-    vigencia: "",
   });
 
   const [numerosOficiales, setNumerosOficiales] = useState<any[]>([]);
   const [documentosAdicionales, setDocumentosAdicionales] = useState<string[]>([]);
+  const [colonias, setColonias] = useState<{ id_colonia: number; nombre: string; densidad: string | null }[]>([]);
+  const [coloniaBusqueda, setColoniaBusqueda] = useState("");
+  const [mostrarColoniasDropdown, setMostrarColoniasDropdown] = useState(false);
+  const coloniaDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    getColonias().then(setColonias).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (coloniaDropdownRef.current && !coloniaDropdownRef.current.contains(e.target as Node)) {
+        setMostrarColoniasDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleChange = (e: any) => {
     const { name, value, type, checked } = e.target;
@@ -306,20 +326,50 @@ const Paso1Obra: React.FC = () => {
     setDocumentosAdicionales(documentosAdicionales.filter((_, i) => i !== index));
   };
 
+  const handleSelectColonia = (colonia: { id_colonia: number; nombre: string; densidad: string | null }) => {
+    setForm((prev: any) => ({
+      ...prev,
+      idColoniaObra: colonia.id_colonia,
+      nombreColoniaObra: colonia.nombre,
+      idDensidadColoniaObra: colonia.densidad || "",
+    }));
+    setColoniaBusqueda(colonia.nombre);
+    setMostrarColoniasDropdown(false);
+  };
+
+  const coloniasFiltradas = colonias.filter(c =>
+    c.nombre.toLowerCase().includes(coloniaBusqueda.toLowerCase())
+  );
+
   // Cargar datos si es edición
   useEffect(() => {
     if (id) {
       axios.get(`${api}/${id}`)
         .then((res) => {
           const data = res.data;
-          setForm(data);
-          if (data.numerosOficiales) setNumerosOficiales(data.numerosOficiales);
+          setForm((prev: any) => ({
+            ...prev,
+            ...data,
+            aguaPotable: data.aguaPotable ?? prev.aguaPotable,
+            drenaje: data.drenaje ?? prev.drenaje,
+            electricidad: data.electricidad ?? prev.electricidad,
+            alumbradoPublico: data.alumbradoPublico ?? prev.alumbradoPublico,
+            machuelos: data.machuelos ?? prev.machuelos,
+            banquetas: data.banquetas ?? prev.banquetas,
+            pavimento: data.pavimento ?? prev.pavimento,
+          }));
+          if (data.numerosOficiales && Array.isArray(data.numerosOficiales)) {
+            setNumerosOficiales(data.numerosOficiales);
+          }
+          if (data.nombreColoniaObra) {
+            setColoniaBusqueda(data.nombreColoniaObra);
+          }
           if (data.documentosRequeridos) {
             try {
               const docs = typeof data.documentosRequeridos === 'string'
                 ? data.documentosRequeridos.split(',').map((d: string) => d.trim()).filter(Boolean)
                 : data.documentosRequeridos;
-              setDocumentosAdicionales(docs);
+              setDocumentosAdicionales(Array.isArray(docs) ? docs : []);
             } catch (error) {
               console.error("Error parsing documentosRequeridos:", error);
             }
@@ -336,7 +386,7 @@ const Paso1Obra: React.FC = () => {
     try {
       // Validar campos obligatorios
       if (!form.nombrePropietario || !form.tipoPropietario || 
-          !form.nombreColoniaObra || !form.idDensidadColoniaObra ||
+          !form.nombreColoniaObra || !form.idColoniaObra ||
           !form.destinoActualProyecto || !form.destinoPropuestoProyecto ||
           !form.descripcionProyecto || numerosOficiales.length === 0) {
         alert("Por favor complete todos los campos obligatorios (*)");
@@ -368,7 +418,7 @@ const Paso1Obra: React.FC = () => {
       }
 
       alert("¡Obra guardada correctamente!");
-      navigate("/paso2obra", { state: { id: obraId } });
+      navigate(`/obras/paso2/${obraId}`);
     } catch (error: any) {
       console.error("Error al guardar:", error);
       alert(`Error: ${error.response?.data?.message || error.message || "Error desconocido"}`);
@@ -398,24 +448,13 @@ const Paso1Obra: React.FC = () => {
     { value: "TITULO_PROPIEDAD", label: "Título de Propiedad" },
   ];
 
-  const densidadOptions = [
-    { value: "ALTA", label: "Densidad alta" },
-    { value: "MEDIA", label: "Densidad media" },
-    { value: "BAJA", label: "Densidad baja" },
-    { value: "MINIMA", label: "Densidad mínima" },
-  ];
-
   const pavimentoOptions = [
-    { value: "Si", label: "Sí" },
-    { value: "No", label: "No" },
     { value: "No Definido", label: "No Definido" },
-  ];
-
-  const vigenciaOptions = [
-    { value: "", label: "Seleccionar Valor" },
-    { value: "180", label: "180 días" },
-    { value: "365", label: "365 días" },
-    { value: "730", label: "730 días" },
+    { value: "Adoquin", label: "Adoquin" },
+    { value: "Asfalto", label: "Asfalto" },
+    { value: "Concreto Hidraulico", label: "Concreto Hidraulico" },
+    { value: "Empedrado", label: "Empedrado" },
+    { value: "Terracera", label: "Terracera" },
   ];
 
   const usuarioRevisorOptions = [
@@ -437,15 +476,67 @@ const Paso1Obra: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
-        <div className="bg-black text-white text-center py-4">
-          <h1 className="text-xl md:text-2xl font-bold">Obra</h1>
-          <p className="text-sm text-gray-300 mt-1">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
+      {/* HEADER */}
+      <header className="bg-white shadow-md">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-bold text-gray-800">
+              Sistema de Control de la Edificación ALCH
+            </h1>
+            <p className="text-sm text-gray-500">
+              H. Ayuntamiento de Tlaquepaque
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <Menu />
+
+      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 flex gap-6">
+        {/* Stepper lateral */}
+        <div className="flex flex-col items-center shrink-0 pt-8">
+          {[1, 2, 3, 4].map((step) => {
+            const isEditando = !!id;
+            const step2Clickable = step === 2 && isEditando;
+            const isDisabled = step > 1 && !step2Clickable;
+
+            return (
+              <div key={step} className="flex flex-col items-center">
+                {step === 1 ? (
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm bg-black"
+                  >
+                    {step}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (step === 2 && id) navigate(`/obras/paso2/${id}`);
+                    }}
+                    disabled={!step2Clickable}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm transition
+                      ${isDisabled ? "bg-gray-300 cursor-not-allowed opacity-70" : "bg-gray-300 hover:bg-gray-500 cursor-pointer"}`}
+                  >
+                    {step}
+                  </button>
+                )}
+                {step < 4 && (
+                  <div className="w-0.5 h-8 flex-shrink-0 bg-gray-200" />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex-1 min-w-0 bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-black text-white text-center py-2 font-semibold">
+            Obra {id && <span className="text-gray-300 font-normal">· Editando ID: {id}</span>}
+          </div>
+          <p className="text-sm text-gray-500 px-6 pt-2">
             Los campos requeridos están señalados con un asterisco *
           </p>
-          {id && <p className="text-sm mt-1">Editando obra ID: {id}</p>}
-        </div>
 
         <div className="p-4 md:p-8 space-y-8">
           {/* ===== 1. DATOS DEL PROPIETARIO ===== */}
@@ -608,22 +699,66 @@ const Paso1Obra: React.FC = () => {
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Colonia *"
-                  name="nombreColoniaObra"
-                  value={form.nombreColoniaObra}
-                  onChange={handleChange}
-                  required
-                />
-                <Select
-                  label="Densidad *"
-                  name="idDensidadColoniaObra"
-                  value={form.idDensidadColoniaObra}
-                  onChange={handleChange}
-                  required
-                  options={densidadOptions}
-                  placeholder="Seleccionar Valor"
-                />
+                <div ref={coloniaDropdownRef} className="relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Colonia * <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Buscar colonia..."
+                    value={mostrarColoniasDropdown ? coloniaBusqueda : (form.nombreColoniaObra || coloniaBusqueda)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setColoniaBusqueda(v);
+                      setMostrarColoniasDropdown(true);
+                      if (!v.trim()) {
+                        setForm((prev: any) => ({
+                          ...prev,
+                          idColoniaObra: "",
+                          nombreColoniaObra: "",
+                          idDensidadColoniaObra: "",
+                        }));
+                      }
+                    }}
+                    onFocus={() => setMostrarColoniasDropdown(true)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {mostrarColoniasDropdown && (
+                    <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-gray-300 rounded-lg shadow-lg">
+                      {coloniasFiltradas.length === 0 ? (
+                        <li className="px-3 py-2 text-sm text-gray-500">No se encontraron colonias</li>
+                      ) : (
+                        coloniasFiltradas.map((c) => (
+                          <li
+                            key={c.id_colonia}
+                            onClick={() => handleSelectColonia(c)}
+                            className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0"
+                          >
+                            <span className="font-medium">{c.nombre}</span>
+                            {c.densidad && (
+                              <span className="text-gray-600 ml-2">— {c.densidad}</span>
+                            )}
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Densidad *
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={form.idDensidadColoniaObra || ""}
+                    placeholder="Se muestra al seleccionar colonia"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-700"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Se asigna automáticamente según la colonia seleccionada
+                  </p>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -756,7 +891,7 @@ const Paso1Obra: React.FC = () => {
                     value={form.pavimento}
                     onChange={handleChange}
                     options={pavimentoOptions}
-                    placeholder="No Definido"
+                    placeholder="Seleccionar Valor"
                   />
                 </div>
               </div>
@@ -819,18 +954,6 @@ const Paso1Obra: React.FC = () => {
                 />
               </div>
 
-              <div className="bg-white p-4 rounded border">
-                <h3 className="font-medium text-gray-700 mb-3">VIGENCIA</h3>
-                <Select
-                  label="Vigencia (días)"
-                  name="vigencia"
-                  value={form.vigencia}
-                  onChange={handleChange}
-                  options={vigenciaOptions}
-                  placeholder="Seleccionar Valor"
-                />
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Select
                   label="Usuario que recibió documentación"
@@ -856,19 +979,24 @@ const Paso1Obra: React.FC = () => {
           <div className="flex flex-col md:flex-row justify-end gap-4 pt-6 border-t">
             <button
               onClick={() => navigate("/obras")}
-              className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
+              className="px-4 py-2 rounded border hover:bg-gray-100"
             >
               Cancelar
             </button>
             <button
               onClick={handleSave}
-              className="px-8 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+              className="bg-black text-white px-4 py-2 rounded-xl hover:bg-gray-800 font-medium"
             >
               Guardar Cambios
             </button>
           </div>
         </div>
-      </div>
+        </div>
+      </main>
+
+      <footer className="bg-black text-white text-center py-3 text-sm">
+        Informática · H. Ayuntamiento de Tlaquepaque
+      </footer>
     </div>
   );
 };

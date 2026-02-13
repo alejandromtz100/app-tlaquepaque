@@ -49,6 +49,8 @@ const App: React.FC = () => {
         <Route path="/reportes/rep_obras/RepObrasPage" element={<RepObrasPage />} />
         <Route path="/estadisticas" element={<Estadisticas />} />
         <Route path="/administradores" element={<Administradores />} />
+        <Route path="/buscar-obra" element={<BuscarObra />} />
+        <Route path="/cambiar-clave" element={<CambiarClave />} />
       </Routes>
     </Router>
   );

@@ -496,19 +496,11 @@ const Paso1Obra: React.FC = () => {
 
       <Menu />
 
-<<<<<<< HEAD
+
       {/* MAIN CONTENT */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
         <div className="bg-white shadow-xl rounded-lg overflow-hidden">
-          <div className="bg-black text-white text-center py-4">
-            <h1 className="text-xl md:text-2xl font-bold">Obra</h1>
-            <p className="text-sm text-gray-300 mt-1">
-              Los campos requeridos están señalados con un asterisco *
-            </p>
-            {id && <p className="text-sm mt-1">Editando obra ID: {id}</p>}
-          </div>
-=======
-      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 flex gap-6">
+      <div className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 flex gap-6">
         {/* Stepper lateral */}
         <div className="flex flex-col items-center shrink-0 pt-8">
           {[1, 2, 3, 4].map((step) => {
@@ -552,7 +544,7 @@ const Paso1Obra: React.FC = () => {
           <p className="text-sm text-gray-500 px-6 pt-2">
             Los campos requeridos están señalados con un asterisco *
           </p>
->>>>>>> 85aa29aa9323fca712a893c01ea022170802c55b
+
 
         <div className="p-4 md:p-8 space-y-8">
           {/* ===== 1. DATOS DEL PROPIETARIO ===== */}
@@ -1008,12 +1000,14 @@ const Paso1Obra: React.FC = () => {
           </div>
         </div>
         </div>
+      </div>
+      </div>
       </main>
 
-<<<<<<< HEAD
+
       {/* FOOTER */}
-=======
->>>>>>> 85aa29aa9323fca712a893c01ea022170802c55b
+
+
       <footer className="bg-black text-white text-center py-3 text-sm">
         Informática · H. Ayuntamiento de Tlaquepaque
       </footer>

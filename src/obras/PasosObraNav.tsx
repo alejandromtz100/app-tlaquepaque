@@ -16,7 +16,7 @@ export default function PasosObraNav({ obraId, pasoActual }: Props) {
     navigate(`/obras/paso${step}/${obraId}`);
   };
 
-  const exists = (step: number) => step <= 2;
+  const exists = (step: number) => step <= 4;
 
   return (
     <div className="flex flex-col items-center shrink-0 pt-8">

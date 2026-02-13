@@ -10,6 +10,7 @@ interface Props {
 export default function Paso2Obra({ obraId }: Props) {
   const [conceptos, setConceptos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingConcepto, setEditingConcepto] = useState<any | null>(null);
 
   const cargarConceptos = async () => {
     setLoading(true);
@@ -41,7 +42,11 @@ export default function Paso2Obra({ obraId }: Props) {
          Conceptos de la obra
       </h2>
 
-      <TablaConceptosObra conceptos={conceptos} onDelete={cargarConceptos} />
+      <TablaConceptosObra
+        conceptos={conceptos}
+        onDelete={cargarConceptos}
+        onEdit={(c) => setEditingConcepto(c)}
+      />
 
       <div className="mt-6 flex justify-end">
         <div className="bg-slate-100 rounded-lg px-4 py-2 text-right">
@@ -53,7 +58,15 @@ export default function Paso2Obra({ obraId }: Props) {
       </div>
 
       <div className="mt-8">
-        <FormAgregarConcepto obraId={obraId} onSuccess={cargarConceptos} />
+        <FormAgregarConcepto
+          obraId={obraId}
+          onSuccess={() => {
+            cargarConceptos();
+            setEditingConcepto(null);
+          }}
+          editingConcepto={editingConcepto}
+          onCancelEdit={() => setEditingConcepto(null)}
+        />
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { deleteConceptoObra } from '../services/obraConceptos.service';
+import { Pencil, Trash2 } from 'lucide-react';
 
 const NIVELES_LABELS = ['Abuelo', 'Padre', 'Hijo', 'Nieto'] as const;
 const MAX_NIVELES = 4;
@@ -6,9 +7,11 @@ const MAX_NIVELES = 4;
 export default function TablaConceptosObra({
   conceptos,
   onDelete,
+  onEdit,
 }: {
   conceptos: any[];
   onDelete: () => void;
+  onEdit?: (concepto: any) => void;
 }) {
   const eliminar = async (id: number) => {
     if (!confirm('¿Eliminar concepto?')) return;
@@ -45,7 +48,7 @@ export default function TablaConceptosObra({
           <th className="p-3">Medición</th>
           <th className="p-3">Cantidad</th>
           <th className="p-3">Total</th>
-          <th className="p-3 w-12"></th>
+          <th className="p-3 w-24 text-center">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -66,14 +69,24 @@ export default function TablaConceptosObra({
               <td className="p-3 font-medium text-slate-800">
                 ${Number(c.total ?? (c.costo_unitario ?? 0) * (c.cantidad ?? 0)).toFixed(2)}
               </td>
-              <td className="p-3">
+              <td className="p-3 flex items-center justify-center gap-2">
+                {onEdit && (
+                  <button
+                    type="button"
+                    onClick={() => onEdit(c)}
+                    className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+                    title="Editar"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => eliminar(c.id)}
-                  className="text-red-600 hover:text-red-800"
+                  className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded"
                   title="Eliminar"
                 >
-                  🗑
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </td>
             </tr>

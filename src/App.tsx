@@ -14,6 +14,7 @@ import ListaConceptos from "./catalogos/ListaConceptos";
 import Obras from './obras/Obras';
 import Paso1Obra from './obras/paso1obra';
 import Paso2ObraPage from './obras/Paso2ObraPage';
+import Paso4ObraPage from './obras/Paso4ObraPage';
 import ReporteNumeroOficialesObra from './reportes/ReporteNumeroOficialesObra';
 import RepLicenciasPage from "./reportes/rep_Licencias/RepLicenciasPage";
 import RepObrasPage from "./reportes/rep_obras/RepObrasPage";
@@ -38,6 +39,7 @@ const App: React.FC = () => {
         <Route path="/obras" element={<Obras />} />
         <Route path="/obras/paso1" element={<Paso1Obra />} />
         <Route path="/obras/paso2/:id" element={<Paso2ObraPage />} />
+        <Route path="/obras/paso4/:id" element={<Paso4ObraPage />} />
 
         <Route path="/reportes/numero-oficiales-obra" element={<ReporteNumeroOficialesObra />} />
         <Route path="/reportes/rep_Licencias/RepLicenciasPage" element={<RepLicenciasPage />} />

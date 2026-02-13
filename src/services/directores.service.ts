@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { PDFDirector } from '../services/pdfdirector';
+import type { PreviewTexts } from '../catalogos/PreviewDirectores';
 
 export interface DirectorObra {
   id: number;
@@ -311,30 +312,30 @@ export const DirectoresService = {
     );
   },
 
-  // Función para imprimir formato de Responsable de Obra
-  imprimirResponsableObra: async (director: DirectorObra): Promise<void> => {
+  // Función para imprimir formato de Responsable de Obra (con textos editables)
+  imprimirResponsableObra: async (director: DirectorObra, texts?: PreviewTexts): Promise<void> => {
     try {
-      await PDFDirector.generarResponsableObra(director);
+      await PDFDirector.generarResponsableObra(director, texts);
     } catch (error) {
       console.error('Error al generar PDF:', error);
       alert('Error al generar el PDF. Por favor, intente nuevamente.');
     }
   },
 
-  // Función para imprimir formato de Responsable de Proyecto
-  imprimirResponsableProyecto: async (director: DirectorObra): Promise<void> => {
+  // Función para imprimir formato de Responsable de Proyecto (con textos editables)
+  imprimirResponsableProyecto: async (director: DirectorObra, texts?: PreviewTexts): Promise<void> => {
     try {
-      await PDFDirector.generarResponsableProyecto(director);
+      await PDFDirector.generarResponsableProyecto(director, texts);
     } catch (error) {
       console.error('Error al generar PDF:', error);
       alert('Error al generar el PDF. Por favor, intente nuevamente.');
     }
   },
 
-  // Nueva función para imprimir formato de Responsable de Planeación Urbana
-  imprimirResponsablePlaneacionUrbana: async (director: DirectorObra): Promise<void> => {
+  // Nueva función para imprimir formato de Responsable de Planeación Urbana (con textos editables)
+  imprimirResponsablePlaneacionUrbana: async (director: DirectorObra, texts?: PreviewTexts): Promise<void> => {
     try {
-      await PDFDirector.generarResponsablePlaneacionUrbana(director);
+      await PDFDirector.generarResponsablePlaneacionUrbana(director, texts);
     } catch (error) {
       console.error('Error al generar PDF:', error);
       alert('Error al generar el PDF. Por favor, intente nuevamente.');

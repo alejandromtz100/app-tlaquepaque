@@ -178,7 +178,6 @@ export class PDFObra {
     }
 
     // ——— 5. DETALLES DE LA LICENCIA (título centrado con líneas) ———
-    const yDetalle = y;
     pdf.line(L, y, R, y);
     y += 4;
     pdf.setFont('helvetica', 'bold');

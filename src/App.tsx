@@ -13,15 +13,13 @@ import Conceptos from "./catalogos/conceptos";
 import ListaConceptos from "./catalogos/ListaConceptos";
 import Obras from './obras/Obras';
 import Paso1Obra from './obras/paso1obra';
-<<<<<<< HEAD
 import BuscarObra from './obras/BuscarObra';
-=======
 import Paso2ObraPage from './obras/Paso2ObraPage';
->>>>>>> 85aa29aa9323fca712a893c01ea022170802c55b
 import ReporteNumeroOficialesObra from './reportes/ReporteNumeroOficialesObra';
 import RepLicenciasPage from "./reportes/rep_Licencias/RepLicenciasPage";
 import RepObrasPage from "./reportes/rep_obras/RepObrasPage";
 import CambiarClave from "./cuenta/CambiarClave";
+import Administradores from "./administradores/Administradores";
 
 const App: React.FC = () => {
   return (
@@ -41,18 +39,17 @@ const App: React.FC = () => {
         <Route path="/catalogos/directores" element={<Directores />} />
         <Route path="/catalogos/ListaConceptos" element={<ListaConceptos />}/>
         <Route path="/obras" element={<Obras />} />
-<<<<<<< HEAD
+        <Route path="/obras/paso1" element={<Paso1Obra />} />
         <Route path="/paso1obras" element={<Paso1Obra />} />
+        <Route path="/obras/paso2/:id" element={<Paso2ObraPage />} />
         <Route path="/buscar-obra" element={<BuscarObra />} />
         <Route path="/cambiar-clave" element={<CambiarClave />} />
-=======
-        <Route path="/obras/paso1" element={<Paso1Obra />} />
-        <Route path="/obras/paso2/:id" element={<Paso2ObraPage />} />
->>>>>>> 85aa29aa9323fca712a893c01ea022170802c55b
 
         <Route path="/reportes/numero-oficiales-obra" element={<ReporteNumeroOficialesObra />} />
         <Route path="/reportes/rep_Licencias/RepLicenciasPage" element={<RepLicenciasPage />} />
         <Route path="/reportes/rep_obras/RepObrasPage" element={<RepObrasPage />} />
+
+        <Route path="/administradores" element={<Administradores />} />
       </Routes>
     </Router>
   );

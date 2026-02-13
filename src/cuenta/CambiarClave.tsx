@@ -104,7 +104,15 @@ const CambiarClave: React.FC = () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Clave de administrador incorrecta");
-      setClaveRevelada(data.clave ?? "");
+      
+      // Siempre mostrar lo que devuelve el backend: texto plano o hash (solo admin puede ver)
+      if (data.clave != null && String(data.clave).trim() !== '') {
+        setClaveRevelada(data.clave);
+        setErrorRevelar(data.mensaje || (data.estaHasheada ? "Contraseña hasheada (valor almacenado)." : ""));
+      } else {
+        setClaveRevelada(null);
+        setErrorRevelar(data.mensaje || "El usuario no tiene contraseña asignada");
+      }
       setClaveAdminVer("");
     } catch (err: any) {
       setErrorRevelar(err.message || "Clave de administrador incorrecta");
@@ -299,12 +307,36 @@ const CambiarClave: React.FC = () => {
                     </div>
                   </div>
                   {errorRevelar && (
-                    <p className="text-sm text-red-600">{errorRevelar}</p>
+                    <div className={`p-3 rounded-lg ${
+                      errorRevelar.includes('hasheada') || errorRevelar.includes('almacenada') || errorRevelar.includes('valor almacenado')
+                        ? 'bg-blue-50 border border-blue-200'
+                        : 'bg-red-50 border border-red-200'
+                    }`}>
+                      <p className={`text-sm ${
+                        errorRevelar.includes('hasheada') || errorRevelar.includes('almacenada') || errorRevelar.includes('valor almacenado')
+                          ? 'text-blue-800'
+                          : 'text-red-600'
+                      }`}>
+                        {errorRevelar}
+                      </p>
+                    </div>
                   )}
-                  {claveRevelada !== null && (
+                  {claveRevelada !== null && claveRevelada !== '' && (
                     <div className="bg-white border border-green-200 rounded-lg p-3">
-                      <p className="text-xs font-medium text-green-800 mb-1">Clave actual del usuario</p>
-                      <p className="font-mono text-gray-900 break-all">{claveRevelada || "(vacía)"}</p>
+                      <p className="text-xs font-medium text-green-800 mb-1">
+                        Clave actual del usuario {errorRevelar && errorRevelar.includes('hasheada') ? '(valor hasheado almacenado)' : ''}
+                      </p>
+                      <p className="font-mono text-gray-900 break-all text-sm">{claveRevelada}</p>
+                      {errorRevelar && errorRevelar.includes('texto plano') && (
+                        <p className="text-xs text-amber-600 mt-2">
+                          ⚠️ Esta contraseña será hasheada automáticamente en el próximo login del usuario
+                        </p>
+                      )}
+                      {errorRevelar && (errorRevelar.includes('hasheada') || errorRevelar.includes('valor almacenado')) && !errorRevelar.includes('texto plano') && (
+                        <p className="text-xs text-blue-600 mt-2">
+                          La contraseña original no se puede recuperar. Use "Cambiar clave" para asignar una nueva.
+                        </p>
+                      )}
                     </div>
                   )}
                   <button

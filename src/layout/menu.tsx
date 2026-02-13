@@ -82,6 +82,7 @@ const Menu: React.FC = () => {
             { label: "Reporte de número oficiales de obra", path: "/reportes/numero-oficiales-obra" },
             { label: "Reporte de licencias", path: "/reportes/rep_Licencias/RepLicenciasPage" },
             { label: "Reporte de obras", path: "/reportes/rep_obras/RepObrasPage" },
+            { label: "Estadísticas de pagos", path: "/estadisticas" },
           ]}
           onSelect={goTo}
         />

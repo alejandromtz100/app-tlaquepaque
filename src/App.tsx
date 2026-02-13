@@ -20,6 +20,7 @@ import RepLicenciasPage from "./reportes/rep_Licencias/RepLicenciasPage";
 import RepObrasPage from "./reportes/rep_obras/RepObrasPage";
 import CambiarClave from "./cuenta/CambiarClave";
 import Administradores from "./administradores/Administradores";
+import Estadisticas from "./estadisticas/Estadisticas";
 
 const App: React.FC = () => {
   return (
@@ -48,6 +49,7 @@ const App: React.FC = () => {
         <Route path="/reportes/numero-oficiales-obra" element={<ReporteNumeroOficialesObra />} />
         <Route path="/reportes/rep_Licencias/RepLicenciasPage" element={<RepLicenciasPage />} />
         <Route path="/reportes/rep_obras/RepObrasPage" element={<RepObrasPage />} />
+        <Route path="/estadisticas" element={<Estadisticas />} />
 
         <Route path="/administradores" element={<Administradores />} />
       </Routes>

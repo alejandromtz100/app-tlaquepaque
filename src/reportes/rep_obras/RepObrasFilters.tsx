@@ -28,7 +28,7 @@ const RepObrasFiltersForm: React.FC<Props> = ({ onChange }) => {
       {/* Nombre Propietario */}
       <input
         className="border px-2 py-1 rounded"
-        placeholder="Nombre propietario"
+        placeholder="Nombre del propietario"
         value={filters.nombrePropietario ?? ""}
         onChange={(e) =>
           setFilters((prev) => ({

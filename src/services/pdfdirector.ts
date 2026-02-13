@@ -2,27 +2,28 @@ import type { DirectorObra } from './directores.service';
 import { DirectoresService } from './directores.service';
 import jsPDF from 'jspdf';
 import fondoImagen from '../assets/directores_obras4.jpg';
+import type { PreviewTexts } from '../catalogos/PreviewDirectores';
 
 export class PDFDirector {
-  static async generarResponsableObra(d: DirectorObra) {
-    await this.build(d, 1);
+  static async generarResponsableObra(d: DirectorObra, texts?: PreviewTexts) {
+    await this.build(d, 1, texts);
   }
 
-  static async generarResponsableProyecto(d: DirectorObra) {
-    await this.build(d, 2);
+  static async generarResponsableProyecto(d: DirectorObra, texts?: PreviewTexts) {
+    await this.build(d, 2, texts);
   }
 
   // Nuevo método para Planeación Urbana
-  static async generarResponsablePlaneacionUrbana(d: DirectorObra) {
-    await this.build(d, 3);
+  static async generarResponsablePlaneacionUrbana(d: DirectorObra, texts?: PreviewTexts) {
+    await this.build(d, 3, texts);
   }
 
-  private static async build(d: DirectorObra, formato: number) {
+  private static async build(d: DirectorObra, formato: number, texts?: PreviewTexts) {
     const pdf = new jsPDF({ unit: 'mm', format: 'letter' });
 
     await this.background(pdf);
     this.header(pdf, d, formato);
-    this.body(pdf, d, formato);
+    this.body(pdf, d, formato, texts);
     await this.foto(pdf, d);
 
     const tipo = formato === 1 ? 'Responsable_Obra' : 
@@ -82,7 +83,7 @@ export class PDFDirector {
   }
 
   // ================= CUERPO =================
-  private static body(pdf: jsPDF, d: DirectorObra, formato: number) {
+  private static body(pdf: jsPDF, d: DirectorObra, formato: number, texts?: PreviewTexts) {
     const L = 60;
     const W = 105;
     let y = 46;
@@ -90,7 +91,8 @@ export class PDFDirector {
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'normal');
 
-    const intro =
+    // Usar texto editable si está disponible, sino usar el por defecto
+    const intro = texts?.introduccion || 
       `En atención a su solicitud y una vez entregada la documentación requerida por el Reglamento de Construcción en vigor, queda el interesado, registrado en esta dependencia con los siguientes datos:`;
 
     const introLines = pdf.splitTextToSize(intro, W);
@@ -128,7 +130,8 @@ export class PDFDirector {
     if (formato === 3) {
       // Para Planeación Urbana, contenido específico
       pdf.setFont('helvetica', 'normal');
-      const descripcion = `El Director Responsable de Planeación Urbana está autorizado para realizar labores de planeación, diseño urbano y asesoría en materia de desarrollo urbano, de acuerdo con el oficio de autorización correspondiente.`;
+      const descripcion = texts?.descripcionEspecifica || 
+        `El Director Responsable de Planeación Urbana está autorizado para realizar labores de planeación, diseño urbano y asesoría en materia de desarrollo urbano, de acuerdo con el oficio de autorización correspondiente.`;
       const descLines = pdf.splitTextToSize(descripcion, W);
       pdf.text(descLines, L, y);
       y += descLines.length * 5 + 6;
@@ -146,7 +149,8 @@ export class PDFDirector {
         pdf.text(especialidadesLines, L + 5, y);
         y += especialidadesLines.length * 5 + 6;
       } else {
-        const descripcion = `Autorizado como Director Responsable de Obra de acuerdo con el oficio de autorización correspondiente.`;
+        const descripcion = texts?.descripcionEspecifica || 
+          `Autorizado como Director Responsable de Obra de acuerdo con el oficio de autorización correspondiente.`;
         const descLines = pdf.splitTextToSize(descripcion, W);
         pdf.text(descLines, L, y);
         y += descLines.length * 5 + 6;
@@ -165,19 +169,21 @@ export class PDFDirector {
         pdf.text(especialidadesLines, L + 5, y);
         y += especialidadesLines.length * 5 + 6;
       } else {
-        const descripcion = `Autorizado como Director Responsable de Proyecto de acuerdo con el oficio de autorización correspondiente.`;
+        const descripcion = texts?.descripcionEspecifica || 
+          `Autorizado como Director Responsable de Proyecto de acuerdo con el oficio de autorización correspondiente.`;
         const descLines = pdf.splitTextToSize(descripcion, W);
         pdf.text(descLines, L, y);
         y += descLines.length * 5 + 6;
       }
     }
 
+    // Usar textos editables si están disponibles, sino usar los por defecto
     const parrafos = [
-      `Como Profesional de la Ingeniería y la Arquitectura, estamos comprometidos en buena medida a que exista un ordenamiento urbano más acorde a la realidad que vivimos para coadyuvar a mejorar el deterioro social y humano por el crecimiento de nuestra ciudad.`,
-      `De todo Director Responsable depende la buena ejecución de la Obra desde su inicio hasta la culminación de la misma, incluyendo el aviso de suspensión, reanudación y terminación ante esta Dependencia.`,
-      `Usted como Director Responsable acepta intrínsecamente conocer, apegarse y cumplir plenamente el Código Urbano para el estado de Jalisco, el Reglamento de Construcciones en el Municipio de San Pedro Tlaquepaque y los instrumentos de planeación de este Municipio.`,
-      `Esta constancia estará vigente hasta el término de la presente Administración, debiendo actualizarse durante el primer año de la siguiente Administración.`,
-      `Cabe mencionar que los derechos fueron cubiertos de acuerdo a la Ley de Ingresos Municipal.`
+      texts?.parrafo1 || `Como Profesional de la Ingeniería y la Arquitectura, estamos comprometidos en buena medida a que exista un ordenamiento urbano más acorde a la realidad que vivimos para coadyuvar a mejorar el deterioro social y humano por el crecimiento de nuestra ciudad.`,
+      texts?.parrafo2 || `De todo Director Responsable depende la buena ejecución de la Obra desde su inicio hasta la culminación de la misma, incluyendo el aviso de suspensión, reanudación y terminación ante esta Dependencia.`,
+      texts?.parrafo3 || `Usted como Director Responsable acepta intrínsecamente conocer, apegarse y cumplir plenamente el Código Urbano para el estado de Jalisco, el Reglamento de Construcciones en el Municipio de San Pedro Tlaquepaque y los instrumentos de planeación de este Municipio.`,
+      texts?.parrafo4 || `Esta constancia estará vigente hasta el término de la presente Administración, debiendo actualizarse durante el primer año de la siguiente Administración.`,
+      texts?.parrafo5 || `Cabe mencionar que los derechos fueron cubiertos de acuerdo a la Ley de Ingresos Municipal.`
     ];
 
     pdf.setFontSize(9);
@@ -194,11 +200,11 @@ export class PDFDirector {
     pdf.text('A t e n t a m e n t e', center, y, { align: 'center' });
 
     y += 10;
-    pdf.text('Arq. Ricardo Robles Gómez', center, y, { align: 'center' });
+    pdf.text(texts?.nombreFirmante || 'Arq. Ricardo Robles Gómez', center, y, { align: 'center' });
 
     y += 5;
     pdf.text(
-      'Coordinador General de Gestión Integral de la Ciudad',
+      texts?.cargoFirmante || 'Coordinador General de Gestión Integral de la Ciudad',
       center,
       y,
       { align: 'center' }
@@ -206,9 +212,9 @@ export class PDFDirector {
 
     y += 6;
     pdf.setFontSize(8);
-    pdf.text('c.c. Dirección de Control de la Edificación', center, y, { align: 'center' });
+    pdf.text(texts?.copia1 || 'c.c. Dirección de Control de la Edificación', center, y, { align: 'center' });
     y += 4;
-    pdf.text('c.c. Archivo', center, y, { align: 'center' });
+    pdf.text(texts?.copia2 || 'c.c. Archivo', center, y, { align: 'center' });
   }
 
   // ================= FOTO =================
@@ -257,7 +263,7 @@ export class PDFDirector {
   }
 
   // ================= ESPECIALIDADES =================
-  private static getEspecialidades(d: DirectorObra, formato: number) {
+  static getEspecialidades(d: DirectorObra, formato: number) {
     const e: string[] = [];
 
     if (formato === 1) {

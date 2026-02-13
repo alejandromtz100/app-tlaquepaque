@@ -5,6 +5,7 @@ import Menu from '../layout/menu';
 import type { DirectorObra } from '../services/directores.service';
 // Importar valores (no tipos)
 import { DirectoresService, emptyForm } from '../services/directores.service';
+import PreviewDirectores, { type PreviewTexts } from './PreviewDirectores';
 
 const Directores: React.FC = () => {
   // Estados principales
@@ -26,6 +27,11 @@ const Directores: React.FC = () => {
   // Estados de paginación
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Estados para preview de PDF
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewDirector, setPreviewDirector] = useState<DirectorObra | null>(null);
+  const [previewFormato, setPreviewFormato] = useState<number>(1);
 
   // Cargar datos iniciales
   const load = async () => {
@@ -167,6 +173,35 @@ const Directores: React.FC = () => {
 
   const getImagenUrl = (imagenPath: string | null | undefined) => {
     return DirectoresService.getImagenUrl(imagenPath);
+  };
+
+  // Funciones para manejar el preview
+  const handleOpenPreview = (director: DirectorObra, formato: number) => {
+    setPreviewDirector(director);
+    setPreviewFormato(formato);
+    setShowPreview(true);
+  };
+
+  const handleClosePreview = () => {
+    setShowPreview(false);
+    setPreviewDirector(null);
+  };
+
+  const handleGeneratePDF = async (texts: PreviewTexts) => {
+    if (!previewDirector) return;
+    
+    try {
+      if (previewFormato === 1) {
+        await DirectoresService.imprimirResponsableObra(previewDirector, texts);
+      } else if (previewFormato === 2) {
+        await DirectoresService.imprimirResponsableProyecto(previewDirector, texts);
+      } else if (previewFormato === 3) {
+        await DirectoresService.imprimirResponsablePlaneacionUrbana(previewDirector, texts);
+      }
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      throw error;
+    }
   };
 
   // ========== COMPONENTE PRINCIPAL ==========
@@ -347,7 +382,7 @@ const Directores: React.FC = () => {
                           {/* Responsable de Obra */}
                           {DirectoresService.hasResponsableObra(director) && (
                             <button 
-                              onClick={() => DirectoresService.imprimirResponsableObra(director)}
+                              onClick={() => handleOpenPreview(director, 1)}
                               className="block w-full bg-gray-800 text-white px-3 py-1.5 rounded text-xs hover:bg-gray-700 transition-colors"
                             >
                               - Responsable de Obra
@@ -357,7 +392,7 @@ const Directores: React.FC = () => {
                           {/* Responsable de Proyecto */}
                           {DirectoresService.hasResponsableProyecto(director) && (
                             <button 
-                              onClick={() => DirectoresService.imprimirResponsableProyecto(director)}
+                              onClick={() => handleOpenPreview(director, 2)}
                               className="block w-full bg-gray-800 text-white px-3 py-1.5 rounded text-xs hover:bg-gray-700 transition-colors"
                             >
                               - Responsable de Proyecto
@@ -367,7 +402,7 @@ const Directores: React.FC = () => {
                           {/* Responsable de Planeación Urbana */}
                           {DirectoresService.hasResponsablePlaneacionUrbana(director) && (
                             <button 
-                              onClick={() => DirectoresService.imprimirResponsablePlaneacionUrbana(director)}
+                              onClick={() => handleOpenPreview(director, 3)}
                               className="block w-full bg-gray-800 text-white px-3 py-1.5 rounded text-xs hover:bg-gray-700 transition-colors"
                             >
                               - Responsable de Planeación Urbana
@@ -803,6 +838,16 @@ const Directores: React.FC = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* PREVIEW DE PDF */}
+      {showPreview && previewDirector && (
+        <PreviewDirectores
+          director={previewDirector}
+          formato={previewFormato}
+          onClose={handleClosePreview}
+          onGeneratePDF={handleGeneratePDF}
+        />
       )}
 
       {/* FOOTER */}

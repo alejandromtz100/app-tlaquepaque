@@ -1,7 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
+
+
 import { getColonias } from "../services/colonias.service";
+
 import Menu from "../layout/menu";
 
 const api = "http://localhost:3001/op_obras";
@@ -493,7 +496,11 @@ const Paso1Obra: React.FC = () => {
 
       <Menu />
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 flex gap-6">
+
+      {/* MAIN CONTENT */}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
+        <div className="bg-white shadow-xl rounded-lg overflow-hidden">
+      <div className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 flex gap-6">
         {/* Stepper lateral */}
         <div className="flex flex-col items-center shrink-0 pt-8">
           {[1, 2, 3, 4].map((step) => {
@@ -537,6 +544,7 @@ const Paso1Obra: React.FC = () => {
           <p className="text-sm text-gray-500 px-6 pt-2">
             Los campos requeridos están señalados con un asterisco *
           </p>
+
 
         <div className="p-4 md:p-8 space-y-8">
           {/* ===== 1. DATOS DEL PROPIETARIO ===== */}
@@ -992,7 +1000,13 @@ const Paso1Obra: React.FC = () => {
           </div>
         </div>
         </div>
+      </div>
+      </div>
       </main>
+
+
+      {/* FOOTER */}
+
 
       <footer className="bg-black text-white text-center py-3 text-sm">
         Informática · H. Ayuntamiento de Tlaquepaque

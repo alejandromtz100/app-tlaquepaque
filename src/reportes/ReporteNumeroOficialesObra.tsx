@@ -133,7 +133,7 @@ const ReporteNumeroOficialesObra: React.FC = () => {
 
   // Paginación para mejorar rendimiento - mostrar solo una porción de los datos
   const [paginaActual, setPaginaActual] = useState(1);
-  const registrosPorPagina = 100; // Mostrar 100 registros por página
+  const registrosPorPagina = 10; // Mostrar 10 registros por página
   
   const visibles = useMemo(() => {
     const inicio = (paginaActual - 1) * registrosPorPagina;
@@ -154,17 +154,6 @@ const ReporteNumeroOficialesObra: React.FC = () => {
       minute: "2-digit",
     });
   }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando reporte...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -306,8 +295,16 @@ const ReporteNumeroOficialesObra: React.FC = () => {
             </div>
           </div>
 
-          {/* TABLA COMPLETA CON SCROLL */}
+          {/* TABLA O ESTADO DE CARGA */}
           <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
+            {loading ? (
+              <div className="min-h-[200px] flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                  <p className="text-gray-600 text-sm">Cargando reporte...</p>
+                </div>
+              </div>
+            ) : (
             <div className="min-w-full inline-block align-middle">
               <table className="min-w-full text-xs border-collapse bg-white">
                 <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
@@ -390,9 +387,11 @@ const ReporteNumeroOficialesObra: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            )}
           </div>
 
           {/* PAGINACIÓN E INFORMACIÓN DE REGISTROS */}
+          {!loading && (
           <div className="p-4 border-t bg-gray-50">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="text-sm text-gray-600 text-center sm:text-left">
@@ -400,20 +399,27 @@ const ReporteNumeroOficialesObra: React.FC = () => {
                   {filtradas.length > 0 ? (paginaActual - 1) * registrosPorPagina + 1 : 0}
                 </span> - <span className="font-semibold text-gray-900">
                   {Math.min(paginaActual * registrosPorPagina, filtradas.length)}
-                </span> de <span className="font-semibold text-gray-900">{filtradas.length}</span> registros filtrados
+                </span> de <span className="font-semibold text-gray-900">{filtradas.length}</span> registros
                 {filasExpandidas.length !== filtradas.length && (
                   <span className="text-gray-500"> (de {filasExpandidas.length} totales)</span>
                 )}
               </div>
               
               {totalPaginas > 1 && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <button
+                    disabled={paginaActual === 1}
+                    onClick={() => setPaginaActual(1)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                  >
+                    ««
+                  </button>
                   <button
                     disabled={paginaActual === 1}
                     onClick={() => setPaginaActual(paginaActual - 1)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
                   >
-                    ◀ Anterior
+                    &lt;
                   </button>
                   <div className="flex items-center gap-1">
                     {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
@@ -431,10 +437,10 @@ const ReporteNumeroOficialesObra: React.FC = () => {
                         <button
                           key={pageNum}
                           onClick={() => setPaginaActual(pageNum)}
-                          className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                          className={`min-w-[36px] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                             paginaActual === pageNum
                               ? "bg-black text-white"
-                              : "border border-gray-300 hover:bg-gray-100"
+                              : "border border-gray-300 bg-white hover:bg-gray-100"
                           }`}
                         >
                           {pageNum}
@@ -445,14 +451,22 @@ const ReporteNumeroOficialesObra: React.FC = () => {
                   <button
                     disabled={paginaActual === totalPaginas}
                     onClick={() => setPaginaActual(paginaActual + 1)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
                   >
-                    Siguiente ▶
+                    &gt;
+                  </button>
+                  <button
+                    disabled={paginaActual === totalPaginas}
+                    onClick={() => setPaginaActual(totalPaginas)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                  >
+                    »»
                   </button>
                 </div>
               )}
             </div>
           </div>
+          )}
         </div>
       </main>
 

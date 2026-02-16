@@ -280,6 +280,7 @@ const Paso1Obra: React.FC = () => {
     cuantificador: "",
   });
 
+  const [loading, setLoading] = useState(!!id);
   const [numerosOficiales, setNumerosOficiales] = useState<any[]>([]);
   const [documentosAdicionales, setDocumentosAdicionales] = useState<string[]>([]);
   const [colonias, setColonias] = useState<{ id_colonia: number; nombre: string; densidad: string | null }[]>([]);
@@ -347,6 +348,7 @@ const Paso1Obra: React.FC = () => {
   // Cargar datos si es edición
   useEffect(() => {
     if (id) {
+      setLoading(true);
       axios.get(`${api}/${id}`)
         .then((res) => {
           const data = res.data;
@@ -381,7 +383,10 @@ const Paso1Obra: React.FC = () => {
         .catch(error => {
           console.error("Error cargando datos:", error);
           alert("Error al cargar los datos de la obra");
-        });
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
   }, [id]);
 
@@ -498,15 +503,35 @@ const Paso1Obra: React.FC = () => {
 
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
-        <div className="bg-white shadow-xl rounded-lg overflow-hidden">
+      <main className="flex-1 w-full px-4 py-6">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-[98%] mx-auto">
+          {/* HEADER DEL REPORTE - igual que Obras.tsx */}
+          <div className="bg-gradient-to-r from-black to-gray-800 text-white px-6 py-5">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold">Obra</h2>
+                <p className="text-sm text-gray-300 mt-1">
+                  {id ? (form.consecutivo || '—') : 'Nueva obra'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+      {loading ? (
+        <div className="min-h-[200px] flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+            <p className="text-gray-600 text-sm">Cargando datos...</p>
+          </div>
+        </div>
+      ) : (
       <div className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 flex gap-6">
         {/* Stepper lateral */}
         <div className="flex flex-col items-center shrink-0 pt-8">
           {[1, 2, 3, 4].map((step) => {
             const isEditando = !!id;
-            const step2Clickable = step === 2 && isEditando;
-            const isDisabled = step > 1 && !step2Clickable;
+            const stepClickable = step > 1 && step <= 4 && isEditando;
+            const isDisabled = !stepClickable;
 
             return (
               <div key={step} className="flex flex-col items-center">
@@ -520,9 +545,9 @@ const Paso1Obra: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      if (step === 2 && id) navigate(`/obras/paso2/${id}`);
+                      if (step > 1 && id) navigate(`/obras/paso${step}/${id}`);
                     }}
-                    disabled={!step2Clickable}
+                    disabled={!stepClickable}
                     className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm transition
                       ${isDisabled ? "bg-gray-300 cursor-not-allowed opacity-70" : "bg-gray-300 hover:bg-gray-500 cursor-pointer"}`}
                   >
@@ -537,11 +562,8 @@ const Paso1Obra: React.FC = () => {
           })}
         </div>
 
-        <div className="flex-1 min-w-0 bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="bg-black text-white text-center py-2 font-semibold">
-            Obra {id && <span className="text-gray-300 font-normal">· Editando ID: {id}</span>}
-          </div>
-          <p className="text-sm text-gray-500 px-6 pt-2">
+        <div className="flex-1 min-w-0 bg-white overflow-hidden">
+          <p className="text-sm text-gray-500 px-6 pt-4">
             Los campos requeridos están señalados con un asterisco *
           </p>
 
@@ -1001,6 +1023,7 @@ const Paso1Obra: React.FC = () => {
         </div>
         </div>
       </div>
+      )}
       </div>
       </main>
 

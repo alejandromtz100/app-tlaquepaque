@@ -6,7 +6,6 @@ const API_OBRAS = "http://localhost:3001/op_obras";
 
 interface Props {
   obraId: number;
-  consecutivo?: string;
 }
 
 const NOTAS_OPCIONES = [
@@ -54,11 +53,10 @@ function toDateLocal(date: Date | string | null): string {
   return d.toISOString().slice(0, 10);
 }
 
-export default function Paso3Obra({ obraId, consecutivo }: Props) {
+export default function Paso3Obra({ obraId }: Props) {
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [consecutivoDisplay, setConsecutivoDisplay] = useState(consecutivo ?? "");
   const [directores, setDirectores] = useState<{ id: number; clave_director?: string; nombre_completo: string; activo?: boolean }[]>([]);
 
   const [form, setForm] = useState({
@@ -93,7 +91,6 @@ export default function Paso3Obra({ obraId, consecutivo }: Props) {
       .get(`${API_OBRAS}/${obraId}`)
       .then((res) => {
         const d = res.data;
-        if (d.consecutivo) setConsecutivoDisplay(d.consecutivo);
         setForm({
           idDirectorObra: d.idDirectorObra ?? "",
           bitacoraObra: d.bitacoraObra ?? "",
@@ -202,8 +199,11 @@ export default function Paso3Obra({ obraId, consecutivo }: Props) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm p-8 flex justify-center text-gray-500">
-        Cargando datos...
+      <div className="min-h-[200px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-gray-600 text-sm">Cargando datos...</p>
+        </div>
       </div>
     );
   }
@@ -214,7 +214,6 @@ export default function Paso3Obra({ obraId, consecutivo }: Props) {
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         <div className="bg-black text-white px-4 py-2 font-semibold">
           Datos de Adicionales
-          {consecutivoDisplay && <span className="text-gray-300 font-normal ml-2">CONSECUTIVO: {consecutivoDisplay}</span>}
         </div>
         <div className="p-6 space-y-6">
           {error && (

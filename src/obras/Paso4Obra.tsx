@@ -64,8 +64,11 @@ export default function Paso4Obra({ obraId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-slate-600">
-        Cargando datos de la obra...
+      <div className="min-h-[200px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-gray-600 text-sm">Cargando datos...</p>
+        </div>
       </div>
     );
   }
@@ -218,11 +221,6 @@ export default function Paso4Obra({ obraId }: Props) {
 
   return (
     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-      {/* Consecutivo */}
-      <div className="bg-slate-800 text-white px-6 py-3">
-        <h2 className="text-lg font-semibold">CONSECUTIVO: {obra.consecutivo || '—'}</h2>
-      </div>
-
       {/* Datos de la Obra */}
       <div className="border-b border-slate-200">
         <div className="bg-black text-white text-center py-2 font-semibold text-sm">
@@ -298,36 +296,36 @@ export default function Paso4Obra({ obraId }: Props) {
           CONCEPTOS
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b bg-slate-100 text-left font-medium text-slate-700">
-                <th className="p-3 whitespace-nowrap">Estatus</th>
+          <table className="min-w-full text-xs border-collapse bg-white">
+            <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
+              <tr className="text-gray-700 uppercase">
+                <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Estatus</th>
                 {NIVELES_LABELS.map((label) => (
-                  <th key={label} className="p-3 whitespace-nowrap">
+                  <th key={label} className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">
                     Conceptos ({label})
                   </th>
                 ))}
-                <th className="p-3">Costo</th>
-                <th className="p-3">Medición</th>
-                <th className="p-3">Cantidad</th>
-                <th className="p-3">Totales</th>
+                <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Costo</th>
+                <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Medición</th>
+                <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Cantidad</th>
+                <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Totales</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-200">
               {conceptos.map((c) => {
                 const niveles = path(c);
                 return (
-                  <tr key={c.id} className="border-b border-slate-200 hover:bg-slate-50">
-                    <td className="p-3 text-slate-600">En Proceso</td>
+                  <tr key={c.id} className="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-200">
+                    <td className="px-4 py-3 border border-gray-300 text-gray-700">En Proceso</td>
                     {Array.from({ length: MAX_NIVELES }, (_, i) => (
-                      <td key={i} className="p-3 text-slate-800">
+                      <td key={i} className="px-4 py-3 border border-gray-300 text-gray-700">
                         {celdaNivel(niveles, i)}
                       </td>
                     ))}
-                    <td className="p-3 text-slate-700">{Number(c.costo_unitario ?? 0).toFixed(2)}</td>
-                    <td className="p-3 text-slate-600">{c.medicion ?? '—'}</td>
-                    <td className="p-3 text-slate-700">{c.cantidad}</td>
-                    <td className="p-3 font-medium text-slate-800">
+                    <td className="px-4 py-3 border border-gray-300 text-gray-700">{Number(c.costo_unitario ?? 0).toFixed(2)}</td>
+                    <td className="px-4 py-3 border border-gray-300 text-gray-700">{c.medicion ?? '—'}</td>
+                    <td className="px-4 py-3 border border-gray-300 text-gray-700">{c.cantidad}</td>
+                    <td className="px-4 py-3 border border-gray-300 font-medium text-gray-900">
                       ${Number(c.total ?? (c.costo_unitario ?? 0) * (c.cantidad ?? 0)).toFixed(2)}
                     </td>
                   </tr>

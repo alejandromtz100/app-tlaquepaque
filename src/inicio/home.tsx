@@ -6,6 +6,14 @@ import {
   FaEdit,
   FaPlusCircle,
   FaSignOutAlt,
+  FaUser,
+  FaPhone,
+  FaBriefcase,
+  FaBuilding,
+  FaShieldAlt,
+  FaCalendarPlus,
+  FaClock,
+  FaPencilAlt,
 } from "react-icons/fa";
 import Menu from "../layout/menu";
 
@@ -102,52 +110,61 @@ const Home: React.FC = () => {
 
       <Menu />
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-lg font-bold mb-4">Datos de la cuenta</h2>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <p className="font-semibold">Nombre</p>
-            <p>{usuario.nombre}</p>
-            <p className="font-semibold">Teléfono</p>
-            <p>{usuario.telefono ?? "—"}</p>
-            <p className="font-semibold">Cargo</p>
-            <p>{usuario.cargo ?? usuario.funcion ?? "—"}</p>
-            <p className="font-semibold">Área</p>
-            <p>{usuario.area ?? "—"}</p>
-            <p className="font-semibold">Permiso</p>
-            <p>{permisoLabel}</p>
-            <p className="font-semibold">Fecha de creación</p>
-            <p>{formatFecha(usuario.fechaCreacion)}</p>
-            <p className="font-semibold">Último acceso</p>
-            <p>{formatFechaHora(usuario.ultimoAcceso)}</p>
-            <p className="font-semibold">Última modificación</p>
-            <p>{usuario.ultimaModificacion ? formatFechaHora(usuario.ultimaModificacion) : "—"}</p>
+      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-5 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 bg-white rounded-2xl shadow-lg overflow-hidden">
+          {/* Encabezado con avatar e identidad */}
+          <div className="bg-gradient-to-r from-black to-gray-800 text-white px-5 py-3 flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full bg-white/20 flex items-center justify-center text-lg font-bold shrink-0">
+              {usuario.nombre
+                .split(" ")
+                .map((n) => n[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
+            </div>
+            <div>
+              <h2 className="text-lg font-bold tracking-tight">{usuario.nombre}</h2>
+              <p className="text-gray-300 text-xs">{permisoLabel}</p>
+            </div>
+          </div>
+
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <DataRow icon={<FaUser className="text-gray-400" />} label="Nombre" value={usuario.nombre} />
+            <DataRow icon={<FaPhone className="text-gray-400" />} label="Teléfono" value={usuario.telefono ?? "—"} />
+            <DataRow icon={<FaBriefcase className="text-gray-400" />} label="Cargo" value={usuario.cargo ?? usuario.funcion ?? "—"} />
+            <DataRow icon={<FaBuilding className="text-gray-400" />} label="Área" value={usuario.area ?? "—"} />
+            <DataRow icon={<FaShieldAlt className="text-gray-400" />} label="Permiso" value={permisoLabel} />
+            <DataRow icon={<FaCalendarPlus className="text-gray-400" />} label="Creación" value={formatFecha(usuario.fechaCreacion)} />
+            <DataRow icon={<FaClock className="text-gray-400" />} label="Último acceso" value={formatFechaHora(usuario.ultimoAcceso)} />
+            <DataRow icon={<FaPencilAlt className="text-gray-400" />} label="Última modif." value={usuario.ultimaModificacion ? formatFechaHora(usuario.ultimaModificacion) : "—"} />
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <h2 className="text-lg font-bold mb-6 text-center">
-            ¿Qué desea hacer?
-          </h2>
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          {/* Encabezado similar al de datos del usuario */}
+          <div className="bg-gradient-to-r from-black to-gray-800 text-white px-5 py-3">
+            <h2 className="text-lg font-bold tracking-tight">¿Qué desea hacer?</h2>
+            <p className="text-gray-300 text-xs mt-0.5">Acciones rápidas</p>
+          </div>
 
-          <div className="flex flex-col gap-4">
-            <Action 
-              icon={<FaPlusCircle />} 
-              text="Capturar obra" 
+          <div className="p-5 grid grid-cols-1 gap-4">
+            <Action
+              icon={<FaPlusCircle className="text-gray-400" />}
+              text="Capturar obra"
               onClick={() => navigate("/paso1obras")}
             />
-            <Action 
-              icon={<FaEdit />} 
-              text="Modificar obra" 
+            <Action
+              icon={<FaEdit className="text-gray-400" />}
+              text="Modificar obra"
               onClick={() => navigate("/obras")}
             />
-            <Action 
-              icon={<FaSearch />} 
-              text="Buscar obra" 
+            <Action
+              icon={<FaSearch className="text-gray-400" />}
+              text="Buscar obra"
               onClick={() => navigate("/buscar-obra")}
             />
             <Action
-              icon={<FaKey />}
+              icon={<FaKey className="text-gray-400" />}
               text="Cambiar mi clave"
               onClick={() => navigate("/cambiar-clave")}
             />
@@ -162,13 +179,25 @@ const Home: React.FC = () => {
   );
 };
 
+const DataRow = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) => (
+  <div className="flex items-start gap-3 py-3.5 px-4 rounded-xl bg-gray-50 border border-gray-100 min-h-[4rem]">
+    <span className="w-9 h-9 flex items-center justify-center shrink-0 text-lg rounded-lg bg-gray-100">{icon}</span>
+    <div className="flex-1 min-w-0 pt-0.5">
+      <p className="text-sm text-gray-500 font-medium">{label}</p>
+      <p className="text-sm text-gray-800 break-words">{value}</p>
+    </div>
+  </div>
+);
+
 const Action = ({ icon, text, onClick }: { icon: React.ReactNode; text: string; onClick?: () => void }) => (
-  <button 
+  <button
     onClick={onClick}
-    className="flex items-center gap-3 p-3 border rounded-xl hover:bg-gray-100 transition w-full text-left"
+    className="flex items-center gap-3 py-3.5 px-4 rounded-xl bg-gray-50 border border-gray-100 hover:bg-gray-100 transition w-full text-left min-h-[3.5rem]"
   >
-    <span className="text-xl">{icon}</span>
-    <span className="font-medium">{text}</span>
+    <span className="w-9 h-9 flex items-center justify-center shrink-0 text-lg rounded-lg bg-gray-100">{icon}</span>
+    <div className="flex-1 min-w-0">
+      <p className="text-sm text-gray-800 font-medium">{text}</p>
+    </div>
   </button>
 );
 

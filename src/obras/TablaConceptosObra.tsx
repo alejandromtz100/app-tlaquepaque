@@ -36,45 +36,46 @@ export default function TablaConceptosObra({
   };
 
   return (
-    <table className="w-full border-collapse">
-      <thead>
-        <tr className="border-b bg-slate-100 text-left text-sm font-medium text-slate-700">
+    <table className="min-w-full text-xs border-collapse bg-white">
+      <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
+        <tr className="text-gray-700 uppercase">
           {NIVELES_LABELS.map((label) => (
-            <th key={label} className="p-3 whitespace-nowrap">
+            <th key={label} className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">
               Conceptos ({label})
             </th>
           ))}
-          <th className="p-3">Costo</th>
-          <th className="p-3">Medición</th>
-          <th className="p-3">Cantidad</th>
-          <th className="p-3">Total</th>
-          <th className="p-3 w-24 text-center">Acciones</th>
+          <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Costo</th>
+          <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Medición</th>
+          <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Cantidad</th>
+          <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Total</th>
+          <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100 w-24 text-center">Acciones</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody className="divide-y divide-gray-200">
         {conceptos.map((c) => {
           const niveles = path(c);
           return (
-            <tr key={c.id} className="border-b border-slate-200 hover:bg-slate-50">
+            <tr key={c.id} className="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-200">
               {Array.from({ length: MAX_NIVELES }, (_, i) => (
-                <td key={i} className="p-3 text-slate-800">
+                <td key={i} className="px-4 py-3 border border-gray-300 text-gray-700">
                   {celdaNivel(niveles, i)}
                 </td>
               ))}
-              <td className="p-3 text-slate-700">
+              <td className="px-4 py-3 border border-gray-300 text-gray-700">
                 ${Number(c.costo_unitario ?? 0).toFixed(2)}
               </td>
-              <td className="p-3 text-slate-600">{c.medicion ?? '—'}</td>
-              <td className="p-3 text-slate-700">{c.cantidad}</td>
-              <td className="p-3 font-medium text-slate-800">
+              <td className="px-4 py-3 border border-gray-300 text-gray-700">{c.medicion ?? '—'}</td>
+              <td className="px-4 py-3 border border-gray-300 text-gray-700">{c.cantidad}</td>
+              <td className="px-4 py-3 border border-gray-300 font-medium text-gray-900">
                 ${Number(c.total ?? (c.costo_unitario ?? 0) * (c.cantidad ?? 0)).toFixed(2)}
               </td>
-              <td className="p-3 flex items-center justify-center gap-2">
+              <td className="px-4 py-3 border border-gray-300">
+                <div className="flex items-center justify-center gap-2">
                 {onEdit && (
                   <button
                     type="button"
                     onClick={() => onEdit(c)}
-                    className="p-1.5 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+                    className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
                     title="Editar"
                   >
                     <Pencil className="w-4 h-4" />
@@ -83,11 +84,12 @@ export default function TablaConceptosObra({
                 <button
                   type="button"
                   onClick={() => eliminar(c.id)}
-                  className="p-1.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded"
+                  className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
                   title="Eliminar"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
+                </div>
               </td>
             </tr>
           );

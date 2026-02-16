@@ -7,10 +7,8 @@ import Tramites from "./catalogos/tramites";
 import Menu from "./layout/menu";
 import Usuarios from "./usuarios/usuarios";
 import Colonias from "./catalogos/Colonias";
-import Asignaciones from "./usuarios/asignaciones";
 import Directores from "./catalogos/directores";
 import Conceptos from "./catalogos/conceptos";
-import ListaConceptos from "./catalogos/ListaConceptos";
 import Obras from './obras/Obras';
 import Paso1Obra from './obras/paso1obra';
 import BuscarObra from './obras/BuscarObra';
@@ -38,9 +36,7 @@ const App: React.FC = () => {
         <Route path="/menu" element={<Menu />} />
 
         <Route path="/usuarios" element={<Usuarios />} />
-        <Route path="/usuarios/asignaciones" element={<Asignaciones />} />
         <Route path="/catalogos/directores" element={<Directores />} />
-        <Route path="/catalogos/ListaConceptos" element={<ListaConceptos />}/>
         <Route path="/obras" element={<Obras />} />
         <Route path="/obras/paso1" element={<Paso1Obra />} />
         <Route path="/paso1obras" element={<Paso1Obra />} />

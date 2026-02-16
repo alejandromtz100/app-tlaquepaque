@@ -30,28 +30,33 @@ export default function Paso2Obra({ obraId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-slate-600">
-        Cargando conceptos de la obra...
+      <div className="min-h-[200px] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-gray-600 text-sm">Cargando conceptos...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-6">
-      <h2 className="text-xl font-semibold text-slate-800 mb-4">
+      <h2 className="text-xl font-semibold text-gray-800 mb-4">
          Conceptos de la obra
       </h2>
 
-      <TablaConceptosObra
-        conceptos={conceptos}
-        onDelete={cargarConceptos}
-        onEdit={(c) => setEditingConcepto(c)}
-      />
+      <div className="overflow-x-auto">
+        <TablaConceptosObra
+          conceptos={conceptos}
+          onDelete={cargarConceptos}
+          onEdit={(c) => setEditingConcepto(c)}
+        />
+      </div>
 
       <div className="mt-6 flex justify-end">
-        <div className="bg-slate-100 rounded-lg px-4 py-2 text-right">
-          <span className="text-sm text-slate-600 block">Total general</span>
-          <span className="text-lg font-bold text-slate-800">
+        <div className="bg-gray-100 rounded-lg px-4 py-2 text-right">
+          <span className="text-sm text-gray-600 block">Total general</span>
+          <span className="text-lg font-bold text-gray-800">
             ${totalGeneral.toFixed(2)}
           </span>
         </div>

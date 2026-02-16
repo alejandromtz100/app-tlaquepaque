@@ -1,12 +1,15 @@
 import { useEffect, useState, useRef } from "react";
-import type { RepLicenciasFilters } from "./types";
+import type { RepLicenciasFilters, RepLicenciasMeta } from "./types";
 
 interface Props {
   onChange: (filters: Partial<RepLicenciasFilters>) => void;
+  onExport: () => void;
+  filters: RepLicenciasFilters;
+  meta: RepLicenciasMeta | null;
 }
 
-const RepLicenciasFiltersForm: React.FC<Props> = ({ onChange }) => {
-  const [filters, setFilters] = useState<Partial<RepLicenciasFilters>>({});
+const RepLicenciasFiltersForm: React.FC<Props> = ({ onChange, onExport, filters, meta }) => {
+  const [localFilters, setLocalFilters] = useState<Partial<RepLicenciasFilters>>({});
   const isFirstRender = useRef(true);
 
   useEffect(() => {
@@ -16,104 +19,158 @@ const RepLicenciasFiltersForm: React.FC<Props> = ({ onChange }) => {
     }
 
     const timeout = setTimeout(() => {
-      onChange(filters);
+      onChange({ ...filters, ...localFilters });
     }, 400);
 
     return () => clearTimeout(timeout);
-  }, [filters]);
+  }, [localFilters]);
+
+  const limpiarFiltros = () => {
+    const filtrosLimpios = {
+      ...filters,
+      consecutivo: undefined,
+      nombreConcepto: undefined,
+      tipoLicencia: undefined,
+      clasificacion: undefined,
+      fechaInicio: undefined,
+      fechaFin: undefined,
+      page: 1,
+    };
+    setLocalFilters({});
+    onChange(filtrosLimpios);
+  };
+
+  const totalRegistros = meta?.totalRegistros ?? 0;
+  const puedeExportar = filters.fechaInicio && filters.fechaFin;
 
   return (
-    <div className="bg-white rounded-xl shadow p-4 mb-6">
-      <div className="grid grid-cols-6 gap-3">
-      {/* Consecutivo */}
-      <input
-        className="border px-2 py-1 rounded text-sm"
-        placeholder="Consecutivo"
-        value={filters.consecutivo ?? ""}
-        onChange={(e) =>
-          setFilters((prev) => ({
-            ...prev,
-            consecutivo: e.target.value || undefined,
-          }))
-        }
-      />
-
-      {/* Nombre Concepto */}
-      <input
-        className="border px-2 py-1 rounded text-sm"
-        placeholder="Nombre concepto"
-        value={filters.nombreConcepto ?? ""}
-        onChange={(e) =>
-          setFilters((prev) => ({
-            ...prev,
-            nombreConcepto: e.target.value || undefined,
-          }))
-        }
-      />
-
-      {/* Tipo Licencia */}
-      <input
-        className="border px-2 py-1 rounded text-sm"
-        placeholder="Tipo licencia"
-        value={filters.tipoLicencia ?? ""}
-        onChange={(e) =>
-          setFilters((prev) => ({
-            ...prev,
-            tipoLicencia: e.target.value || undefined,
-          }))
-        }
-      />
-
-      {/* Clasificación */}
-      <input
-        className="border px-2 py-1 rounded text-sm"
-        placeholder="Clasificación"
-        value={filters.clasificacion ?? ""}
-        onChange={(e) =>
-          setFilters((prev) => ({
-            ...prev,
-            clasificacion: e.target.value || undefined,
-          }))
-        }
-      />
-
-      {/* Fecha Inicio - Requerido */}
-      <div>
-        <input
-          type="date"
-          required
-          className="border px-2 py-1 rounded text-sm w-full border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-          value={filters.fechaInicio ?? ""}
-          onChange={(e) =>
-            setFilters((prev) => ({
-              ...prev,
-              fechaInicio: e.target.value || undefined,
-            }))
-          }
-        />
-        <label className="text-xs text-gray-500 mt-1 block">Fecha Inicio *</label>
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-800">Filtros de Búsqueda</h3>
+        <div className="flex gap-2">
+          <button
+            onClick={limpiarFiltros}
+            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition text-sm font-medium"
+          >
+            Limpiar Filtros
+          </button>
+          <button
+            onClick={onExport}
+            disabled={!puedeExportar}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Exportar a Excel{totalRegistros > 0 ? ` (${totalRegistros} registros)` : ""}
+          </button>
+        </div>
       </div>
 
-      {/* Fecha Fin - Requerido */}
-      <div>
-        <input
-          type="date"
-          required
-          className="border px-2 py-1 rounded text-sm w-full border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-          value={filters.fechaFin ?? ""}
-          onChange={(e) =>
-            setFilters((prev) => ({
-              ...prev,
-              fechaFin: e.target.value || undefined,
-            }))
-          }
-        />
-        <label className="text-xs text-gray-500 mt-1 block">Fecha Fin *</label>
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Consecutivo</label>
+          <input
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
+            placeholder="Buscar consecutivo..."
+            value={localFilters.consecutivo ?? filters.consecutivo ?? ""}
+            onChange={(e) =>
+              setLocalFilters((prev) => ({
+                ...prev,
+                consecutivo: e.target.value || undefined,
+              }))
+            }
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Nombre concepto</label>
+          <input
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
+            placeholder="Buscar concepto..."
+            value={localFilters.nombreConcepto ?? filters.nombreConcepto ?? ""}
+            onChange={(e) =>
+              setLocalFilters((prev) => ({
+                ...prev,
+                nombreConcepto: e.target.value || undefined,
+              }))
+            }
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Tipo licencia</label>
+          <input
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
+            placeholder="Buscar tipo..."
+            value={localFilters.tipoLicencia ?? filters.tipoLicencia ?? ""}
+            onChange={(e) =>
+              setLocalFilters((prev) => ({
+                ...prev,
+                tipoLicencia: e.target.value || undefined,
+              }))
+            }
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Clasificación</label>
+          <input
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
+            placeholder="Buscar clasificación..."
+            value={localFilters.clasificacion ?? filters.clasificacion ?? ""}
+            onChange={(e) =>
+              setLocalFilters((prev) => ({
+                ...prev,
+                clasificacion: e.target.value || undefined,
+              }))
+            }
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Inicio *</label>
+          <input
+            type="date"
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
+            value={localFilters.fechaInicio ?? filters.fechaInicio ?? ""}
+            onChange={(e) =>
+              setLocalFilters((prev) => ({
+                ...prev,
+                fechaInicio: e.target.value || undefined,
+              }))
+            }
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Fin *</label>
+          <input
+            type="date"
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
+            value={localFilters.fechaFin ?? filters.fechaFin ?? ""}
+            onChange={(e) =>
+              setLocalFilters((prev) => ({
+                ...prev,
+                fechaFin: e.target.value || undefined,
+              }))
+            }
+          />
+        </div>
       </div>
+
+      <div className="mt-4 flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+        <p className="text-xs text-gray-500">
+          <span className="text-red-500">*</span> Campos requeridos: Fecha Inicio y Fecha Fin
+        </p>
+        {puedeExportar && meta && (
+          <div className="text-sm text-gray-600">
+            Mostrando <span className="font-semibold">{meta.totalRegistros}</span> registros
+          </div>
+        )}
       </div>
-      <p className="text-xs text-gray-500 mt-3">
-        <span className="text-red-500">*</span> Campos requeridos: Fecha Inicio y Fecha Fin
-      </p>
     </div>
   );
 };

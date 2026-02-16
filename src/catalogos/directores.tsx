@@ -224,72 +224,107 @@ const Directores: React.FC = () => {
 
       <Menu />
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8 space-y-6">
-        {/* BARRA DE BÚSQUEDA Y ACCIONES */}
-        <div className="bg-white rounded-2xl shadow-lg p-4 flex flex-wrap gap-4 items-center">
-          <input
-            type="text"
-            placeholder="Buscar por nombre o clave..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="border rounded-xl px-4 py-2 w-64"
-          />
-
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="border rounded-xl px-4 py-2"
-          >
-            <option value="TODOS">Todos los estados</option>
-            <option value="ACTIVOS">Activos</option>
-            <option value="INACTIVOS">Inactivos</option>
-          </select>
-
-          <button
-            onClick={() => {
-              setShowForm(true);
-              setSelected(null);
-              setForm(emptyForm);
-              setPreviewUrl('');
-              setImagenFile(null);
-            }}
-            className="bg-black text-white px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors"
-          >
-            + Nuevo Director
-          </button>
-        </div>
-
-        {/* TABLA DE DIRECTORES */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="bg-black text-white text-center py-2 font-semibold">
-            Directores de Obra
+      <main className="flex-1 w-full px-4 py-6">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-[98%] mx-auto">
+          {/* HEADER DEL REPORTE */}
+          <div className="bg-gradient-to-r from-black to-gray-800 text-white px-6 py-5">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold">Directores de Obra</h2>
+                <p className="text-sm text-gray-300 mt-1">
+                  Catálogo de directores responsables
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-gray-300">Total de registros</div>
+                <div className="text-2xl font-bold">{filtered.length}</div>
+              </div>
+            </div>
           </div>
 
-          <div className="p-4 text-sm">
-            {/* TABLA */}
-            <div className="overflow-x-auto">
-              <table className="w-full border border-gray-300">
-                <thead className="bg-gray-200">
-                  <tr>
-                    <th className="border px-3 py-2">Clave</th>
-                    <th className="border px-3 py-2">Fecha Actualización</th>
-                    <th className="border px-3 py-2">Nombre</th>
-                    <th className="border px-3 py-2">Imprimir Formato</th>
-                    <th className="border px-3 py-2">Opciones</th>
+          {/* FILTROS DE BÚSQUEDA */}
+          <div className="p-6 border-b bg-gray-50">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Filtros de Búsqueda</h3>
+              <button
+                onClick={() => {
+                  setShowForm(true);
+                  setSelected(null);
+                  setForm(emptyForm);
+                  setPreviewUrl('');
+                  setImagenFile(null);
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium flex items-center gap-2"
+              >
+                + Nuevo Director
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre o clave..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
+                >
+                  <option value="TODOS">Todos los estados</option>
+                  <option value="ACTIVOS">Activos</option>
+                  <option value="INACTIVOS">Inactivos</option>
+                </select>
+              </div>
+            </div>
+            <div className="mt-4 text-sm text-gray-600">
+              Mostrando <span className="font-semibold">{filtered.length}</span> registros
+            </div>
+          </div>
+
+          {/* TABLA */}
+          <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
+            <div className="min-w-full inline-block align-middle">
+              <table className="min-w-full text-xs border-collapse bg-white">
+                <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
+                  <tr className="text-gray-700 uppercase">
+                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Clave</th>
+                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Fecha Actualización</th>
+                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Nombre</th>
+                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Imprimir Formato</th>
+                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Opciones</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {currentData.map((director) => (
-                    <tr key={director.id} className="hover:bg-gray-100 transition">
+                <tbody className="divide-y divide-gray-200">
+                  {currentData.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-12 text-center text-gray-500 bg-gray-50">
+                        <div className="flex flex-col items-center">
+                          <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <p className="text-base font-medium">No hay directores registrados</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                  currentData.map((director) => (
+                    <tr key={director.id} className="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-200">
                       {/* COLUMNA 1: CLAVE */}
-                      <td className="border px-3 py-2 align-top">
+                      <td className="px-4 py-3 border border-gray-300 align-top">
                         <div className="font-bold text-lg">
                           {director.clave_director || 'Sin clave'}
                         </div>
                       </td>
                       
                       {/* COLUMNA 2: FECHAS */}
-                      <td className="border px-3 py-2 align-top">
+                      <td className="px-4 py-3 border border-gray-300 align-top">
                         <div className="space-y-2">
                           <div>
                             <div className="font-medium text-xs text-gray-500">Fecha Registro</div>
@@ -315,7 +350,7 @@ const Directores: React.FC = () => {
                       </td>
                       
                       {/* COLUMNA 3: INFORMACIÓN DEL DIRECTOR */}
-                      <td className="border px-3 py-2 align-top">
+                      <td className="px-4 py-3 border border-gray-300 align-top">
                         <div className="flex items-start gap-3">
                           {/* IMAGEN */}
                           <div>
@@ -377,7 +412,7 @@ const Directores: React.FC = () => {
                       </td>
                       
                       {/* COLUMNA 4: IMPRIMIR FORMATO */}
-                      <td className="border px-3 py-2 align-top">
+                      <td className="px-4 py-3 border border-gray-300 align-top">
                         <div className="space-y-2">
                           {/* Responsable de Obra */}
                           {DirectoresService.hasResponsableObra(director) && (
@@ -421,7 +456,7 @@ const Directores: React.FC = () => {
                       </td>
                       
                       {/* COLUMNA 5: OPCIONES */}
-                      <td className="border px-3 py-2 align-top">
+                      <td className="px-4 py-3 border border-gray-300 align-top">
                         <button
                           onClick={() => handleEdit(director)}
                           className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
@@ -430,74 +465,37 @@ const Directores: React.FC = () => {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  )))}
                 </tbody>
               </table>
             </div>
+          </div>
 
-            {/* PAGINACIÓN */}
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 text-sm">
-              {/* INFORMACIÓN DE REGISTROS */}
-              <span className="text-gray-600">
-                Mostrando {((currentPage - 1) * itemsPerPage) + 1} -{" "}
-                {Math.min(currentPage * itemsPerPage, filtered.length)} de{" "}
-                {filtered.length} registros
-              </span>
-
-              {/* CONTROLES DE PAGINACIÓN */}
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 rounded-lg border hover:bg-gray-100 disabled:opacity-40 transition-colors"
-                >
-                  «
-                </button>
-
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 rounded-lg border hover:bg-gray-100 disabled:opacity-40 transition-colors"
-                >
-                  ‹
-                </button>
-
-                {/* NÚMEROS DE PÁGINA */}
-                {Array.from({ length: endPage - startPage + 1 }).map((_, i) => {
-                  const page = startPage + i;
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-1 rounded-lg border transition-colors ${
-                        currentPage === page
-                          ? "bg-black text-white border-black"
-                          : "hover:bg-gray-100"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  );
-                })}
-
-                <button
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(p + 1, totalPages))
-                  }
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 rounded-lg border hover:bg-gray-100 disabled:opacity-40 transition-colors"
-                >
-                  ›
-                </button>
-
-                <button
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 rounded-lg border hover:bg-gray-100 disabled:opacity-40 transition-colors"
-                >
-                  »
-                </button>
+          {/* PAGINACIÓN */}
+          <div className="p-4 border-t bg-gray-50">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="text-sm text-gray-600 text-center sm:text-left">
+                Mostrando <span className="font-semibold text-gray-900">{filtered.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</span> - <span className="font-semibold text-gray-900">{Math.min(currentPage * itemsPerPage, filtered.length)}</span> de <span className="font-semibold text-gray-900">{filtered.length}</span> registros
               </div>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors">««</button>
+                  <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors">&lt;</button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i;
+                      if (pageNum < 1) pageNum = i + 1;
+                      return (
+                        <button key={pageNum} onClick={() => setCurrentPage(pageNum)} className={`min-w-[36px] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? "bg-black text-white" : "border border-gray-300 bg-white hover:bg-gray-100"}`}>
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages} className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors">&gt;</button>
+                  <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors">»»</button>
+                </div>
+              )}
             </div>
           </div>
         </div>

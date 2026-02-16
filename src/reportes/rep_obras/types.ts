@@ -76,7 +76,7 @@ export interface RepObraDetalle extends RepObra {
   coeficienteOcupacion?: string;
   coeficienteUtilizacion?: string;
   descripcionProyecto?: string;
-  idPerito?: number;
+  idDirectorObra?: number;
   bitacora?: string;
   vigencia?: string;
   fechaVerificacion?: string;

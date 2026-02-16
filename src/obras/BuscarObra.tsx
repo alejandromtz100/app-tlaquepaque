@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Menu from "../layout/menu";
 import { Pencil, Copy, Printer, Paperclip } from "lucide-react";
@@ -142,7 +142,7 @@ const BuscarObra: React.FC = () => {
 
   const totalPaginas = Math.ceil(resultados.length / registrosPorPagina);
 
-  const limpiarFiltros = () => {
+  const limpiarFiltros = useCallback(() => {
     setFiltros({
       consecutivo: "",
       fecha: "",
@@ -150,7 +150,7 @@ const BuscarObra: React.FC = () => {
       calle: "",
     });
     setPaginaActual(1);
-  };
+  }, []);
 
   const formatearFecha = (fecha: string | Date) => {
     if (!fecha) return "-";
@@ -181,18 +181,43 @@ const BuscarObra: React.FC = () => {
       <Menu />
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          {/* HEADER */}
+      <main className="flex-1 w-full px-4 py-6">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-[98%] mx-auto">
+          {/* HEADER DEL REPORTE */}
           <div className="bg-gradient-to-r from-black to-gray-800 text-white px-6 py-5">
-            <h2 className="text-2xl font-bold">Buscar Obra</h2>
-            <p className="text-sm text-gray-300 mt-1">
-              Busca obras por consecutivo, fecha, nombre del propietario o calle
-            </p>
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold">Buscar Obra</h2>
+                <p className="text-sm text-gray-300 mt-1">
+                  Busca obras por consecutivo, fecha, nombre del propietario o calle
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-gray-300">Total de registros</div>
+                <div className="text-2xl font-bold">{obras.length > 0 ? obras.length : "-"}</div>
+              </div>
+            </div>
           </div>
 
           {/* FILTROS DE BÚSQUEDA */}
           <div className="p-6 border-b bg-gray-50">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Filtros de Búsqueda</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={limpiarFiltros}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition text-sm font-medium"
+                >
+                  Limpiar Filtros
+                </button>
+                <button
+                  onClick={buscarObras}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+                >
+                  Buscar
+                </button>
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -250,21 +275,6 @@ const BuscarObra: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={buscarObras}
-                className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition text-sm font-medium"
-              >
-                Buscar
-              </button>
-              <button
-                onClick={limpiarFiltros}
-                className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition text-sm font-medium"
-              >
-                Limpiar Filtros
-              </button>
-            </div>
-
             <div className="mt-4 text-sm text-gray-600">
               {obras.length === 0 ? (
                 <span>Haz clic en "Buscar" para cargar las obras</span>
@@ -277,167 +287,152 @@ const BuscarObra: React.FC = () => {
             </div>
           </div>
 
-          {/* TABLA DE RESULTADOS */}
-          {loading ? (
-            <div className="p-12 text-center">
-              <div className="w-16 h-16 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600">Cargando obras...</p>
-            </div>
-          ) : obras.length === 0 ? (
-            <div className="p-12 text-center text-gray-500">
-              <p className="text-lg font-medium">No hay obras cargadas</p>
-              <p className="text-sm mt-2">
-                Haz clic en "Buscar" para cargar las obras
-              </p>
-            </div>
-          ) : resultados.length === 0 ? (
-            <div className="p-12 text-center text-gray-500">
-              <p className="text-lg font-medium">No se encontraron obras</p>
-              <p className="text-sm mt-2">
-                Intenta ajustar los filtros de búsqueda
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-100 sticky top-0 shadow-sm">
-                    <tr className="text-gray-700 text-xs uppercase">
-                      <th className="p-3 text-left border border-gray-300 font-semibold">
-                        Consecutivo
-                      </th>
-                      <th className="p-3 text-left border border-gray-300 font-semibold">
-                        Fecha Captura
-                      </th>
-                      <th className="p-3 text-left border border-gray-300 font-semibold">
-                        Propietario
-                      </th>
-                      <th className="p-3 text-left border border-gray-300 font-semibold">
-                        Calle / No. Oficial
-                      </th>
-                      <th className="p-3 text-left border border-gray-300 font-semibold">
-                        Colonia
-                      </th>
-                      <th className="p-3 text-center border border-gray-300 font-semibold">
-                        Estado Obra
-                      </th>
-                      <th className="p-3 text-center border border-gray-300 font-semibold">
-                        Estado Pago
-                      </th>
-                      <th className="p-3 text-center border border-gray-300 font-semibold">
-                        Opciones
-                      </th>
+          {/* TABLA O ESTADO DE CARGA */}
+          <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
+            {loading ? (
+              <div className="min-h-[200px] flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                  <p className="text-gray-600 text-sm">Cargando obras...</p>
+                </div>
+              </div>
+            ) : (
+              <div className="min-w-full inline-block align-middle">
+                <table className="min-w-full text-xs border-collapse bg-white">
+                  <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
+                    <tr className="text-gray-700 uppercase">
+                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Consecutivo</th>
+                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Fecha Captura</th>
+                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Propietario</th>
+                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Calle / No. Oficial</th>
+                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Colonia</th>
+                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Estado Obra</th>
+                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Estado Pago</th>
+                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Opciones</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {resultadosPaginados.map((obra) => (
-                      <tr
-                        key={obra.idObra || obra.id}
-                        className="border-b hover:bg-gray-50 transition"
-                      >
-                        <td className="p-3 border border-gray-300 font-medium">
-                          {obra.consecutivo || "-"}
+                  <tbody className="divide-y divide-gray-200">
+                    {obras.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-12 text-center text-gray-500 bg-gray-50">
+                          <div className="flex flex-col items-center">
+                            <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <p className="text-base font-medium">Haz clic en &quot;Buscar&quot; para cargar las obras</p>
+                          </div>
                         </td>
-                        <td className="p-3 border border-gray-300">
-                          {formatearFecha(obra.fechaCaptura || obra.captura)}
+                      </tr>
+                    ) : resultados.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-12 text-center text-gray-500 bg-gray-50">
+                          <div className="flex flex-col items-center">
+                            <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <p className="text-base font-medium">No se encontraron obras para los filtros aplicados</p>
+                          </div>
                         </td>
-                        <td className="p-3 border border-gray-300">
-                          {obra.nombrePropietario || obra.propietario || "-"}
-                        </td>
-                        <td className="p-3 border border-gray-300">
-                          <div>{obra.calle || "-"}</div>
-                          {(obra.numeroOficial || obra.noOficial) && (
-                            <div className="text-xs text-gray-500">
-                              No. {obra.numeroOficial || obra.noOficial}
-                            </div>
-                          )}
-                        </td>
-                        <td className="p-3 border border-gray-300">
-                          {obra.nombreColoniaObra || obra.colonia || "-"}
-                        </td>
-                        <td className="p-3 border border-gray-300 text-center">
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-semibold ${
+                      </tr>
+                    ) : (
+                      resultadosPaginados.map((obra) => (
+                        <tr
+                          key={obra.idObra || obra.id}
+                          className="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-200"
+                        >
+                          <td className="px-4 py-3 border border-gray-300 font-medium text-gray-900">{obra.consecutivo || "-"}</td>
+                          <td className="px-4 py-3 border border-gray-300 whitespace-nowrap text-gray-700">
+                            {formatearFecha(obra.fechaCaptura || obra.captura)}
+                          </td>
+                          <td className="px-4 py-3 border border-gray-300 text-gray-700">{obra.nombrePropietario || obra.propietario || "-"}</td>
+                          <td className="px-4 py-3 border border-gray-300 text-gray-700">
+                            <div>{obra.calle || "-"}</div>
+                            {(obra.numeroOficial || obra.noOficial) && (
+                              <div className="text-xs text-gray-500">No. {obra.numeroOficial || obra.noOficial}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 border border-gray-300 text-gray-700">{obra.nombreColoniaObra || obra.colonia || "-"}</td>
+                          <td className="px-4 py-3 border border-gray-300">
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
                               obra.estadoObra === "Verificado"
                                 ? "bg-green-100 text-green-700"
                                 : obra.estadoObra === "En Proceso"
                                 ? "bg-yellow-100 text-yellow-700"
                                 : "bg-gray-100 text-gray-700"
-                            }`}
-                          >
-                            {obra.estadoObra || "-"}
-                          </span>
-                        </td>
-                        <td className="p-3 border border-gray-300 text-center">
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-semibold ${
+                            }`}>
+                              {obra.estadoObra || "-"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 border border-gray-300">
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
                               obra.estadoPago === "Pagado"
                                 ? "bg-blue-100 text-blue-700"
                                 : obra.estadoPago === "Sin Pagar"
                                 ? "bg-red-100 text-red-700"
                                 : "bg-gray-100 text-gray-700"
-                            }`}
-                          >
-                            {obra.estadoPago || "-"}
-                          </span>
-                        </td>
-                        <td className="p-3 border border-gray-300">
-                          <div className="flex justify-center gap-2">
-                            <button
-                              onClick={() =>
-                                navigate("/paso1obras", {
-                                  state: { id: obra.idObra || obra.id },
-                                })
-                              }
-                              className="p-1 hover:bg-blue-100 rounded transition"
-                              title="Editar"
-                            >
-                              <Pencil size={18} />
-                            </button>
-                            <button
-                              className="p-1 hover:bg-green-100 rounded transition"
-                              title="Copiar"
-                            >
-                              <Copy size={18} />
-                            </button>
-                            <button
-                              className="p-1 hover:bg-purple-100 rounded transition"
-                              title="Imprimir"
-                            >
-                              <Printer size={18} />
-                            </button>
-                            <button
-                              className="p-1 hover:bg-yellow-100 rounded transition"
-                              title="Documentos"
-                            >
-                              <Paperclip size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                            }`}>
+                              {obra.estadoPago || "-"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 border border-gray-300">
+                            <div className="flex justify-center gap-2">
+                              <button
+                                onClick={() => navigate("/paso1obras", { state: { id: obra.idObra || obra.id } })}
+                                className="p-1 hover:bg-gray-200 rounded transition-colors"
+                                title="Editar"
+                              >
+                                <Pencil size={18} />
+                              </button>
+                              <button className="p-1 hover:bg-gray-200 rounded transition-colors" title="Copiar">
+                                <Copy size={18} />
+                              </button>
+                              <button className="p-1 hover:bg-gray-200 rounded transition-colors" title="Imprimir">
+                                <Printer size={18} />
+                              </button>
+                              <button className="p-1 hover:bg-gray-200 rounded transition-colors" title="Documentos">
+                                <Paperclip size={18} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
+            )}
+          </div>
 
-              {/* PAGINACIÓN */}
-              {totalPaginas > 1 && (
-                <div className="flex flex-col sm:flex-row justify-between items-center p-4 border-t bg-gray-50 gap-4">
-                  <div className="text-sm text-gray-600">
-                    Mostrando <span className="font-semibold">
-                      {resultados.length > 0 ? (paginaActual - 1) * registrosPorPagina + 1 : 0}
-                    </span> - <span className="font-semibold">
-                      {Math.min(paginaActual * registrosPorPagina, resultados.length)}
-                    </span> de <span className="font-semibold">{resultados.length}</span> resultados
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
+          {/* PAGINACIÓN E INFORMACIÓN DE REGISTROS */}
+          {!loading && obras.length > 0 && (
+            <div className="p-4 border-t bg-gray-50">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="text-sm text-gray-600 text-center sm:text-left">
+                  Mostrando <span className="font-semibold text-gray-900">
+                    {resultados.length > 0 ? (paginaActual - 1) * registrosPorPagina + 1 : 0}
+                  </span> - <span className="font-semibold text-gray-900">
+                    {Math.min(paginaActual * registrosPorPagina, resultados.length)}
+                  </span> de <span className="font-semibold text-gray-900">{resultados.length}</span> registros
+                  {obras.length !== resultados.length && (
+                    <span className="text-gray-500"> (de {obras.length} totales)</span>
+                  )}
+                </div>
+
+                {totalPaginas > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      disabled={paginaActual === 1}
+                      onClick={() => setPaginaActual(1)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                    >
+                      ««
+                    </button>
                     <button
                       disabled={paginaActual === 1}
                       onClick={() => setPaginaActual(paginaActual - 1)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                      className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
                     >
-                      ◀ Anterior
+                      &lt;
                     </button>
                     <div className="flex items-center gap-1">
                       {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
@@ -455,10 +450,10 @@ const BuscarObra: React.FC = () => {
                           <button
                             key={pageNum}
                             onClick={() => setPaginaActual(pageNum)}
-                            className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                            className={`min-w-[36px] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                               paginaActual === pageNum
                                 ? "bg-black text-white"
-                                : "border border-gray-300 hover:bg-gray-100"
+                                : "border border-gray-300 bg-white hover:bg-gray-100"
                             }`}
                           >
                             {pageNum}
@@ -469,14 +464,21 @@ const BuscarObra: React.FC = () => {
                     <button
                       disabled={paginaActual === totalPaginas}
                       onClick={() => setPaginaActual(paginaActual + 1)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                      className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
                     >
-                      Siguiente ▶
+                      &gt;
+                    </button>
+                    <button
+                      disabled={paginaActual === totalPaginas}
+                      onClick={() => setPaginaActual(totalPaginas)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                    >
+                      »»
                     </button>
                   </div>
-                </div>
-              )}
-            </>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </main>

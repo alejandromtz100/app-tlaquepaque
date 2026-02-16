@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { FaSignOutAlt } from "react-icons/fa";
 import Menu from "../layout/menu";
 import { getConceptosArbol } from "../services/conceptos.service";
 import type { Concepto } from "../types/concepto";
@@ -192,11 +191,6 @@ const conceptosFiltrados = filtrarArbol(conceptos, search);
               H. Ayuntamiento de Tlaquepaque
             </p>
           </div>
-
-          <button className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm bg-gray-100 text-gray-700 hover:bg-red-600 hover:text-white transition">
-            <FaSignOutAlt />
-            <span className="hidden sm:inline">Salir</span>
-          </button>
         </div>
       </header>
 
@@ -204,40 +198,70 @@ const conceptosFiltrados = filtrarArbol(conceptos, search);
       <Menu />
 
       {/* CONTENT */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
-        <div className="bg-white rounded-2xl shadow-lg p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-          
+      <main className="flex-1 w-full px-4 py-6">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-[98%] mx-auto">
+          {/* HEADER DEL REPORTE */}
+          <div className="bg-gradient-to-r from-black to-gray-800 text-white px-6 py-5">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold">Conceptos</h2>
+                <p className="text-sm text-gray-300 mt-1">
+                  Catálogo de conceptos
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-gray-300">Total de conceptos</div>
+                <div className="text-2xl font-bold">{conceptos.length}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* FILTROS DE BÚSQUEDA */}
+          <div className="p-6 border-b bg-gray-50">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Filtros de Búsqueda</h3>
+              <button
+                onClick={() => {
+                  setIsCreating(true);
+                  setIsEditing(false);
+                  setSelected(null);
+                  setNuevo({
+                    parent_id: undefined,
+                    estado: true,
+                  });
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium flex items-center gap-2"
+              >
+                + Nuevo concepto
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Buscar concepto</label>
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="mt-4 text-sm text-gray-600">
+              Mostrando <span className="font-semibold">{conceptosFiltrados.length}</span> conceptos en el árbol
+            </div>
+          </div>
+
+          {/* CONTENIDO: ÁRBOL + DETALLE */}
+          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Árbol */}
-<div className="border rounded-xl p-4 overflow-y-auto max-h-[600px]">
-  <h2 className="font-bold mb-3">Conceptos</h2>
-
-  <input
-    type="text"
-    placeholder="Buscar concepto..."
-    value={search}
-    onChange={(e) => setSearch(e.target.value)}
-    className="mb-3 w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black"
-  />
-
-  <button
-    onClick={() => {
-      setIsCreating(true);
-      setIsEditing(false);
-      setSelected(null);
-      setNuevo({
-        parent_id: undefined,
-        estado: true,
-      });
-    }}
-    className="mb-4 w-full px-3 py-2 rounded-xl bg-black text-white hover:bg-gray-800 text-sm"
-  >
-    + Nuevo concepto
-  </button>
+<div className="border border-gray-300 rounded-xl p-4 overflow-y-auto max-h-[600px] bg-gray-50/50">
+  <h2 className="font-bold mb-3 text-gray-800">Árbol de conceptos</h2>
 
   {renderArbol(conceptosFiltrados)}
 </div>
 {/* DETALLE */}
-<div className="md:col-span-2 border rounded-xl p-6">
+<div className="md:col-span-2 border border-gray-300 rounded-xl p-6 bg-white">
 
   {/* ===== CREAR CONCEPTO ===== */}
   {isCreating && (
@@ -493,7 +517,7 @@ const conceptosFiltrados = filtrarArbol(conceptos, search);
 
 </div>
 
-
+          </div>
         </div>
       </main>
 

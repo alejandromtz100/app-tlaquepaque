@@ -25,7 +25,15 @@ const Menu: React.FC = () => {
   };
 
   return (
-    <nav className="bg-black text-white">
+    <nav className="bg-black text-white relative">
+      {/* Overlay para cerrar menús al hacer clic fuera */}
+      {openMenu && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setOpenMenu(null)}
+          aria-hidden="true"
+        />
+      )}
       <div className="max-w-7xl mx-auto px-6 py-2 flex justify-center gap-10 text-sm font-medium relative">
         {/* Inicio */}
         <span
@@ -45,7 +53,6 @@ const Menu: React.FC = () => {
             { label: "Trámites", path: "/catalogos/tramites" },
             { label: "Conceptos", path: "/catalogos/conceptos" },
             { label: "Directores de obra", path: "/catalogos/directores" },
-            { label: "Listado de conceptos", path: "/catalogos/ListaConceptos" },
           ]}
           onSelect={goTo}
         />
@@ -57,7 +64,6 @@ const Menu: React.FC = () => {
           onClick={() => toggleMenu("usuarios")}
           items={[
             { label: "Usuarios registrados", path: "/usuarios" },
-            { label: "Asignaciones especiales", path: "/usuarios/asignaciones" },
           ]}
           onSelect={goTo}
         />

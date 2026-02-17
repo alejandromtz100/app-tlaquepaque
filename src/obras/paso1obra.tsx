@@ -244,7 +244,6 @@ const Paso1Obra: React.FC = () => {
   // Verificar permisos del usuario logueado
   const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
   const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
-  const puedeModificarObras = !esSupervisor; // SUPERVISOR solo puede leer
   const id = location.state?.id || null;
 
   // Estado inicial solo con campos usados en el formulario

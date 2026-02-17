@@ -5,13 +5,17 @@ import { useNavigate } from "react-router-dom";
 const Menu: React.FC = () => {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [esAdmin, setEsAdmin] = useState(false);
+  const [puedeVerEstadisticas, setPuedeVerEstadisticas] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const usuarioData = localStorage.getItem("usuario");
     if (usuarioData) {
       const usuario = JSON.parse(usuarioData);
-      setEsAdmin(usuario.rol === "ADMIN");
+      const esAdminUser = usuario.rol === "ADMIN";
+      setEsAdmin(esAdminUser);
+      // Solo ADMIN puede ver estadísticas
+      setPuedeVerEstadisticas(esAdminUser);
     }
   }, []);
 
@@ -88,7 +92,7 @@ const Menu: React.FC = () => {
             { label: "Reporte de número oficiales de obra", path: "/reportes/numero-oficiales-obra" },
             { label: "Reporte de licencias", path: "/reportes/rep_Licencias/RepLicenciasPage" },
             { label: "Reporte de obras", path: "/reportes/rep_obras/RepObrasPage" },
-            { label: "Estadísticas de pagos", path: "/estadisticas" },
+            ...(puedeVerEstadisticas ? [{ label: "Estadísticas de pagos", path: "/estadisticas" }] : []),
           ]}
           onSelect={goTo}
         />

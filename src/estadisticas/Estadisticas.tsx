@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import Menu from "../layout/menu";
 import { FaChartBar, FaDollarSign, FaFileInvoiceDollar } from "react-icons/fa";
+import { getColonias } from "../services/colonias.service";
+import { DirectoresService } from "../services/directores.service";
 
 const API = "http://localhost:3001/estadisticas";
 
@@ -32,6 +34,19 @@ const Estadisticas: React.FC = () => {
   const [estadisticas, setEstadisticas] = useState<EstadisticasResponse | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
+  
+  // Filtros adicionales
+  const [idColonia, setIdColonia] = useState<string>("");
+  const [idDirector, setIdDirector] = useState<string>("");
+  const [estadoObra, setEstadoObra] = useState<string>("");
+  const [tipoPropietario, setTipoPropietario] = useState<string>("");
+  const [destinoActual, setDestinoActual] = useState<string>("");
+  const [destinoPropuesto, setDestinoPropuesto] = useState<string>("");
+  
+  // Opciones para los filtros
+  const [colonias, setColonias] = useState<any[]>([]);
+  const [directores, setDirectores] = useState<any[]>([]);
+  const [datosCargados, setDatosCargados] = useState(false);
 
   useEffect(() => {
     const usuario = localStorage.getItem("usuario");
@@ -39,8 +54,43 @@ const Estadisticas: React.FC = () => {
       navigate("/");
       return;
     }
-    cargarEstadisticas();
+    const usuarioData = JSON.parse(usuario);
+    // Solo ADMIN puede ver estadísticas
+    if (usuarioData.rol !== "ADMIN") {
+      alert("No tienes permisos para acceder a esta sección");
+      navigate("/home");
+      return;
+    }
+    cargarDatosIniciales();
   }, [navigate]);
+
+  // Cargar estadísticas automáticamente cuando cambien los filtros (solo después de cargar datos iniciales)
+  useEffect(() => {
+    if (datosCargados) {
+      cargarEstadisticas();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fechaInicio, fechaFin, idColonia, idDirector, estadoObra, tipoPropietario, destinoActual, destinoPropuesto]);
+
+  const cargarDatosIniciales = async () => {
+    try {
+      // Cargar colonias
+      const coloniasData = await getColonias();
+      setColonias(coloniasData);
+      
+      // Cargar directores
+      const directoresData = await DirectoresService.getAll();
+      setDirectores(directoresData);
+      
+      // Marcar que los datos están cargados
+      setDatosCargados(true);
+      
+      // Cargar estadísticas iniciales (sin filtros)
+      await cargarEstadisticas();
+    } catch (error) {
+      console.error("Error al cargar datos iniciales:", error);
+    }
+  };
 
   const cargarEstadisticas = async () => {
     setCargando(true);
@@ -49,6 +99,12 @@ const Estadisticas: React.FC = () => {
       const params = new URLSearchParams();
       if (fechaInicio) params.append("fechaInicio", fechaInicio);
       if (fechaFin) params.append("fechaFin", fechaFin);
+      if (idColonia) params.append("idColonia", idColonia);
+      if (idDirector) params.append("idDirector", idDirector);
+      if (estadoObra) params.append("estadoObra", estadoObra);
+      if (tipoPropietario) params.append("tipoPropietario", tipoPropietario);
+      if (destinoActual) params.append("destinoActual", destinoActual);
+      if (destinoPropuesto) params.append("destinoPropuesto", destinoPropuesto);
 
       const res = await fetch(`${API}/pagos?${params.toString()}`);
       if (!res.ok) throw new Error("Error al cargar estadísticas");
@@ -59,6 +115,18 @@ const Estadisticas: React.FC = () => {
     } finally {
       setCargando(false);
     }
+  };
+
+  const limpiarFiltros = () => {
+    setFechaInicio("");
+    setFechaFin("");
+    setIdColonia("");
+    setIdDirector("");
+    setEstadoObra("");
+    setTipoPropietario("");
+    setDestinoActual("");
+    setDestinoPropuesto("");
+    setEstadisticas(null);
   };
 
   const formatearMoneda = (monto: number) => {
@@ -109,8 +177,17 @@ const Estadisticas: React.FC = () => {
 
         {/* Filtros */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <h3 className="text-lg font-semibold mb-4">Filtros por fecha</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Filtros de búsqueda</h3>
+            <button
+              onClick={limpiarFiltros}
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+            >
+              Limpiar filtros
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Fecha inicio
@@ -119,7 +196,7 @@ const Estadisticas: React.FC = () => {
                 type="date"
                 value={fechaInicio}
                 onChange={(e) => setFechaInicio(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
               />
             </div>
             <div>
@@ -130,18 +207,107 @@ const Estadisticas: React.FC = () => {
                 type="date"
                 value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
               />
             </div>
-            <div className="flex items-end">
-              <button
-                onClick={cargarEstadisticas}
-                disabled={cargando}
-                className="w-full px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition font-medium disabled:opacity-50"
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Colonia
+              </label>
+              <select
+                value={idColonia}
+                onChange={(e) => setIdColonia(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm bg-white"
               >
-                {cargando ? "Consultando..." : "Consultar"}
-              </button>
+                <option value="">Todas las colonias</option>
+                {colonias.map((colonia) => (
+                  <option key={colonia.id_colonia} value={colonia.id_colonia}>
+                    {colonia.nombre}
+                  </option>
+                ))}
+              </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Director de obra
+              </label>
+              <select
+                value={idDirector}
+                onChange={(e) => setIdDirector(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm bg-white"
+              >
+                <option value="">Todos los directores</option>
+                {directores.map((director) => (
+                  <option key={director.id} value={director.id}>
+                    {director.nombre_completo || `Director ${director.id}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estado de obra
+              </label>
+              <select
+                value={estadoObra}
+                onChange={(e) => setEstadoObra(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm bg-white"
+              >
+                <option value="">Todos los estados</option>
+                <option value="En Proceso">En Proceso</option>
+                <option value="Finalizada">Finalizada</option>
+                <option value="Cancelada">Cancelada</option>
+                <option value="Suspendida">Suspendida</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tipo de propietario
+              </label>
+              <select
+                value={tipoPropietario}
+                onChange={(e) => setTipoPropietario(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm bg-white"
+              >
+                <option value="">Todos los tipos</option>
+                <option value="Fisica">Física</option>
+                <option value="Moral">Moral</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Destino actual
+              </label>
+              <input
+                type="text"
+                value={destinoActual}
+                onChange={(e) => setDestinoActual(e.target.value)}
+                placeholder="Ej: Comercial, Residencial..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Destino propuesto
+              </label>
+              <input
+                type="text"
+                value={destinoPropuesto}
+                onChange={(e) => setDestinoPropuesto(e.target.value)}
+                placeholder="Ej: Comercial, Residencial..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end mt-4">
+            <button
+              onClick={cargarEstadisticas}
+              disabled={cargando}
+              className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition font-medium disabled:opacity-50"
+            >
+              {cargando ? "Actualizando..." : "Actualizar"}
+            </button>
           </div>
         </div>
 

@@ -44,6 +44,8 @@ const Usuarios: React.FC = () => {
 
   const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
   const esAdmin = usuarioLogueado?.rol === "ADMIN";
+  const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
+  const puedeModificar = esAdmin; // Solo ADMIN puede crear/modificar/eliminar usuarios
 
   /* ======================
      CARGAR DATOS
@@ -282,7 +284,7 @@ const Usuarios: React.FC = () => {
                 >
                   Limpiar Filtros
                 </button>
-                {esAdmin && (
+                {puedeModificar && (
                   <button
                     onClick={() => {
                       setShowForm(true);
@@ -433,7 +435,7 @@ const Usuarios: React.FC = () => {
                           <td className="px-4 py-3 border border-gray-300 text-gray-700">{u.area?.nombre || "-"}</td>
                           <td className="px-4 py-3 border border-gray-300 text-gray-700">{u.cargo?.nombre || "-"}</td>
                           <td className="px-4 py-3 border border-gray-300 text-gray-700">{u.funcionEspecial?.nombre || "-"}</td>
-                          {esAdmin && (
+                          {puedeModificar && (
                             <td className="px-4 py-3 border border-gray-300 space-x-2 text-sm">
                               <button
                                 onClick={() => handleEditUsuario(u)}
@@ -455,6 +457,11 @@ const Usuarios: React.FC = () => {
                               >
                                 Eliminar
                               </button>
+                            </td>
+                          )}
+                          {!puedeModificar && (
+                            <td className="px-4 py-3 border border-gray-300 text-gray-400 text-sm">
+                              Solo lectura
                             </td>
                           )}
                         </tr>

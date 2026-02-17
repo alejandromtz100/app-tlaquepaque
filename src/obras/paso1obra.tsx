@@ -17,7 +17,8 @@ const Input = ({
   label, 
   required = false, 
   type = "text",
-  placeholder = ""
+  placeholder = "",
+  disabled = false
 }: any) => (
   <div>
     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -29,7 +30,10 @@ const Input = ({
       value={value || ""}
       onChange={onChange}
       placeholder={placeholder}
-      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      disabled={disabled}
+      className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+        disabled ? "bg-gray-100 cursor-not-allowed" : ""
+      }`}
     />
   </div>
 );
@@ -42,7 +46,8 @@ const Select = ({
   label, 
   required = false, 
   options = [],
-  placeholder = "Seleccionar Valor"
+  placeholder = "Seleccionar Valor",
+  disabled = false
 }: any) => {
   const allOptions = [...options];
   if (value && !allOptions.some(opt => opt.value === value)) {
@@ -58,7 +63,10 @@ const Select = ({
         name={name}
         value={value || ""}
         onChange={onChange}
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+        disabled={disabled}
+        className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+          disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"
+        }`}
       >
         <option value="">{placeholder}</option>
         {allOptions.map((opt: any) => (
@@ -232,6 +240,10 @@ const DocumentosAdicionales = ({ documentos, onAdd, onRemove }: any) => {
 const Paso1Obra: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // Verificar permisos del usuario logueado
+  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const id = location.state?.id || null;
 
   // Estado inicial solo con campos usados en el formulario
@@ -392,6 +404,12 @@ const Paso1Obra: React.FC = () => {
 
   const handleSave = async () => {
     try {
+      // Verificar permisos: SUPERVISOR no puede crear/modificar obras
+      if (esSupervisor) {
+        alert("Los supervisores solo pueden visualizar información, no pueden crear o modificar obras");
+        return;
+      }
+
       // Validar campos obligatorios
       if (!form.nombrePropietario || !form.tipoPropietario || 
           !form.nombreColoniaObra || !form.idColoniaObra ||
@@ -401,12 +419,36 @@ const Paso1Obra: React.FC = () => {
         return;
       }
 
-      const obraData = {
+      // Agregar ID del usuario logueado para el historial y como capturador
+      const usuarioData = localStorage.getItem("usuario");
+      let idUsuarioLogueado: number | undefined;
+      if (usuarioData) {
+        try {
+          const usuarioLogueado = JSON.parse(usuarioData);
+          if (usuarioLogueado.id) {
+            idUsuarioLogueado = usuarioLogueado.id;
+          }
+        } catch (error) {
+          console.error('Error al parsear usuario de localStorage:', error);
+        }
+      }
+
+      const obraData: any = {
         ...form,
         documentosRequeridos: documentosAdicionales.join(', '),
         fechaCaptura: id ? form.fechaCaptura : new Date(),
         ultimaModificacion: new Date(),
       };
+
+      // Si es creación nueva y no tiene idUsuarioCapturador, usar el usuario logueado
+      if (!id && idUsuarioLogueado && !obraData.idUsuarioCapturador) {
+        obraData.idUsuarioCapturador = idUsuarioLogueado;
+      }
+      
+      // Agregar idUsuarioLogueado para el historial en actualizaciones
+      if (id && idUsuarioLogueado) {
+        obraData.idUsuarioLogueado = idUsuarioLogueado;
+      }
 
       let obraId = id;
       if (id) {
@@ -419,7 +461,20 @@ const Paso1Obra: React.FC = () => {
       // Guardar números oficiales si hay endpoint especial
       if (obraId && numerosOficiales.length > 0) {
         try {
-          await axios.post(`${api}/${obraId}/numeros-manual`, { numeros: numerosOficiales });
+          // Agregar ID del usuario logueado para el historial
+          const usuarioData = localStorage.getItem("usuario");
+          const payload: any = { numeros: numerosOficiales };
+          if (usuarioData) {
+            try {
+              const usuarioLogueado = JSON.parse(usuarioData);
+              if (usuarioLogueado.id) {
+                payload.idUsuarioLogueado = usuarioLogueado.id;
+              }
+            } catch (error) {
+              console.error('Error al parsear usuario de localStorage:', error);
+            }
+          }
+          await axios.post(`${api}/${obraId}/numeros-manual`, payload);
         } catch (error) {
           console.warn("No se pudieron guardar los números oficiales:", error);
         }
@@ -1015,9 +1070,14 @@ const Paso1Obra: React.FC = () => {
             </button>
             <button
               onClick={handleSave}
-              className="bg-black text-white px-4 py-2 rounded-xl hover:bg-gray-800 font-medium"
+              disabled={esSupervisor}
+              className={`px-4 py-2 rounded-xl font-medium ${
+                esSupervisor 
+                  ? "bg-gray-400 text-gray-600 cursor-not-allowed" 
+                  : "bg-black text-white hover:bg-gray-800"
+              }`}
             >
-              Guardar Cambios
+              {esSupervisor ? "Solo lectura" : "Guardar Cambios"}
             </button>
           </div>
         </div>

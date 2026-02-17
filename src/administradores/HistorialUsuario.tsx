@@ -31,59 +31,16 @@ const HistorialUsuario: React.FC<HistorialUsuarioProps> = ({ usuario, onClose })
   const cargarHistorial = async () => {
     try {
       setLoading(true);
-      // TODO: Conectar con endpoint del backend cuando esté disponible
-      // Por ahora, simulamos datos de ejemplo
-      // const response = await fetch(`http://localhost:3001/usuarios/${usuario.id_usuarios}/historial`);
-      // const data = await response.json();
-      // setHistorial(data);
-
-      // Datos de ejemplo (eliminar cuando se conecte al backend)
-      const datosEjemplo: AccionHistorial[] = [
-        {
-          id: 1,
-          fecha: "2026-02-13",
-          hora: "10:30:45",
-          accion: "Creó una nueva obra",
-          tipo: "crear",
-          entidad: "Obra",
-          detalles: "Obra ID: 123",
-          idEntidad: 123,
-        },
-        {
-          id: 2,
-          fecha: "2026-02-13",
-          hora: "09:15:22",
-          accion: "Modificó datos de propietario",
-          tipo: "modificar",
-          entidad: "Obra",
-          detalles: "Obra ID: 120",
-          idEntidad: 120,
-        },
-        {
-          id: 3,
-          fecha: "2026-02-12",
-          hora: "16:45:10",
-          accion: "Registró nueva colonia",
-          tipo: "crear",
-          entidad: "Colonia",
-          detalles: "Colonia: Centro",
-        },
-        {
-          id: 4,
-          fecha: "2026-02-12",
-          hora: "14:20:33",
-          accion: "Actualizó información de obra",
-          tipo: "modificar",
-          entidad: "Obra",
-          detalles: "Obra ID: 115",
-          idEntidad: 115,
-        },
-      ];
-
-      setHistorial(datosEjemplo);
+      const response = await fetch(`http://localhost:3001/usuarios/${usuario.id_usuarios}/historial`);
+      if (!response.ok) {
+        throw new Error('Error al cargar historial');
+      }
+      const data = await response.json();
+      setHistorial(data);
     } catch (error) {
       console.error("Error al cargar historial:", error);
       alert("Error al cargar el historial del usuario");
+      setHistorial([]);
     } finally {
       setLoading(false);
     }

@@ -35,8 +35,14 @@ export interface ObraConNumerosOficiales {
 const API_URL = "http://localhost:3001/op-numeros-oficiales";
 
 export const NumerosOficialesService = {
-  async getReporte(): Promise<ObraConNumerosOficiales[]> {
-    const res = await fetch(`${API_URL}/reporte`);
+  async getReporte(filtros?: { consecutivo?: string; numeroOficial?: string; calle?: string }): Promise<ObraConNumerosOficiales[]> {
+    const params = new URLSearchParams();
+    if (filtros?.consecutivo) params.append("consecutivo", filtros.consecutivo);
+    if (filtros?.numeroOficial) params.append("numeroOficial", filtros.numeroOficial);
+    if (filtros?.calle) params.append("calle", filtros.calle);
+    
+    const url = `${API_URL}/reporte${params.toString() ? `?${params.toString()}` : ''}`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error("Error al obtener reporte de números oficiales");
     return res.json();
   },

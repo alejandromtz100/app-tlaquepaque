@@ -12,23 +12,31 @@ interface FiltrosBusqueda {
 
 const ReporteNumeroOficialesObra: React.FC = () => {
   const [obras, setObras] = useState<ObraConNumerosOficiales[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [filtros, setFiltros] = useState<FiltrosBusqueda>({
     consecutivo: "",
     numeroOficial: "",
     calle: "",
   });
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    cargarDatos();
-  }, []);
+  const [haBuscado, setHaBuscado] = useState(false);
 
   const cargarDatos = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await NumerosOficialesService.getReporte();
+      setHaBuscado(true);
+      
+      const params = new URLSearchParams();
+      if (filtros.consecutivo.trim()) params.append("consecutivo", filtros.consecutivo.trim());
+      if (filtros.numeroOficial.trim()) params.append("numeroOficial", filtros.numeroOficial.trim());
+      if (filtros.calle.trim()) params.append("calle", filtros.calle.trim());
+
+      const data = await NumerosOficialesService.getReporte({
+        consecutivo: filtros.consecutivo.trim() || undefined,
+        numeroOficial: filtros.numeroOficial.trim() || undefined,
+        calle: filtros.calle.trim() || undefined,
+      });
       setObras(data || []);
     } catch (error) {
       console.error("Error al cargar datos:", error);
@@ -72,25 +80,35 @@ const ReporteNumeroOficialesObra: React.FC = () => {
 
   // Función para exportar a Excel
   const exportarAExcel = () => {
-    const datosParaExcel = filtradas.map((obra) => ({
-      "Fecha": formatearFecha(obra.fechaCaptura),
-      "Consecutivo": obra.consecutivo || "-",
-      "Número Oficial": obra.numeroOficial || "-",
-      "Calle": obra.calle || "-",
-      "Colonia": obra.nombreColoniaObra || "-",
-      "Tipo Propietario": obra.tipoPropietario || "-",
-      "Propietario": obra.nombrePropietario || "-",
-      "Predios Contiguos": obra.prediosContiguos && obra.prediosContiguos !== null && obra.prediosContiguos !== 'null' && obra.prediosContiguos.trim() !== '' ? obra.prediosContiguos : "-",
-      "Condominio": obra.condominio && obra.condominio !== null && obra.condominio !== 'null' && obra.condominio.trim() !== '' ? obra.condominio : "-",
-      "Etapa": obra.etapa && obra.etapa !== null && obra.etapa !== 'null' && obra.etapa.trim() !== '' ? obra.etapa : "-",
-      "Lote": obra.loteObra && obra.loteObra !== null && obra.loteObra !== 'null' && obra.loteObra.trim() !== '' ? obra.loteObra : "-",
-      "Manzana": obra.manzanaObra && obra.manzanaObra !== null && obra.manzanaObra !== 'null' && obra.manzanaObra.trim() !== '' ? obra.manzanaObra : "-",
-      "Entre Calle": obra.entreCalle1 && obra.entreCalle1 !== null && obra.entreCalle1 !== 'null' && obra.entreCalle2 && obra.entreCalle2 !== null && obra.entreCalle2 !== 'null'
-        ? `${obra.entreCalle1} / ${obra.entreCalle2}`
-        : (obra.entreCalle1 && obra.entreCalle1 !== null && obra.entreCalle1 !== 'null') || (obra.entreCalle2 && obra.entreCalle2 !== null && obra.entreCalle2 !== 'null') ? (obra.entreCalle1 || obra.entreCalle2) : "-",
-      "Destino Actual": obra.destinoActual || "-",
-      "Destino Propuesto": obra.destinoPropuesto || "-",
-    }));
+    const datosParaExcel = filtradas.map((obra) => {
+      // Construir el domicilio del predio: Calle + Número Oficial + Colonia
+      const partesDomicilio = [];
+      if (obra.calle && obra.calle.trim() !== '') partesDomicilio.push(obra.calle);
+      if (obra.numeroOficial && obra.numeroOficial.trim() !== '') partesDomicilio.push(`No. ${obra.numeroOficial}`);
+      if (obra.nombreColoniaObra && obra.nombreColoniaObra.trim() !== '') partesDomicilio.push(obra.nombreColoniaObra);
+      const domicilioPredio = partesDomicilio.length > 0 ? partesDomicilio.join(', ') : "-";
+
+      return {
+        "Fecha": formatearFecha(obra.fechaCaptura),
+        "Consecutivo": obra.consecutivo || "-",
+        "Número Oficial": obra.numeroOficial || "-",
+        "Calle": obra.calle || "-",
+        "Colonia": obra.nombreColoniaObra || "-",
+        "Domicilio del Predio": domicilioPredio,
+        "Tipo Propietario": obra.tipoPropietario || "-",
+        "Propietario": obra.nombrePropietario || "-",
+        "Predios Contiguos": obra.prediosContiguos && obra.prediosContiguos !== null && obra.prediosContiguos !== 'null' && obra.prediosContiguos.trim() !== '' ? obra.prediosContiguos : "-",
+        "Condominio": obra.condominio && obra.condominio !== null && obra.condominio !== 'null' && obra.condominio.trim() !== '' ? obra.condominio : "-",
+        "Etapa": obra.etapa && obra.etapa !== null && obra.etapa !== 'null' && obra.etapa.trim() !== '' ? obra.etapa : "-",
+        "Lote": obra.loteObra && obra.loteObra !== null && obra.loteObra !== 'null' && obra.loteObra.trim() !== '' ? obra.loteObra : "-",
+        "Manzana": obra.manzanaObra && obra.manzanaObra !== null && obra.manzanaObra !== 'null' && obra.manzanaObra.trim() !== '' ? obra.manzanaObra : "-",
+        "Entre Calle": obra.entreCalle1 && obra.entreCalle1 !== null && obra.entreCalle1 !== 'null' && obra.entreCalle2 && obra.entreCalle2 !== null && obra.entreCalle2 !== 'null'
+          ? `${obra.entreCalle1} / ${obra.entreCalle2}`
+          : (obra.entreCalle1 && obra.entreCalle1 !== null && obra.entreCalle1 !== 'null') || (obra.entreCalle2 && obra.entreCalle2 !== null && obra.entreCalle2 !== 'null') ? (obra.entreCalle1 || obra.entreCalle2) : "-",
+        "Destino Actual": obra.destinoActual || "-",
+        "Destino Propuesto": obra.destinoPropuesto || "-",
+      };
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(datosParaExcel);
     const workbook = XLSX.utils.book_new();
@@ -103,6 +121,7 @@ const ReporteNumeroOficialesObra: React.FC = () => {
       { wch: 15 }, // Número Oficial
       { wch: 25 }, // Calle
       { wch: 25 }, // Colonia
+      { wch: 40 }, // Domicilio del Predio
       { wch: 18 }, // Tipo Propietario
       { wch: 35 }, // Propietario
       { wch: 18 }, // Predios Contiguos
@@ -129,6 +148,9 @@ const ReporteNumeroOficialesObra: React.FC = () => {
       calle: "",
     });
     setPaginaActual(1);
+    setObras([]);
+    setHaBuscado(false);
+    setError(null);
   }, []);
 
   // Paginación para mejorar rendimiento - mostrar solo una porción de los datos
@@ -246,7 +268,7 @@ const ReporteNumeroOficialesObra: React.FC = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Consecutivo</label>
                 <input
@@ -256,7 +278,7 @@ const ReporteNumeroOficialesObra: React.FC = () => {
                   value={filtros.consecutivo}
                   onChange={(e) => {
                     setFiltros({ ...filtros, consecutivo: e.target.value });
-                    setPaginaActual(1); // Resetear a primera página al filtrar
+                    setPaginaActual(1);
                   }}
                 />
               </div>
@@ -270,7 +292,7 @@ const ReporteNumeroOficialesObra: React.FC = () => {
                   value={filtros.numeroOficial}
                   onChange={(e) => {
                     setFiltros({ ...filtros, numeroOficial: e.target.value });
-                    setPaginaActual(1); // Resetear a primera página al filtrar
+                    setPaginaActual(1);
                   }}
                 />
               </div>
@@ -284,24 +306,60 @@ const ReporteNumeroOficialesObra: React.FC = () => {
                   value={filtros.calle}
                   onChange={(e) => {
                     setFiltros({ ...filtros, calle: e.target.value });
-                    setPaginaActual(1); // Resetear a primera página al filtrar
+                    setPaginaActual(1);
                   }}
                 />
               </div>
             </div>
-            
-            <div className="mt-4 text-sm text-gray-600">
-              Mostrando <span className="font-semibold">{filtradas.length}</span> de <span className="font-semibold">{filasExpandidas.length}</span> registros
+
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={cargarDatos}
+                disabled={loading}
+                className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition text-sm font-medium disabled:opacity-50"
+              >
+                {loading ? "Buscando..." : "Buscar"}
+              </button>
             </div>
+            
+            {haBuscado && !loading && (
+              <div className="text-sm text-gray-600 mb-2">
+                Mostrando <span className="font-semibold">{filtradas.length}</span> registro{filtradas.length !== 1 ? 's' : ''}
+              </div>
+            )}
           </div>
 
           {/* TABLA O ESTADO DE CARGA */}
           <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
-            {loading ? (
+            {!haBuscado ? (
+              <div className="p-12 text-center">
+                <div className="max-w-md mx-auto">
+                  <svg
+                    className="mx-auto h-16 w-16 text-gray-400 mb-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                    Ingresa los filtros de búsqueda
+                  </h3>
+                  <p className="text-gray-500 text-sm">
+                    Usa los filtros de arriba (Consecutivo, Número Oficial, Calle) y presiona <strong>"Buscar"</strong> para cargar el reporte.
+                  </p>
+                </div>
+              </div>
+            ) : loading ? (
               <div className="min-h-[200px] flex items-center justify-center">
                 <div className="text-center">
                   <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                  <p className="text-gray-600 text-sm">Cargando reporte...</p>
+                  <p className="text-gray-600 text-sm">Buscando reporte...</p>
                 </div>
               </div>
             ) : (

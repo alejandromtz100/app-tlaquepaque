@@ -29,6 +29,8 @@ const BuscarObra: React.FC = () => {
   const navigate = useNavigate();
   const [obras, setObras] = useState<Obra[]>([]);
   const [loading, setLoading] = useState(false);
+  const [haBuscado, setHaBuscado] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [paginaActual, setPaginaActual] = useState(1);
   const registrosPorPagina = 50;
   const [filtros, setFiltros] = useState({
@@ -38,16 +40,36 @@ const BuscarObra: React.FC = () => {
     calle: "",
   });
 
-  // NO cargar todas las obras al inicio - solo cuando se busque
-  // useEffect(() => {
-  //   cargarObras();
-  // }, []);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFiltros((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-  const cargarObras = async () => {
+  const cargarDatos = async () => {
     try {
       setLoading(true);
-      // Usar el endpoint más rápido de listado básico
-      const response = await fetch("http://localhost:3001/op_obras/listado");
+      setError(null);
+      setHaBuscado(true);
+
+      // Construir query parameters
+      const params = new URLSearchParams();
+      if (filtros.consecutivo.trim()) {
+        params.append('consecutivo', filtros.consecutivo.trim());
+      }
+      if (filtros.fecha) {
+        params.append('fechaCaptura', filtros.fecha);
+      }
+      if (filtros.nombrePropietario.trim()) {
+        params.append('nombrePropietario', filtros.nombrePropietario.trim());
+      }
+
+      const queryString = params.toString();
+      const url = `http://localhost:3001/op_obras/listado-filtrado${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(url);
       if (!response.ok) throw new Error("Error al cargar obras");
       const data = await response.json();
       
@@ -70,61 +92,21 @@ const BuscarObra: React.FC = () => {
       }));
       
       setObras(obrasTransformadas);
+      setPaginaActual(1); // Resetear a primera página al buscar
     } catch (error) {
       console.error("Error al cargar obras:", error);
-      alert("Error al cargar las obras");
+      setError("Error al cargar las obras");
+      setObras([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFiltros((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const buscarObras = async () => {
-    // Si no hay obras cargadas, cargarlas primero
-    if (obras.length === 0) {
-      await cargarObras();
-    }
-    setPaginaActual(1); // Resetear a primera página al buscar
-  };
-
-  // Filtrar obras con useMemo para mejor rendimiento
+  // Filtrar obras por calle en memoria (ya que el backend no filtra por calle)
   const resultados = useMemo(() => {
     let filtradas = obras;
 
-    // Filtrar por consecutivo
-    if (filtros.consecutivo.trim()) {
-      filtradas = filtradas.filter((obra) =>
-        obra.consecutivo?.toLowerCase().includes(filtros.consecutivo.toLowerCase())
-      );
-    }
-
-    // Filtrar por fecha
-    if (filtros.fecha) {
-      const fechaBusqueda = new Date(filtros.fecha).toISOString().split("T")[0];
-      filtradas = filtradas.filter((obra) => {
-        const fechaObra = obra.fechaCaptura || obra.captura;
-        if (!fechaObra) return false;
-        const fechaObraFormateada = new Date(fechaObra).toISOString().split("T")[0];
-        return fechaObraFormateada === fechaBusqueda;
-      });
-    }
-
-    // Filtrar por nombre del propietario
-    if (filtros.nombrePropietario.trim()) {
-      filtradas = filtradas.filter((obra) => {
-        const propietario = obra.nombrePropietario || obra.propietario || "";
-        return propietario.toLowerCase().includes(filtros.nombrePropietario.toLowerCase());
-      });
-    }
-
-    // Filtrar por calle
+    // Filtrar por calle (este filtro se aplica en memoria ya que viene de números oficiales)
     if (filtros.calle.trim()) {
       filtradas = filtradas.filter((obra) =>
         obra.calle?.toLowerCase().includes(filtros.calle.toLowerCase())
@@ -132,15 +114,7 @@ const BuscarObra: React.FC = () => {
     }
 
     return filtradas;
-  }, [obras, filtros]);
-
-  // Paginación de resultados
-  const resultadosPaginados = useMemo(() => {
-    const inicio = (paginaActual - 1) * registrosPorPagina;
-    return resultados.slice(inicio, inicio + registrosPorPagina);
-  }, [resultados, paginaActual]);
-
-  const totalPaginas = Math.ceil(resultados.length / registrosPorPagina);
+  }, [obras, filtros.calle]);
 
   const limpiarFiltros = useCallback(() => {
     setFiltros({
@@ -149,8 +123,19 @@ const BuscarObra: React.FC = () => {
       nombrePropietario: "",
       calle: "",
     });
+    setObras([]);
+    setHaBuscado(false);
+    setError(null);
     setPaginaActual(1);
   }, []);
+
+  // Paginación de resultados
+  const resultadosPaginados = useMemo(() => {
+    const inicio = (paginaActual - 1) * registrosPorPagina;
+    return resultados.slice(inicio, inicio + registrosPorPagina);
+  }, [resultados, paginaActual]);
+
+  const totalPaginas = Math.ceil(resultados.length / registrosPorPagina);
 
   const formatearFecha = (fecha: string | Date) => {
     if (!fecha) return "-";
@@ -211,7 +196,7 @@ const BuscarObra: React.FC = () => {
                   Limpiar Filtros
                 </button>
                 <button
-                  onClick={buscarObras}
+                  onClick={cargarDatos}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
                 >
                   Buscar
@@ -276,9 +261,7 @@ const BuscarObra: React.FC = () => {
             </div>
 
             <div className="mt-4 text-sm text-gray-600">
-              {obras.length === 0 ? (
-                <span>Haz clic en "Buscar" para cargar las obras</span>
-              ) : (
+              {haBuscado && obras.length > 0 && (
                 <>
                   Mostrando <span className="font-semibold">{resultados.length}</span> de{" "}
                   <span className="font-semibold">{obras.length}</span> obras
@@ -293,7 +276,23 @@ const BuscarObra: React.FC = () => {
               <div className="min-h-[200px] flex items-center justify-center">
                 <div className="text-center">
                   <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                  <p className="text-gray-600 text-sm">Cargando obras...</p>
+                  <p className="text-gray-600 text-sm">Buscando obras...</p>
+                </div>
+              </div>
+            ) : !haBuscado ? (
+              <div className="min-h-[200px] flex items-center justify-center">
+                <div className="text-center">
+                  <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <p className="text-lg font-medium text-gray-700 mb-2">Ingresa los filtros de búsqueda</p>
+                  <p className="text-sm text-gray-500">Usa los filtros de arriba para buscar obras por consecutivo, fecha de captura o propietario</p>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="min-h-[200px] flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-red-600 text-sm">{error}</p>
                 </div>
               </div>
             ) : (
@@ -312,18 +311,7 @@ const BuscarObra: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {obras.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="px-4 py-12 text-center text-gray-500 bg-gray-50">
-                          <div className="flex flex-col items-center">
-                            <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            <p className="text-base font-medium">Haz clic en &quot;Buscar&quot; para cargar las obras</p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : resultados.length === 0 ? (
+                    {resultados.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="px-4 py-12 text-center text-gray-500 bg-gray-50">
                           <div className="flex flex-col items-center">
@@ -404,7 +392,7 @@ const BuscarObra: React.FC = () => {
           </div>
 
           {/* PAGINACIÓN E INFORMACIÓN DE REGISTROS */}
-          {!loading && obras.length > 0 && (
+          {!loading && haBuscado && resultados.length > 0 && (
             <div className="p-4 border-t bg-gray-50">
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="text-sm text-gray-600 text-center sm:text-left">

@@ -33,13 +33,6 @@ const CambiarClave: React.FC = () => {
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<number | null>(null);
   const [loadingUsuarios, setLoadingUsuarios] = useState(false);
 
-  // Ver clave actual (solo admin, con su clave)
-  const [claveAdminVer, setClaveAdminVer] = useState("");
-  const [claveRevelada, setClaveRevelada] = useState<string | null>(null);
-  const [mostrarClaveRevelada, setMostrarClaveRevelada] = useState(false);
-  const [loadingRevelar, setLoadingRevelar] = useState(false);
-  const [errorRevelar, setErrorRevelar] = useState("");
-
   // Cambiar clave
   const [claveAdminCambiar, setClaveAdminCambiar] = useState("");
   const [nuevaClave, setNuevaClave] = useState("");
@@ -60,6 +53,7 @@ const CambiarClave: React.FC = () => {
     setUsuario(usuarioData);
     setUsuarioSeleccionado(usuarioData.id);
 
+    // Solo ADMIN puede cambiar la clave de otros usuarios
     if (usuarioData.rol === "ADMIN") {
       cargarUsuarios();
     }
@@ -87,43 +81,16 @@ const CambiarClave: React.FC = () => {
   const idUsuarioObjetivo = usuarioSeleccionado || usuario?.id || 0;
   const esAdminCambiandoOtro = usuario?.rol === "ADMIN" && usuarioSeleccionado !== usuario.id;
 
-  const revelarClave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!idUsuarioObjetivo || !usuario?.id) return;
-    setErrorRevelar("");
-    setClaveRevelada(null);
-    setLoadingRevelar(true);
-    try {
-      const res = await fetch(`${API}/${idUsuarioObjetivo}/revelar-clave`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          idAdmin: usuario.id,
-          claveAdmin: claveAdminVer,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Clave de administrador incorrecta");
-      
-      // Siempre mostrar lo que devuelve el backend: texto plano o hash (solo admin puede ver)
-      if (data.clave != null && String(data.clave).trim() !== '') {
-        setClaveRevelada(data.clave);
-        setErrorRevelar(data.mensaje || (data.estaHasheada ? "Contraseña hasheada (valor almacenado)." : ""));
-      } else {
-        setClaveRevelada(null);
-        setErrorRevelar(data.mensaje || "El usuario no tiene contraseña asignada");
-      }
-      setClaveAdminVer("");
-    } catch (err: any) {
-      setErrorRevelar(err.message || "Clave de administrador incorrecta");
-    } finally {
-      setLoadingRevelar(false);
-    }
-  };
-
   const cambiarClave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!idUsuarioObjetivo) return;
+    
+    // Verificar permisos: Solo ADMIN puede cambiar la clave de otros usuarios
+    if (esAdminCambiandoOtro && usuario?.rol !== "ADMIN") {
+      setErrorCambiar("Solo los administradores pueden cambiar la clave de otros usuarios");
+      return;
+    }
+    
     setErrorCambiar("");
     setExitoCambiar(false);
     if (nuevaClave !== confirmarNuevaClave) {
@@ -137,12 +104,11 @@ const CambiarClave: React.FC = () => {
     setLoadingCambiar(true);
     try {
       if (esAdminCambiandoOtro) {
-        const res = await fetch(`${API}/${idUsuarioObjetivo}/clave-admin`, {
+        const res = await fetch(`${API}/${idUsuarioObjetivo}/clave-admin-directa`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             idAdmin: usuario.id,
-            claveAdmin: claveAdminCambiar,
             nuevaClave: nuevaClave.trim(),
             confirmarNuevaClave: confirmarNuevaClave.trim(),
           }),
@@ -150,7 +116,6 @@ const CambiarClave: React.FC = () => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || "Error al cambiar la clave");
         setExitoCambiar(true);
-        setClaveAdminCambiar("");
         setNuevaClave("");
         setConfirmarNuevaClave("");
       } else {
@@ -232,8 +197,6 @@ const CambiarClave: React.FC = () => {
                     value={usuarioSeleccionado ?? ""}
                     onChange={(e) => {
                       setUsuarioSeleccionado(Number(e.target.value));
-                      setClaveRevelada(null);
-                      setErrorRevelar("");
                       setErrorCambiar("");
                       setExitoCambiar(false);
                     }}
@@ -274,106 +237,32 @@ const CambiarClave: React.FC = () => {
               </div>
             </section>
 
-            {/* 3. Ver clave actual (solo administrador) */}
-            {usuario.rol === "ADMIN" && (
-              <section className="border border-amber-200 rounded-lg p-4 bg-amber-50/50">
-                <h3 className="text-sm font-semibold text-gray-800 mb-1">
-                  Ver clave actual del usuario
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Solo el administrador puede ver la clave. Ingrese su propia clave de administrador para mostrarla.
-                </p>
-                <form onSubmit={revelarClave} className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tu clave de administrador
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={mostrarClaveRevelada ? "text" : "password"}
-                        value={claveAdminVer}
-                        onChange={(e) => setClaveAdminVer(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none pr-10 bg-white"
-                        placeholder="Ingresa tu clave"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setMostrarClaveRevelada(!mostrarClaveRevelada)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                      >
-                        {mostrarClaveRevelada ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                  </div>
-                  {errorRevelar && (
-                    <div className={`p-3 rounded-lg ${
-                      errorRevelar.includes('hasheada') || errorRevelar.includes('almacenada') || errorRevelar.includes('valor almacenado')
-                        ? 'bg-blue-50 border border-blue-200'
-                        : 'bg-red-50 border border-red-200'
-                    }`}>
-                      <p className={`text-sm ${
-                        errorRevelar.includes('hasheada') || errorRevelar.includes('almacenada') || errorRevelar.includes('valor almacenado')
-                          ? 'text-blue-800'
-                          : 'text-red-600'
-                      }`}>
-                        {errorRevelar}
-                      </p>
-                    </div>
-                  )}
-                  {claveRevelada !== null && claveRevelada !== '' && (
-                    <div className="bg-white border border-green-200 rounded-lg p-3">
-                      <p className="text-xs font-medium text-green-800 mb-1">
-                        Clave actual del usuario {errorRevelar && errorRevelar.includes('hasheada') ? '(valor hasheado almacenado)' : ''}
-                      </p>
-                      <p className="font-mono text-gray-900 break-all text-sm">{claveRevelada}</p>
-                      {errorRevelar && errorRevelar.includes('texto plano') && (
-                        <p className="text-xs text-amber-600 mt-2">
-                          ⚠️ Esta contraseña será hasheada automáticamente en el próximo login del usuario
-                        </p>
-                      )}
-                      {errorRevelar && (errorRevelar.includes('hasheada') || errorRevelar.includes('valor almacenado')) && !errorRevelar.includes('texto plano') && (
-                        <p className="text-xs text-blue-600 mt-2">
-                          La contraseña original no se puede recuperar. Use "Cambiar clave" para asignar una nueva.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={loadingRevelar}
-                    className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition text-sm font-medium disabled:opacity-50"
-                  >
-                    {loadingRevelar ? "Verificando..." : "Mostrar clave actual"}
-                  </button>
-                </form>
-              </section>
-            )}
-
-            {/* 4. Cambiar clave */}
+            {/* 3. Cambiar clave */}
             <section className="border border-gray-200 rounded-lg p-4">
               <h3 className="text-sm font-semibold text-gray-800 mb-1">
                 Cambiar clave
               </h3>
               <p className="text-sm text-gray-600 mb-4">
                 {esAdminCambiandoOtro
-                  ? "Ingrese su clave de administrador y la nueva clave del usuario (dos veces)."
+                  ? "Ingrese la nueva clave del usuario (dos veces)."
                   : "Ingrese su clave actual y la nueva clave (dos veces)."}
               </p>
               <form onSubmit={cambiarClave} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {esAdminCambiandoOtro ? "Tu clave de administrador" : "Clave actual"}
-                  </label>
-                  <input
-                    type="password"
-                    value={claveAdminCambiar}
-                    onChange={(e) => setClaveAdminCambiar(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none bg-white"
-                    placeholder={esAdminCambiandoOtro ? "Clave del admin" : "Tu clave actual"}
-                    required
-                  />
-                </div>
+                {!esAdminCambiandoOtro && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Clave actual
+                    </label>
+                    <input
+                      type="password"
+                      value={claveAdminCambiar}
+                      onChange={(e) => setClaveAdminCambiar(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none bg-white"
+                      placeholder="Tu clave actual"
+                      required
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Nueva clave

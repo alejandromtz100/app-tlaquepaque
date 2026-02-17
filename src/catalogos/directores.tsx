@@ -15,6 +15,11 @@ const Directores: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // Verificar permisos del usuario logueado
+  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
+  const puedeModificar = !esSupervisor; // SUPERVISOR solo puede leer
+
   // Estados del formulario
   const [form, setForm] = useState<Partial<DirectorObra>>(emptyForm);
   const [imagenFile, setImagenFile] = useState<File | null>(null);
@@ -65,6 +70,12 @@ const Directores: React.FC = () => {
   // ========== HANDLERS DEL FORMULARIO ==========
 
   const handleSave = async () => {
+    // Verificar permisos: SUPERVISOR no puede crear/modificar
+    if (esSupervisor) {
+      alert("Los supervisores solo pueden visualizar información, no pueden crear o modificar directores");
+      return;
+    }
+
     if (!DirectoresService.validateForm(form)) {
       alert('Por favor complete todos los campos requeridos');
       return;
@@ -246,11 +257,12 @@ const Directores: React.FC = () => {
           <div className="p-6 border-b bg-gray-50">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-800">Filtros de Búsqueda</h3>
-              <button
-                onClick={() => {
-                  setShowForm(true);
-                  setSelected(null);
-                  setForm(emptyForm);
+              {puedeModificar && (
+                <button
+                  onClick={() => {
+                    setShowForm(true);
+                    setSelected(null);
+                    setForm(emptyForm);
                   setPreviewUrl('');
                   setImagenFile(null);
                 }}
@@ -258,6 +270,7 @@ const Directores: React.FC = () => {
               >
                 + Nuevo Director
               </button>
+              )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -458,7 +471,9 @@ const Directores: React.FC = () => {
                       {/* COLUMNA 5: OPCIONES */}
                       <td className="px-4 py-3 border border-gray-300 align-top">
                         <button
-                          onClick={() => handleEdit(director)}
+                          onClick={() => puedeModificar && handleEdit(director)}
+                          disabled={!puedeModificar}
+                          className={!puedeModificar ? "opacity-50 cursor-not-allowed" : ""}
                           className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
                         >
                           Editar

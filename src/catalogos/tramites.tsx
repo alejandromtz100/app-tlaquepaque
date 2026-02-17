@@ -13,6 +13,11 @@ const Tramites: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // Verificar permisos del usuario logueado
+  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
+  const puedeModificar = !esSupervisor; // SUPERVISOR solo puede leer
+
   const [nombre, setNombre] = useState("");
   const [letra, setLetra] = useState("");
   const [tramiteConceptos, setTramiteConceptos] = useState<Tramite | null>(null);
@@ -49,6 +54,12 @@ const Tramites: React.FC = () => {
   setIsEditing(false);
 };
   const handleSave = async () => {
+    // Verificar permisos: SUPERVISOR no puede crear/modificar
+    if (esSupervisor) {
+      alert("Los supervisores solo pueden visualizar información, no pueden crear o modificar trámites");
+      return;
+    }
+
     if (!nombre || !letra) return;
 
     try {
@@ -79,6 +90,12 @@ const Tramites: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
+    // Verificar permisos: SUPERVISOR no puede eliminar
+    if (esSupervisor) {
+      alert("Los supervisores solo pueden visualizar información, no pueden eliminar trámites");
+      return;
+    }
+
     if (!window.confirm("¿Seguro que deseas eliminar este trámite?")) return;
     await TramitesService.remove(id);
     await cargarTramites();
@@ -150,18 +167,20 @@ const Tramites: React.FC = () => {
           <div className="p-6 border-b bg-gray-50">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-800">Filtros de Búsqueda</h3>
-              <button
-                onClick={() => {
-                  setShowForm(true);
-                  setIsEditing(false);
-                  setTramiteConceptos(null);
-                  setNombre("");
-                  setLetra("");
-                }}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium flex items-center gap-2"
-              >
-                + Agregar trámite
-              </button>
+              {puedeModificar && (
+                <button
+                  onClick={() => {
+                    setShowForm(true);
+                    setIsEditing(false);
+                    setTramiteConceptos(null);
+                    setNombre("");
+                    setLetra("");
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium flex items-center gap-2"
+                >
+                  + Agregar trámite
+                </button>
+              )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -214,11 +233,18 @@ const Tramites: React.FC = () => {
                         <td className="px-4 py-3 border border-gray-300 font-medium text-gray-900">{t.nombre}</td>
                         <td className="px-4 py-3 border border-gray-300 text-center text-gray-700">{t.letra}</td>
                         <td className="px-4 py-3 border border-gray-300 space-x-2 text-sm">
-                          <button onClick={() => handleEdit(t)} className="text-blue-600 hover:text-blue-800 font-medium">Editar</button>
-                          <span className="text-gray-400">|</span>
-                          <button onClick={() => handleDelete(t.id)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
-                          <span className="text-gray-400">|</span>
-                          <button onClick={() => openConceptos(t)} className="text-green-600 hover:text-green-800 font-medium">Definir Conceptos</button>
+                          {puedeModificar && (
+                            <>
+                              <button onClick={() => handleEdit(t)} className="text-blue-600 hover:text-blue-800 font-medium">Editar</button>
+                              <span className="text-gray-400">|</span>
+                              <button onClick={() => handleDelete(t.id)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
+                              <span className="text-gray-400">|</span>
+                              <button onClick={() => openConceptos(t)} className="text-green-600 hover:text-green-800 font-medium">Definir Conceptos</button>
+                            </>
+                          )}
+                          {!puedeModificar && (
+                            <span className="text-gray-400 text-sm">Solo lectura</span>
+                          )}
                         </td>
                       </tr>
                     ))

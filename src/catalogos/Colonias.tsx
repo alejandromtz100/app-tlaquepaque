@@ -24,6 +24,11 @@ const Colonias: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  // Verificar permisos del usuario logueado
+  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
+  const puedeModificar = !esSupervisor; // SUPERVISOR solo puede leer
+
   /* PAGINACIÓN */
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -57,6 +62,12 @@ const Colonias: React.FC = () => {
   };
 
   const handleSaveColonia = async () => {
+    // Verificar permisos: SUPERVISOR no puede crear/modificar
+    if (esSupervisor) {
+      alert("Los supervisores solo pueden visualizar información, no pueden crear o modificar colonias");
+      return;
+    }
+
     if (!newColonia.nombre.trim()) return;
 
     try {
@@ -86,6 +97,12 @@ const Colonias: React.FC = () => {
   };
 
   const handleDeleteColonia = async (id: number) => {
+    // Verificar permisos: SUPERVISOR no puede eliminar
+    if (esSupervisor) {
+      alert("Los supervisores solo pueden visualizar información, no pueden eliminar colonias");
+      return;
+    }
+
     if (!window.confirm("¿Seguro que deseas eliminar esta colonia?")) return;
     await deleteColonia(id);
     await cargarColonias();
@@ -155,16 +172,18 @@ const Colonias: React.FC = () => {
           <div className="p-6 border-b bg-gray-50">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-800">Filtros de Búsqueda</h3>
-              <button
-                onClick={() => {
-                  setShowForm(true);
-                  setIsEditing(false);
-                  setNewColonia({ nombre: "", densidad: null });
-                }}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium flex items-center gap-2"
-              >
-                + Agregar colonia
-              </button>
+              {puedeModificar && (
+                <button
+                  onClick={() => {
+                    setShowForm(true);
+                    setIsEditing(false);
+                    setNewColonia({ nombre: "", densidad: null });
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium flex items-center gap-2"
+                >
+                  + Agregar colonia
+                </button>
+              )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -235,9 +254,16 @@ const Colonias: React.FC = () => {
                         <td className="px-4 py-3 border border-gray-300 font-medium text-gray-900">{c.nombre}</td>
                         <td className="px-4 py-3 border border-gray-300 text-gray-700">{c.densidad || "-"}</td>
                         <td className="px-4 py-3 border border-gray-300 space-x-2 text-sm">
-                          <button onClick={() => handleEditColonia(c)} className="text-blue-600 hover:text-blue-800 font-medium">Editar</button>
-                          <span className="text-gray-400">|</span>
-                          <button onClick={() => handleDeleteColonia(c.id_colonia)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
+                          {puedeModificar && (
+                            <>
+                              <button onClick={() => handleEditColonia(c)} className="text-blue-600 hover:text-blue-800 font-medium">Editar</button>
+                              <span className="text-gray-400">|</span>
+                              <button onClick={() => handleDeleteColonia(c.id_colonia)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
+                            </>
+                          )}
+                          {!puedeModificar && (
+                            <span className="text-gray-400 text-sm">Solo lectura</span>
+                          )}
                         </td>
                       </tr>
                     ))

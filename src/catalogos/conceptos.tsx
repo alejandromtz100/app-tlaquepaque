@@ -19,6 +19,11 @@ const Conceptos: React.FC = () => {
   const [nuevo, setNuevo] = useState<Partial<Concepto>>({});
   const [deleting, setDeleting] = useState(false);
 
+  // Verificar permisos del usuario logueado
+  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
+  const puedeModificar = !esSupervisor; // SUPERVISOR solo puede leer
+
 
 
   useEffect(() => {
@@ -41,6 +46,12 @@ const Conceptos: React.FC = () => {
 
   const guardarCambios = async () => {
   if (!selected) return;
+
+  // Verificar permisos: SUPERVISOR no puede modificar
+  if (esSupervisor) {
+    alert("Los supervisores solo pueden visualizar información, no pueden modificar conceptos");
+    return;
+  }
 
   try {
     setSaving(true);
@@ -119,6 +130,12 @@ const filtrarArbol = (
   };
 
   const crearConcepto = async () => {
+  // Verificar permisos: SUPERVISOR no puede crear
+  if (esSupervisor) {
+    alert("Los supervisores solo pueden visualizar información, no pueden crear conceptos");
+    return;
+  }
+
   if (!nuevo.nombre) {
     alert("El nombre es obligatorio");
     return;
@@ -151,6 +168,12 @@ const filtrarArbol = (
 
 const eliminarConcepto = async () => {
   if (!selected) return;
+
+  // Verificar permisos: SUPERVISOR no puede eliminar
+  if (esSupervisor) {
+    alert("Los supervisores solo pueden visualizar información, no pueden eliminar conceptos");
+    return;
+  }
 
   const confirmar = window.confirm(
     `¿Deseas eliminar el concepto "${selected.nombre}"?\n\nEsta acción no se puede deshacer.`
@@ -220,20 +243,22 @@ const conceptosFiltrados = filtrarArbol(conceptos, search);
           <div className="p-6 border-b bg-gray-50">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-800">Filtros de Búsqueda</h3>
-              <button
-                onClick={() => {
-                  setIsCreating(true);
-                  setIsEditing(false);
-                  setSelected(null);
-                  setNuevo({
-                    parent_id: undefined,
-                    estado: true,
-                  });
-                }}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium flex items-center gap-2"
-              >
-                + Nuevo concepto
-              </button>
+              {puedeModificar && (
+                <button
+                  onClick={() => {
+                    setIsCreating(true);
+                    setIsEditing(false);
+                    setSelected(null);
+                    setNuevo({
+                      parent_id: undefined,
+                      estado: true,
+                    });
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium flex items-center gap-2"
+                >
+                  + Nuevo concepto
+                </button>
+              )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -375,7 +400,7 @@ const conceptosFiltrados = filtrarArbol(conceptos, search);
           {isEditing ? "Editar concepto" : selected.nombre}
         </h2>
 
-        {!isEditing && (
+        {!isEditing && puedeModificar && (
           <button
             onClick={() => setIsEditing(true)}
             className="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
@@ -383,7 +408,7 @@ const conceptosFiltrados = filtrarArbol(conceptos, search);
             Editar
           </button>
         )}
-        {!isEditing && (
+        {!isEditing && puedeModificar && (
     <button
       onClick={eliminarConcepto}
       disabled={deleting}

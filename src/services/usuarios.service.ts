@@ -85,6 +85,24 @@ class UsuariosService {
     try {
       const payload = this.prepararPayloadUsuario(usuario);
       
+      // Agregar ID del usuario logueado para el historial
+      const usuarioData = localStorage.getItem("usuario");
+      if (usuarioData) {
+        try {
+          const usuarioLogueado = JSON.parse(usuarioData);
+          if (usuarioLogueado.id) {
+            payload.idUsuarioLogueado = usuarioLogueado.id;
+            console.log('ID usuario logueado para historial:', usuarioLogueado.id);
+          } else {
+            console.warn('Usuario logueado no tiene campo id:', usuarioLogueado);
+          }
+        } catch (error) {
+          console.error('Error al parsear usuario de localStorage:', error);
+        }
+      } else {
+        console.warn('No hay usuario en localStorage');
+      }
+      
       const response = await fetch(`${this.baseUrl}/usuarios`, {
         method: "POST",
         headers: {
@@ -111,6 +129,24 @@ class UsuariosService {
     try {
       const payload = this.prepararPayloadUsuario(usuario);
       
+      // Agregar ID del usuario logueado para el historial
+      const usuarioData = localStorage.getItem("usuario");
+      if (usuarioData) {
+        try {
+          const usuarioLogueado = JSON.parse(usuarioData);
+          if (usuarioLogueado.id) {
+            payload.idUsuarioLogueado = usuarioLogueado.id;
+            console.log('ID usuario logueado para historial (update):', usuarioLogueado.id);
+          } else {
+            console.warn('Usuario logueado no tiene campo id:', usuarioLogueado);
+          }
+        } catch (error) {
+          console.error('Error al parsear usuario de localStorage:', error);
+        }
+      } else {
+        console.warn('No hay usuario en localStorage');
+      }
+      
       const response = await fetch(`${this.baseUrl}/usuarios/${id}`, {
         method: "PUT",
         headers: {
@@ -135,8 +171,27 @@ class UsuariosService {
   // Eliminar un usuario
   async eliminarUsuario(id: number): Promise<void> {
     try {
+      // Agregar ID del usuario logueado para el historial
+      const body: any = {};
+      const usuarioData = localStorage.getItem("usuario");
+      if (usuarioData) {
+        try {
+          const usuarioLogueado = JSON.parse(usuarioData);
+          if (usuarioLogueado.id) {
+            body.idUsuarioLogueado = usuarioLogueado.id;
+            console.log('ID usuario logueado para historial (delete):', usuarioLogueado.id);
+          }
+        } catch (error) {
+          console.error('Error al parsear usuario de localStorage:', error);
+        }
+      }
+
       const response = await fetch(`${this.baseUrl}/usuarios/${id}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body)
       });
 
       if (!response.ok) {

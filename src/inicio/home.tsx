@@ -75,7 +75,7 @@ const Home: React.FC = () => {
   };
 
   const permisoLabel =
-    usuario?.rol === "ADMIN" ? "Administrador" : usuario?.rol === "USUARIO" ? "Usuario" : usuario?.rol ?? "—";
+    usuario?.rol === "ADMIN" ? "Administrador" : usuario?.rol === "SUPERVISOR" ? "Supervisor" : usuario?.rol === "USUARIO" ? "Usuario" : usuario?.rol ?? "—";
 
   if (!usuario) {
     return (

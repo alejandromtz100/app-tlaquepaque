@@ -84,6 +84,14 @@ const Menu: React.FC = () => {
           onSelect={goTo}
         />
 
+        {/* Alertas */}
+        <span
+          onClick={() => goTo("/alertas")}
+          className="cursor-pointer hover:text-gray-300"
+        >
+          Alertas
+        </span>
+
         {/* Reportes */}
         <Dropdown
           title="Reportes"

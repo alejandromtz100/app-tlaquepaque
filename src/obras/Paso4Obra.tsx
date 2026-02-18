@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { getConceptosByObra } from '../services/obraConceptos.service';
-import { Printer } from 'lucide-react';
+import { Printer, FileSignature } from 'lucide-react';
 import { PDFObra } from '../services/pdfobra';
 
 const API_OBRAS = 'http://localhost:3001/op_obras';
+const API_LUGARES_RECIBIDOS = 'http://localhost:3001/lugares-recibidos';
 const NIVELES_LABELS = ['Abuelo', 'Padre', 'Hijo', 'Nieto'] as const;
 const MAX_NIVELES = 4;
 
@@ -24,6 +25,17 @@ export default function Paso4Obra({ obraId }: Props) {
   const [error, setError] = useState('');
   const [nuevoEstado, setNuevoEstado] = useState('');
   const [actualizandoEstado, setActualizandoEstado] = useState(false);
+  // Estados para el formulario de lugares que recibieron
+  const [recibidoSecretaria, setRecibidoSecretaria] = useState<string>('');
+  const [recibidoPresidencia, setRecibidoPresidencia] = useState<string>('');
+  const [recibidoPadron, setRecibidoPadron] = useState<string>('');
+  const [guardandoRecibidos, setGuardandoRecibidos] = useState(false);
+  // Estados para el modal de edición de PDF
+  const [mostrarModalPDF, setMostrarModalPDF] = useState(false);
+  const [tipoPDFSeleccionado, setTipoPDFSeleccionado] = useState<string>('');
+  const [nombreAutorizacion, setNombreAutorizacion] = useState('C. JONATHAN TORRES SIFUENTES');
+  const [rev, setRev] = useState('');
+  const [cuant, setCuant] = useState('AFAI');
 
   useEffect(() => {
     const cargar = async () => {
@@ -44,6 +56,19 @@ export default function Paso4Obra({ obraId }: Props) {
         const dataObra = await resObra.json();
         setObra(dataObra);
         setConceptos(dataConceptos);
+        
+        // Cargar lugares recibidos
+        try {
+          const resLugares = await fetch(`${API_LUGARES_RECIBIDOS}/obra/${obraId}`);
+          if (resLugares.ok) {
+            const lugaresData = await resLugares.json();
+            setRecibidoSecretaria(lugaresData.secretariaObrasPublicas || '');
+            setRecibidoPresidencia(lugaresData.presidencia || '');
+            setRecibidoPadron(lugaresData.padronLicencias || '');
+          }
+        } catch (err) {
+          console.error('Error al cargar lugares recibidos:', err);
+        }
       } catch (err: any) {
         setError(err.message || 'Error al cargar los datos');
       } finally {
@@ -53,11 +78,11 @@ export default function Paso4Obra({ obraId }: Props) {
     cargar();
   }, [obraId]);
 
-  // Inicializar nuevoEstado cuando la obra está "Enviado a Pago" (siempre mismo orden de hooks)
+  // Inicializar nuevoEstado cuando la obra está "Enviado a Pago" o "Enviado a Firmas" (siempre mismo orden de hooks)
   useEffect(() => {
     if (!obra) return;
     const estadoLower = obra.estadoObra ? String(obra.estadoObra).toLowerCase() : '';
-    if (estadoLower === 'enviado a pago' && !nuevoEstado) {
+    if ((estadoLower === 'enviado a pago' || estadoLower === 'enviado a firmas') && !nuevoEstado) {
       setNuevoEstado(obra.estadoObra);
     }
   }, [obra]);
@@ -108,6 +133,8 @@ export default function Paso4Obra({ obraId }: Props) {
 
   const estadoObraLower = obra.estadoObra ? String(obra.estadoObra).toLowerCase() : '';
   const esEnviadoAPago = estadoObraLower === 'enviado a pago';
+  const esEnviadoAFirmas = estadoObraLower === 'enviado a firmas';
+  const esVerificado = estadoObraLower === 'verificado';
 
   const handleActualizarEstado = async () => {
     if (!nuevoEstado || nuevoEstado === obra.estadoObra) return;
@@ -140,9 +167,74 @@ export default function Paso4Obra({ obraId }: Props) {
     }
   };
 
-  const handleGenerarPDF = async (tipo: string) => {
+  const handleEnviarACaja = async () => {
+    const confirmar = window.confirm(
+      '¿Está seguro que desea cambiar el estado de la obra de "VERIFICADO" a "ENVIADO A FIRMAS"?'
+    );
+
+    if (!confirmar) return;
+
+    setActualizandoEstado(true);
     try {
-      if (!obra) return;
+      const res = await fetch(`${API_OBRAS}/${obraId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estadoObra: 'Enviado a Firmas' }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Error al actualizar el estado');
+      }
+
+      // Recargar los datos completos de la obra
+      const resObra = await fetch(`${API_OBRAS}/${obraId}`);
+      if (resObra.ok) {
+        const obraActualizada = await resObra.json();
+        setObra(obraActualizada);
+        alert('Estado actualizado correctamente a "Enviado a Firmas"');
+      } else {
+        throw new Error('Error al recargar los datos');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error al actualizar el estado');
+    } finally {
+      setActualizandoEstado(false);
+    }
+  };
+
+  const handleGuardarRecibidos = async () => {
+    setGuardandoRecibidos(true);
+    try {
+      const res = await fetch(`${API_LUGARES_RECIBIDOS}/obra/${obraId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secretariaObrasPublicas: recibidoSecretaria,
+          presidencia: recibidoPresidencia,
+          padronLicencias: recibidoPadron,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Error al guardar los datos');
+      }
+
+      alert('Datos guardados correctamente');
+    } catch (err: any) {
+      alert(err.message || 'Error al guardar los datos');
+    } finally {
+      setGuardandoRecibidos(false);
+    }
+  };
+
+  const handleAbrirModalPDF = (tipo: string) => {
+    setTipoPDFSeleccionado(tipo);
+    setMostrarModalPDF(true);
+  };
+
+  const handleGenerarPDF = async () => {
+    try {
+      if (!obra || !tipoPDFSeleccionado) return;
 
       // Preparar conceptos con información adicional
       const conceptosFormateados = conceptos.map((c: any) => {
@@ -201,19 +293,26 @@ export default function Paso4Obra({ obraId }: Props) {
         // Bitácora viene de op_obras
         bitacoraObra: obra.bitacoraObra,
         direccionMedioAmbiente: obra.direccionMedioAmbiente,
-        observaciones: obra.observaciones,
+        observaciones: obra.nota || obra.observaciones, // Usar el campo nota de op_obras para OBSERVACIONES
         verificador: obra.verificador,
         notaServidumbre: obra.notaServidumbre,
         conceptos: conceptosFormateados,
+        // Campos editables para autorización
+        nombreAutorizacion: nombreAutorizacion,
+        rev: rev,
+        cuant: cuant,
       };
 
-      if (tipo === 'ALINEAMIENTO Y NUMERO OFICIAL') {
+      if (tipoPDFSeleccionado === 'ALINEAMIENTO Y NUMERO OFICIAL') {
         await PDFObra.generarAlineamientoNumeroOficial(obraData);
-      } else if (tipo === 'LICENCIA DE CONSTRUCCIÓN') {
+      } else if (tipoPDFSeleccionado === 'LICENCIA DE CONSTRUCCIÓN') {
         await PDFObra.generarLicenciaConstruccion(obraData);
-      } else if (tipo === 'CERTIFICADO DE HABITABILIDAD') {
+      } else if (tipoPDFSeleccionado === 'CERTIFICADO DE HABITABILIDAD') {
         await PDFObra.generarCertificadoHabitabilidad(obraData);
       }
+
+      // Cerrar el modal después de generar el PDF
+      setMostrarModalPDF(false);
     } catch (error: any) {
       console.error('Error al generar PDF:', error);
       alert(`Error al generar el PDF: ${error.message || 'Error desconocido'}`);
@@ -352,14 +451,29 @@ export default function Paso4Obra({ obraId }: Props) {
         </div>
       )}
 
-      {/* Sección cuando está Enviado a Pago */}
-      {esEnviadoAPago && (
+      {/* Botón ENVIAR A FIRMAS cuando la obra está VERIFICADO */}
+      {esVerificado && (
+        <div className="mt-6 px-6 flex justify-center">
+          <button
+            type="button"
+            onClick={handleEnviarACaja}
+            disabled={actualizandoEstado}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
+          >
+            <FileSignature className="w-4 h-4" />
+            ENVIAR A FIRMAS
+          </button>
+        </div>
+      )}
+
+      {/* Sección cuando está Enviado a Pago o Enviado a Firmas */}
+      {(esEnviadoAPago || esEnviadoAFirmas) && (
         <div className="mt-6 space-y-6">
           {/* Botones de PDF */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button
               type="button"
-              onClick={() => handleGenerarPDF('ALINEAMIENTO Y NUMERO OFICIAL')}
+              onClick={() => handleAbrirModalPDF('ALINEAMIENTO Y NUMERO OFICIAL')}
               className="flex items-center gap-3 px-4 py-3 bg-white border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
             >
               <Printer className="w-5 h-5 text-gray-700 shrink-0" />
@@ -367,7 +481,7 @@ export default function Paso4Obra({ obraId }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => handleGenerarPDF('LICENCIA DE CONSTRUCCIÓN')}
+              onClick={() => handleAbrirModalPDF('LICENCIA DE CONSTRUCCIÓN')}
               className="flex items-center gap-3 px-4 py-3 bg-white border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
             >
               <Printer className="w-5 h-5 text-gray-700 shrink-0" />
@@ -375,12 +489,65 @@ export default function Paso4Obra({ obraId }: Props) {
             </button>
             <button
               type="button"
-              onClick={() => handleGenerarPDF('CERTIFICADO DE HABITABILIDAD')}
+              onClick={() => handleAbrirModalPDF('CERTIFICADO DE HABITABILIDAD')}
               className="flex items-center gap-3 px-4 py-3 bg-white border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
             >
               <Printer className="w-5 h-5 text-gray-700 shrink-0" />
               <span className="text-sm font-medium text-gray-800">CERTIFICADO DE HABITABILIDAD</span>
             </button>
+          </div>
+
+          {/* Formulario de lugares que recibieron */}
+          <div className="bg-white border-2 border-gray-300 rounded-xl p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Lugares que recibieron</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                <span className="text-sm font-medium text-gray-700">Secretaria obras públicas</span>
+                <select
+                  value={recibidoSecretaria}
+                  onChange={(e) => setRecibidoSecretaria(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                >
+                  <option value="">Seleccionar</option>
+                  <option value="Si">Sí</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                <span className="text-sm font-medium text-gray-700">Presidencia</span>
+                <select
+                  value={recibidoPresidencia}
+                  onChange={(e) => setRecibidoPresidencia(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                >
+                  <option value="">Seleccionar</option>
+                  <option value="Si">Sí</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                <span className="text-sm font-medium text-gray-700">Padron y licencias</span>
+                <select
+                  value={recibidoPadron}
+                  onChange={(e) => setRecibidoPadron(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                >
+                  <option value="">Seleccionar</option>
+                  <option value="Si">Sí</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+              <div className="flex justify-end pt-4">
+                <button
+                  type="button"
+                  onClick={handleGuardarRecibidos}
+                  disabled={guardandoRecibidos}
+                  className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {guardandoRecibidos ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Panel Dar por concluida la obra */}
@@ -394,8 +561,17 @@ export default function Paso4Obra({ obraId }: Props) {
                   onChange={(e) => setNuevoEstado(e.target.value)}
                   className="w-full md:w-64 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 >
-                  <option value="Enviado a Pago">Enviado a Pago</option>
-                  <option value="Concluido">Concluido</option>
+                  {esEnviadoAFirmas ? (
+                    <>
+                      <option value="Enviado a Firmas">Enviado a Firmas</option>
+                      <option value="Concluido">Concluido</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Enviado a Pago">Enviado a Pago</option>
+                      <option value="Concluido">Concluido</option>
+                    </>
+                  )}
                 </select>
               </div>
               <div className="flex gap-3">
@@ -416,6 +592,71 @@ export default function Paso4Obra({ obraId }: Props) {
                   Cancelar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para editar campos del PDF */}
+      {mostrarModalPDF && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4">
+              Editar información de autorización
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre de autorización
+                </label>
+                <input
+                  type="text"
+                  value={nombreAutorizacion}
+                  onChange={(e) => setNombreAutorizacion(e.target.value.toUpperCase())}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="C. JONATHAN TORRES SIFUENTES"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rev:
+                </label>
+                <input
+                  type="text"
+                  value={rev}
+                  onChange={(e) => setRev(e.target.value.toUpperCase())}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Iniciales"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cuant:
+                </label>
+                <input
+                  type="text"
+                  value={cuant}
+                  onChange={(e) => setCuant(e.target.value.toUpperCase())}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="AFAI"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setMostrarModalPDF(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerarPDF}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+              >
+                Generar PDF
+              </button>
             </div>
           </div>
         </div>

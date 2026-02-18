@@ -74,6 +74,10 @@ interface ObraData {
   observaciones?: string;
   verificador?: string;
   notaServidumbre?: string;
+  // Campos editables para autorización
+  nombreAutorizacion?: string;
+  rev?: string;
+  cuant?: string;
   conceptos?: Array<{
     conceptoPath: Array<{ nombre: string; id?: number }>;
     conceptoNombre?: string;
@@ -100,11 +104,12 @@ export class PDFObra {
   }
 
   private static async build(obra: ObraData, titulo: string) {
-    const pdf = new jsPDF({ unit: 'mm', format: 'letter' });
+    // Tamaño personalizado: 216 × 356 mm (vertical)
+    const pdf = new jsPDF({ unit: 'mm', format: [216, 356] });
     const W = pdf.internal.pageSize.getWidth();
     const H = pdf.internal.pageSize.getHeight();
     const L = 8; // Margen izquierdo reducido (de 15 a 8mm)
-    const R = W - 8; // Margen derecho reducido (de 15 a 8mm)
+    const R = W - 8; // Margen derecho claro y consistente (8mm desde el borde derecho)
     // Margen superior amplio para poder colocar un logo
     let y = 40;
 
@@ -125,14 +130,14 @@ export class PDFObra {
     pdf.text('DENSIDAD', L, y);
     pdf.text('USO DEL PREDIO', L + 38, y);
     pdf.text('VIGENCIA', L + 95, y);
-    pdf.text('CLAVE', L + 145, y);
+    pdf.text('CLAVE', R, y, { align: 'right' }); // Alineado a la derecha con margen claro
     y += 4;
 
     pdf.setFont('helvetica', 'normal');
     pdf.text(densidad, L, y);
     pdf.text(usoPredio, L + 38, y);
     pdf.text(vigencia, L + 95, y);
-    pdf.text(clave, L + 145, y);
+    pdf.text(clave, R, y, { align: 'right' }); // Alineado a la derecha con margen claro
     y += 8;
 
     // ——— 3. UBICACION DE LA OBRA ———
@@ -238,12 +243,12 @@ export class PDFObra {
 
     // Tabla de conceptos (encabezado con fondo gris simulado con rectángulo)
     // Ajustar anchos: CONCEPTO mucho más ancho, otras columnas más cortas
-    // Aprovechando mejor el espacio disponible con márgenes reducidos (ancho disponible ~200mm)
-    // Total: 95+30+18+18+15+20 = 196mm (más espacio para conceptos)
-    const colWidths = [95, 30, 18, 18, 15, 20];
+    // La tabla debe llegar exactamente hasta el margen derecho R
+    // Ancho total disponible: R - L = 216 - 8 - 8 = 200mm
+    const colWidths = [98, 32, 18, 18, 15, 19]; // Total: 200mm (ajustado para llegar a R)
     const headers = ['CONCEPTO', 'OBSERVACIONES', 'COSTO', 'MEDICION', 'CANT.', 'TOTAL'];
     const tableLeft = L;
-    const tableRight = L + colWidths.reduce((a, b) => a + b, 0);
+    const tableRight = R; // La tabla llega exactamente hasta el margen derecho
 
     pdf.setFillColor(200, 200, 200);
     pdf.rect(tableLeft, y - 3, tableRight - tableLeft, 5, 'F');
@@ -442,33 +447,49 @@ export class PDFObra {
       pdf.text(`VERIFICADOR: ${obra.verificador.toUpperCase()}`, L, y);
       y += 4;
     }
-    const autorizacion = 'SE AUTORIZA LA PRESENTE LICENCIA EN BASE A DATOS PROPORCIONADOS POR EL INTERESADO. CUALQUIER ANOMALIA PRESENTADA EN EL TRANSCURSO DE LA OBRA SE HARA ACREEDOR A LAS SANCIONES ESTIPULADAS EN EL REGLAMENTO DE CONSTRUCCION Y EN ESPECIAL AL ART. 200 DEL MISMO.';
-    const autLines = splitTextByWords(pdf, autorizacion, R - L);
-    autLines.forEach((line: string) => {
-      pdf.text(line, L, y);
-      y += 3;
-    });
+    // El texto de autorización ya no se muestra aquí, solo se muestra el contenido de observaciones (notas)
     y += 6;
 
     // ——— 9. AUTORIZACION (centrado, con espacio para firmas y sellos) ———
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9);
     pdf.text('AUTORIZACION', W / 2, y, { align: 'center' });
-    y += 10; // Más espacio después del título para firmas/sellos
+    y += 15; // Más espacio después del título para bajar el bloque y dejar espacio para firmas/sellos
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(8); // Texto más grande
-    pdf.text('C. JONATHAN TORRES SIFUENTES', L, y);
-    y += 8; // Más espacio entre nombre y título
-    pdf.text('DIRECTOR PADRON Y LICENCIAS', L, y);
-    y += 10; // Más espacio entre título e iniciales (para sellos)
-    pdf.text('AAJJ / PFM / MGR / EAAO / JLR', L, y);
+    pdf.setFontSize(9); // Texto más grande (de 8 a 9)
+    const autorizacionX = L + 20; // Un poco más a la izquierda (20mm desde el margen izquierdo)
+    const nombreAutorizacionTexto = obra.nombreAutorizacion || 'C. JONATHAN TORRES SIFUENTES';
+    pdf.text(nombreAutorizacionTexto.toUpperCase(), autorizacionX, y);
+    y += 3.5; // Espacio mínimo (pegado) entre nombre y título
+    pdf.text('DIRECTOR PADRON Y LICENCIAS', autorizacionX, y);
+    y += 12; // Más espacio entre título e iniciales (para sellos)
+    
+    // Iniciales según el tipo de documento
+    let iniciales = '';
+    if (titulo === 'ALINEAMIENTO Y NUMERO OFICIAL') {
+      iniciales = 'PFM / MGR / EAAO / JLR';
+    } else if (titulo === 'LICENCIA DE CONSTRUCCIÓN') {
+      iniciales = 'AAJJ / MGR / EAAO / JLR';
+    } else if (titulo === 'CERTIFICADO DE HABITABILIDAD') {
+      iniciales = 'PFM / EAAO / JLR';
+    } else {
+      iniciales = 'AAJJ / PFM / MGR / EAAO / JLR'; // Por defecto
+    }
+    pdf.text(iniciales, autorizacionX, y);
     y += 10; // Más espacio antes de Rev/Cuant
 
     // ——— 10. Rev, Cuant, FECHAS ———
     pdf.setFontSize(7);
-    pdf.text('Rev:', L, y);
-    y += 4; // Espacio para que Cuant esté abajo
-    pdf.text('Cuant: AFAI', L, y);
+    const revTexto = obra.rev || '';
+    const cuantTexto = obra.cuant || 'AFAI';
+    if (revTexto) {
+      pdf.text(`Rev: ${revTexto}`, L, y);
+      y += 4; // Espacio para que Cuant esté abajo
+    } else {
+      pdf.text('Rev:', L, y);
+      y += 4; // Espacio para que Cuant esté abajo
+    }
+    pdf.text(`Cuant: ${cuantTexto}`, L, y);
     y += 4;
     const fechaIngreso = obra.fechaIngreso
       ? new Date(obra.fechaIngreso).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -480,7 +501,7 @@ export class PDFObra {
       : '—';
     pdf.text(`FECHA DE INGRESO: ${fechaIngreso}`, L, y);
     y += 4;
-    pdf.text(`FECHA DE DICTAMEN: ${fechaDictamen}`, L, y);
+    pdf.text(`FECHA DE DICTAMEN: ${fechaDictamen}`, L, y); // Debajo de FECHA DE INGRESO, alineado a la izquierda
 
     const nombreArchivo = titulo.replace(/\s+/g, '_').replace(/Ó/g, 'O').toUpperCase();
     pdf.save(`${nombreArchivo}_${obra.consecutivo || 'SIN_CONSECUTIVO'}.pdf`);

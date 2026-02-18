@@ -41,6 +41,8 @@ export interface DirectorFormData extends Partial<DirectorObra> {
 // En producción puedes usar: VITE_API_URL=http://tu-backend
 const API_BASE = import.meta.env.VITE_API_URL ?? '';
 const API_URL = `${API_BASE}/directores-obra`;
+// Imágenes siempre al backend (evita 404 por proxy); mismo origen que el resto del API
+const API_IMAGENES_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // Placeholder cuando no hay imagen (data URL para no depender de /no-image.png)
 const NO_IMAGE_SRC =
@@ -279,7 +281,7 @@ export const DirectoresService = {
     if (!normalized) return NO_IMAGE_SRC;
 
     const filename = normalized.includes('/') ? normalized.split('/').pop()! : normalized;
-    return `${API_BASE}/directores-obra/imagen/${encodeURIComponent(filename)}`;
+    return `${API_IMAGENES_BASE}/directores-obra/imagen/${encodeURIComponent(filename)}`;
   },
 
   // Validar imagen

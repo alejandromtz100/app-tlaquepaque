@@ -449,7 +449,7 @@ const Paso1Obra: React.FC = () => {
       if (!form.nombrePropietario || !form.tipoPropietario || 
           !form.nombreColoniaObra || !form.idColoniaObra ||
           !form.destinoActualProyecto || !form.destinoPropuestoProyecto ||
-          !form.descripcionProyecto || numerosOficiales.length === 0) {
+          numerosOficiales.length === 0) {
         alert("Por favor complete todos los campos obligatorios (*)");
         return;
       }
@@ -1053,7 +1053,6 @@ const Paso1Obra: React.FC = () => {
                   onChange={handleChange}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-32"
                   placeholder="Describa el proyecto..."
-                  required
                 />
               </div>
 

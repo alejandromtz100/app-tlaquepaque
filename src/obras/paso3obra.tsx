@@ -122,12 +122,8 @@ export default function Paso3Obra({ obraId }: Props) {
           otrosRecibos: d.otrosRecibos ?? "",
         });
         
-        // Si estadoVerificacion es "Si", asegurar que estadoObra sea "Verificado"
-        if (estadoVerificacionValue === "Si") {
-          setEstadoObra("Verificado");
-        } else {
-          setEstadoObra(estadoObraValue);
-        }
+        // Usar siempre el estado que viene del servidor (no sobrescribir Concluido/Enviado a Firmas con Verificado)
+        setEstadoObra(estadoObraValue);
       })
       .catch((err) => {
         setError(err.response?.data?.message || "Error al cargar la obra");
@@ -155,14 +151,24 @@ export default function Paso3Obra({ obraId }: Props) {
     setError(null);
     setGuardando(true);
     try {
-      // Determinar el estado de la obra basado en estadoVerificacion
+      // No bajar de estado: si ya está Concluido, Enviado a Firmas o Enviado a Pago, mantenerlo
+      const estadoActual = obraCompleta?.estadoObra ?? estadoObra;
+      const estadosQueNoBajar = ["Concluido", "Enviado a Firmas", "Enviado a Pago"];
+      const noBajarEstado = estadosQueNoBajar.some(
+        (e) => String(estadoActual).trim().toLowerCase() === e.toLowerCase()
+      );
+
       let nuevoEstadoObra: string;
-      if (form.estadoVerificacion === "Si") {
+      if (noBajarEstado) {
+        nuevoEstadoObra = estadoActual;
+      } else if (form.estadoVerificacion === "Si") {
         nuevoEstadoObra = "Verificado";
       } else {
-        // Si es "No", mantener el estado actual pero si estaba en "Verificado", volver a "En Proceso"
         nuevoEstadoObra = estadoObra === "Verificado" ? "En Proceso" : estadoObra;
       }
+
+      // Si hay recibo de pago lleno, marcar estado de pago como Pagado
+      const estadoPago = form.reciboDePago?.trim() ? "Pagado" : (obraCompleta?.estadoPago ?? "Sin Pagar");
       
       const payload: Record<string, unknown> = {
         idDirectorObra: form.idDirectorObra ? Number(form.idDirectorObra) : null,
@@ -176,6 +182,7 @@ export default function Paso3Obra({ obraId }: Props) {
         folioDeLaForma: form.folioDeLaForma || null,
         otrosRecibos: form.otrosRecibos || null,
         estadoObra: nuevoEstadoObra,
+        estadoPago,
       };
       // Manejar fechas: enviar null si están vacías para poder borrarlas
       payload.fechaVerificacion = form.fechaVerificacion ? new Date(form.fechaVerificacion) : null;
@@ -186,7 +193,7 @@ export default function Paso3Obra({ obraId }: Props) {
       const res = await axios.put(`${API_OBRAS}/${obraId}`, payload);
       // Actualizar el estado local después de guardar exitosamente
       setEstadoObra(nuevoEstadoObra);
-      if (res.data) setObraCompleta((prev) => prev ? { ...prev, ...res.data } : res.data);
+      if (res.data) setObraCompleta((prev: any) => prev ? { ...prev, ...res.data } : res.data);
       alert("Datos guardados correctamente.");
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || "Error al guardar");

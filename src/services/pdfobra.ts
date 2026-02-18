@@ -74,6 +74,11 @@ interface ObraData {
   observaciones?: string;
   verificador?: string;
   notaServidumbre?: string;
+  // Campos editables para autorización
+  nombreAutorizacion?: string;
+  rev?: string;
+  cuant?: string;
+  tamanoFuente?: 'normal' | 'pequeno' | 'muyPequeno';
   conceptos?: Array<{
     conceptoPath: Array<{ nombre: string; id?: number }>;
     conceptoNombre?: string;
@@ -100,17 +105,32 @@ export class PDFObra {
   }
 
   private static async build(obra: ObraData, titulo: string) {
-    const pdf = new jsPDF({ unit: 'mm', format: 'letter' });
+    // Tamaño personalizado: 216 × 356 mm (vertical)
+    const pdf = new jsPDF({ unit: 'mm', format: [216, 356] });
     const W = pdf.internal.pageSize.getWidth();
     const H = pdf.internal.pageSize.getHeight();
     const L = 8; // Margen izquierdo reducido (de 15 a 8mm)
-    const R = W - 8; // Margen derecho reducido (de 15 a 8mm)
+    const R = W - 8; // Margen derecho claro y consistente (8mm desde el borde derecho)
     // Margen superior amplio para poder colocar un logo
     let y = 40;
 
+    // Calcular tamaños de fuente según la opción seleccionada
+    // Normal: tamaños originales, Pequeño: -1pt, Muy pequeño: -2pt
+    const factorReduccion = obra.tamanoFuente === 'pequeno' ? 1 : obra.tamanoFuente === 'muyPequeno' ? 2 : 0;
+    const tamaños = {
+      titulo: 10 - factorReduccion,           // Título principal
+      subtitulo: 9 - factorReduccion,          // Subtítulos (AUTORIZACION)
+      seccion: 8 - factorReduccion,            // Secciones (UBICACION, DIRECTOR, etc.)
+      texto: 7 - factorReduccion,             // Texto normal
+      tablaHeader: 7 - factorReduccion,       // Encabezados de tabla
+      tablaDatos: 6 - factorReduccion,        // Datos de tabla
+      autorizacion: 9 - factorReduccion,      // Nombre de autorización
+      revCuant: 7 - factorReduccion,          // Rev y Cuant
+    };
+
     // ——— 1. TÍTULO (centrado) ———
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10);
+    pdf.setFontSize(tamaños.titulo);
     pdf.text(titulo.toUpperCase(), W / 2, y, { align: 'center' });
     y += 6;
 
@@ -120,29 +140,29 @@ export class PDFObra {
     const vigencia = obra.vigencia || '—';
     const clave = obra.consecutivo || '—';
 
-    pdf.setFontSize(7);
+    pdf.setFontSize(tamaños.texto);
     pdf.setFont('helvetica', 'bold');
     pdf.text('DENSIDAD', L, y);
     pdf.text('USO DEL PREDIO', L + 38, y);
     pdf.text('VIGENCIA', L + 95, y);
-    pdf.text('CLAVE', L + 145, y);
+    pdf.text('CLAVE', R, y, { align: 'right' }); // Alineado a la derecha con margen claro
     y += 4;
 
     pdf.setFont('helvetica', 'normal');
     pdf.text(densidad, L, y);
     pdf.text(usoPredio, L + 38, y);
     pdf.text(vigencia, L + 95, y);
-    pdf.text(clave, L + 145, y);
+    pdf.text(clave, R, y, { align: 'right' }); // Alineado a la derecha con margen claro
     y += 8;
 
     // ——— 3. UBICACION DE LA OBRA ———
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(8);
+    pdf.setFontSize(tamaños.seccion);
     pdf.text('UBICACION DE LA OBRA', L, y);
     y += 4;
 
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(7);
+    pdf.setFontSize(tamaños.texto);
     pdf.text('NOMBRE DEL PROPIETARIO', L, y);
     pdf.text((obra.nombrePropietario || '—').toUpperCase(), L + 50, y);
     y += 4;
@@ -174,12 +194,12 @@ export class PDFObra {
     );
     if (tieneDirector) {
       pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(8);
+      pdf.setFontSize(tamaños.seccion);
       pdf.text('DIRECTOR RESPONSABLE', L, y);
       y += 4;
 
       pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(7);
+      pdf.setFontSize(tamaños.texto);
       const col1X = L;
       const col2X = L + 95;
 
@@ -230,7 +250,7 @@ export class PDFObra {
     pdf.line(L, y, R, y);
     y += 3;
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(8);
+    pdf.setFontSize(tamaños.seccion);
     pdf.text('DETALLES DE LA LICENCIA', W / 2, y, { align: 'center' });
     y += 3;
     pdf.line(L, y, R, y);
@@ -238,17 +258,17 @@ export class PDFObra {
 
     // Tabla de conceptos (encabezado con fondo gris simulado con rectángulo)
     // Ajustar anchos: CONCEPTO mucho más ancho, otras columnas más cortas
-    // Aprovechando mejor el espacio disponible con márgenes reducidos (ancho disponible ~200mm)
-    // Total: 95+30+18+18+15+20 = 196mm (más espacio para conceptos)
-    const colWidths = [95, 30, 18, 18, 15, 20];
+    // La tabla debe llegar exactamente hasta el margen derecho R
+    // Ancho total disponible: R - L = 216 - 8 - 8 = 200mm
+    const colWidths = [98, 32, 18, 18, 15, 19]; // Total: 200mm (ajustado para llegar a R)
     const headers = ['CONCEPTO', 'OBSERVACIONES', 'COSTO', 'MEDICION', 'CANT.', 'TOTAL'];
     const tableLeft = L;
-    const tableRight = L + colWidths.reduce((a, b) => a + b, 0);
+    const tableRight = R; // La tabla llega exactamente hasta el margen derecho
 
     pdf.setFillColor(200, 200, 200);
     pdf.rect(tableLeft, y - 3, tableRight - tableLeft, 5, 'F');
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(7);
+    pdf.setFontSize(tamaños.tablaHeader);
     let x = L;
     headers.forEach((h, i) => {
       if (i === 0 || i === 1) {
@@ -263,7 +283,7 @@ export class PDFObra {
     y += 5;
 
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(6);
+    pdf.setFontSize(tamaños.tablaDatos);
     let totalGeneral = 0;
 
     if (obra.conceptos && obra.conceptos.length > 0) {
@@ -275,7 +295,7 @@ export class PDFObra {
           pdf.rect(tableLeft, y - 3, tableRight - tableLeft, 5, 'F');
           x = L;
           pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(7);
+          pdf.setFontSize(tamaños.tablaHeader);
           headers.forEach((h, i) => {
             if (i === 0 || i === 1) {
               pdf.text(h, x + 2, y);
@@ -286,7 +306,7 @@ export class PDFObra {
           });
           y += 5;
           pdf.setFont('helvetica', 'normal');
-          pdf.setFontSize(6);
+          pdf.setFontSize(tamaños.tablaDatos);
         }
 
         // Mostrar hasta 4 generaciones de conceptos en la misma línea (Abuelo, Padre, Hijo, Nieto)
@@ -383,20 +403,20 @@ export class PDFObra {
     // Total general (arriba a la derecha, como en la captura)
     y += 2;
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(8);
+    pdf.setFontSize(tamaños.seccion);
     const totalStr = `$${totalGeneral.toFixed(2)}`;
     pdf.text(totalStr, R, y, { align: 'right' });
     y += 8;
 
     // ——— 6. Parámetros técnicos (COS, CUS, SERVIDUMBRES) ———
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(7);
+    pdf.setFontSize(tamaños.texto);
     const cos = obra.coeficienteOcupacion ?? '—';
     const cus = obra.coeficienteUtilizacion ?? '—';
     pdf.text(`COS: ${cos} CUS: ${cus} SERVIDUMBRES FRONTAL: ${obra.servidumbreFrontal ?? '0'}mts LATERAL: ${obra.servidumbreLateral ?? '0'} POSTERIOR: ${obra.servidumbrePosterior ?? '0'}mts`, L, y);
     y += 4;
     if (obra.notaServidumbre) {
-      pdf.setFontSize(6);
+      pdf.setFontSize(tamaños.tablaDatos);
       pdf.text(`NOTA: ${obra.notaServidumbre}`, L, y);
       y += 4;
     }
@@ -404,11 +424,11 @@ export class PDFObra {
 
     // ——— 7. DESCRIPCION ———
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(8);
+    pdf.setFontSize(tamaños.seccion);
     pdf.text('DESCRIPCION', L, y);
     y += 4;
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(7);
+    pdf.setFontSize(tamaños.texto);
     const descripcion = obra.descripcionProyecto || obra.destinoActualProyeto || '—';
     const descLines = splitTextByWords(pdf, descripcion.toUpperCase(), R - L);
     descLines.forEach((line: string) => {
@@ -425,11 +445,11 @@ export class PDFObra {
 
     // ——— 8. OBSERVACIONES ———
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(8);
+    pdf.setFontSize(tamaños.seccion);
     pdf.text('OBSERVACIONES', L, y);
     y += 4;
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(7);
+    pdf.setFontSize(tamaños.texto);
     if (obra.observaciones) {
       const obsLines = splitTextByWords(pdf, obra.observaciones.toUpperCase(), R - L);
       obsLines.forEach((line: string) => {
@@ -442,33 +462,50 @@ export class PDFObra {
       pdf.text(`VERIFICADOR: ${obra.verificador.toUpperCase()}`, L, y);
       y += 4;
     }
-    const autorizacion = 'SE AUTORIZA LA PRESENTE LICENCIA EN BASE A DATOS PROPORCIONADOS POR EL INTERESADO. CUALQUIER ANOMALIA PRESENTADA EN EL TRANSCURSO DE LA OBRA SE HARA ACREEDOR A LAS SANCIONES ESTIPULADAS EN EL REGLAMENTO DE CONSTRUCCION Y EN ESPECIAL AL ART. 200 DEL MISMO.';
-    const autLines = splitTextByWords(pdf, autorizacion, R - L);
-    autLines.forEach((line: string) => {
-      pdf.text(line, L, y);
-      y += 3;
-    });
+    // El texto de autorización ya no se muestra aquí, solo se muestra el contenido de observaciones (notas)
     y += 6;
 
     // ——— 9. AUTORIZACION (centrado, con espacio para firmas y sellos) ———
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(9);
+    pdf.setFontSize(tamaños.subtitulo);
     pdf.text('AUTORIZACION', W / 2, y, { align: 'center' });
-    y += 10; // Más espacio después del título para firmas/sellos
+    y += 15; // Más espacio después del título para bajar el bloque y dejar espacio para firmas/sellos
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(8); // Texto más grande
-    pdf.text('C. JONATHAN TORRES SIFUENTES', L, y);
-    y += 8; // Más espacio entre nombre y título
-    pdf.text('DIRECTOR PADRON Y LICENCIAS', L, y);
-    y += 10; // Más espacio entre título e iniciales (para sellos)
-    pdf.text('AAJJ / PFM / MGR / EAAO / JLR', L, y);
+    pdf.setFontSize(tamaños.autorizacion);
+    
+    const autorizacionX = L + 20; // Un poco más a la izquierda (20mm desde el margen izquierdo)
+    const nombreAutorizacionTexto = obra.nombreAutorizacion || 'C. JONATHAN TORRES SIFUENTES';
+    pdf.text(nombreAutorizacionTexto.toUpperCase(), autorizacionX, y);
+    y += 3.5; // Espacio mínimo (pegado) entre nombre y título
+    pdf.text('DIRECTOR PADRON Y LICENCIAS', autorizacionX, y);
+    y += 12; // Más espacio entre título e iniciales (para sellos)
+    
+    // Iniciales según el tipo de documento
+    let iniciales = '';
+    if (titulo === 'ALINEAMIENTO Y NUMERO OFICIAL') {
+      iniciales = 'PFM / MGR / EAAO / JLR';
+    } else if (titulo === 'LICENCIA DE CONSTRUCCIÓN') {
+      iniciales = 'AAJJ / MGR / EAAO / JLR';
+    } else if (titulo === 'CERTIFICADO DE HABITABILIDAD') {
+      iniciales = 'PFM / EAAO / JLR';
+    } else {
+      iniciales = 'AAJJ / PFM / MGR / EAAO / JLR'; // Por defecto
+    }
+    pdf.text(iniciales, autorizacionX, y);
     y += 10; // Más espacio antes de Rev/Cuant
 
     // ——— 10. Rev, Cuant, FECHAS ———
-    pdf.setFontSize(7);
-    pdf.text('Rev:', L, y);
-    y += 4; // Espacio para que Cuant esté abajo
-    pdf.text('Cuant: AFAI', L, y);
+    pdf.setFontSize(tamaños.revCuant);
+    const revTexto = obra.rev || '';
+    const cuantTexto = obra.cuant || 'AFAI';
+    if (revTexto) {
+      pdf.text(`Rev: ${revTexto}`, L, y);
+      y += 4; // Espacio para que Cuant esté abajo
+    } else {
+      pdf.text('Rev:', L, y);
+      y += 4; // Espacio para que Cuant esté abajo
+    }
+    pdf.text(`Cuant: ${cuantTexto}`, L, y);
     y += 4;
     const fechaIngreso = obra.fechaIngreso
       ? new Date(obra.fechaIngreso).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -480,7 +517,7 @@ export class PDFObra {
       : '—';
     pdf.text(`FECHA DE INGRESO: ${fechaIngreso}`, L, y);
     y += 4;
-    pdf.text(`FECHA DE DICTAMEN: ${fechaDictamen}`, L, y);
+    pdf.text(`FECHA DE DICTAMEN: ${fechaDictamen}`, L, y); // Debajo de FECHA DE INGRESO, alineado a la izquierda
 
     const nombreArchivo = titulo.replace(/\s+/g, '_').replace(/Ó/g, 'O').toUpperCase();
     pdf.save(`${nombreArchivo}_${obra.consecutivo || 'SIN_CONSECUTIVO'}.pdf`);

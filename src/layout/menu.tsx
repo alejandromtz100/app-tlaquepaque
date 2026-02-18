@@ -100,12 +100,16 @@ const Menu: React.FC = () => {
 
         {/* Administradores - Solo visible para ADMIN */}
         {esAdmin && (
-          <span
-            onClick={() => goTo("/administradores")}
-            className="cursor-pointer hover:text-gray-300"
-          >
-            Administradores
-          </span>
+          <Dropdown
+            title="Administradores"
+            open={openMenu === "administradores"}
+            onClick={() => toggleMenu("administradores")}
+            items={[
+              { label: "Gestión", path: "/administradores" },
+              { label: "Alertas", path: "/alertas" },
+            ]}
+            onSelect={goTo}
+          />
         )}
       </div>
     </nav>

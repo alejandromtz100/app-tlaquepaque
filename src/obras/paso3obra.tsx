@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Printer } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { DirectoresService } from "../services/directores.service";
 import { PDFPreForma } from "../services/pdfPreForma";
 import { getConceptosByObra } from "../services/obraConceptos.service";
@@ -57,6 +58,7 @@ function toDateLocal(date: Date | string | null): string {
 }
 
 export default function Paso3Obra({ obraId }: Props) {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -181,9 +183,10 @@ export default function Paso3Obra({ obraId }: Props) {
       payload.fechaPago = form.fechaPago ? new Date(form.fechaPago) : null;
       payload.fechaPagoTesoreria = form.fechaPagoTesoreria ? new Date(form.fechaPagoTesoreria) : null;
 
-      await axios.put(`${API_OBRAS}/${obraId}`, payload);
+      const res = await axios.put(`${API_OBRAS}/${obraId}`, payload);
       // Actualizar el estado local después de guardar exitosamente
       setEstadoObra(nuevoEstadoObra);
+      if (res.data) setObraCompleta((prev) => prev ? { ...prev, ...res.data } : res.data);
       alert("Datos guardados correctamente.");
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || "Error al guardar");
@@ -541,7 +544,7 @@ export default function Paso3Obra({ obraId }: Props) {
             </div>
           </section>
 
-          <div className="flex justify-end pt-4">
+          <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
               onClick={handleGuardarCambios}
@@ -549,6 +552,14 @@ export default function Paso3Obra({ obraId }: Props) {
               className="px-6 py-2 bg-black text-white rounded-xl hover:bg-gray-800 font-medium disabled:opacity-50"
             >
               {guardando ? "Guardando..." : "Guardar Cambios"}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(`/obras/paso4/${obraId}`)}
+              disabled={form.estadoVerificacion !== "Si"}
+              className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Continuar
             </button>
           </div>
         </div>

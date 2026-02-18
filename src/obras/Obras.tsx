@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Pencil, Copy, Printer, Paperclip, Plus } from "lucide-react";
 import Menu from "../layout/menu";
@@ -12,6 +12,7 @@ interface Obra {
   noOficial: string;
   colonia: string;
   coloniaDensidad?: string;
+  numerosPrediosContiguos?: string;
   estadoObra: string;
   estadoPago: string;
 }
@@ -33,9 +34,42 @@ const Obras: React.FC = () => {
     fecha: "",
     nombrePropietario: "",
     calle: "",
+    numerosPrediosContiguos: "",
   });
 
   const registrosPorPagina = 10;
+
+  // Cargar todas las obras automáticamente al montar el componente
+  useEffect(() => {
+    cargarTodasLasObras();
+  }, []);
+
+  const cargarTodasLasObras = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setHaBuscado(true);
+
+      const url = `http://localhost:3001/op_obras/listado-filtrado`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Error al cargar obras");
+      const data = await response.json();
+      
+      const ordenadas = data.sort(
+        (a: Obra, b: Obra) =>
+          new Date(b.captura).getTime() -
+          new Date(a.captura).getTime()
+      );
+      setObras(ordenadas);
+      setPaginaActual(1);
+    } catch (error) {
+      console.error("Error al cargar obras:", error);
+      setError("Error al cargar las obras");
+      setObras([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -62,6 +96,9 @@ const Obras: React.FC = () => {
       if (filtros.nombrePropietario.trim()) {
         params.append('nombrePropietario', filtros.nombrePropietario.trim());
       }
+      if (filtros.numerosPrediosContiguos.trim()) {
+        params.append('numerosPrediosContiguos', filtros.numerosPrediosContiguos.trim());
+      }
 
       const queryString = params.toString();
       const url = `http://localhost:3001/op_obras/listado-filtrado${queryString ? `?${queryString}` : ''}`;
@@ -84,7 +121,7 @@ const Obras: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [filtros.consecutivo, filtros.fecha, filtros.nombrePropietario]);
+  }, [filtros.consecutivo, filtros.fecha, filtros.nombrePropietario, filtros.numerosPrediosContiguos]);
 
   // Filtrar por calle en memoria (ya que el backend no filtra por calle)
   const obrasFiltradas = useMemo(() => {
@@ -105,6 +142,7 @@ const Obras: React.FC = () => {
       fecha: "",
       nombrePropietario: "",
       calle: "",
+      numerosPrediosContiguos: "",
     });
     setObras([]);
     setHaBuscado(false);
@@ -245,6 +283,20 @@ const Obras: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Números Predios Contiguos
+                </label>
+                <input
+                  type="text"
+                  name="numerosPrediosContiguos"
+                  placeholder="Buscar por prediales..."
+                  value={filtros.numerosPrediosContiguos}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
+                />
+              </div>
             </div>
 
             <div className="mt-4 text-sm text-gray-600">
@@ -266,16 +318,6 @@ const Obras: React.FC = () => {
                   <p className="text-gray-600 text-sm">Buscando obras...</p>
                 </div>
               </div>
-            ) : !haBuscado ? (
-              <div className="min-h-[200px] flex items-center justify-center">
-                <div className="text-center">
-                  <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  <p className="text-lg font-medium text-gray-700 mb-2">Ingresa los filtros de búsqueda</p>
-                  <p className="text-sm text-gray-500">Usa los filtros de arriba para buscar obras por consecutivo, fecha de captura o propietario</p>
-                </div>
-              </div>
             ) : error ? (
               <div className="min-h-[200px] flex items-center justify-center">
                 <div className="text-center">
@@ -289,6 +331,7 @@ const Obras: React.FC = () => {
                     <tr className="text-gray-700 uppercase">
                       <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Consecutivo</th>
                       <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Captura</th>
+                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Predios contiguos</th>
                       <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Propietario</th>
                       <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Números oficiales</th>
                       <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Colonia</th>
@@ -300,7 +343,7 @@ const Obras: React.FC = () => {
                   <tbody className="divide-y divide-gray-200">
                     {visibles.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-4 py-12 text-center text-gray-500 bg-gray-50">
+                        <td colSpan={9} className="px-4 py-12 text-center text-gray-500 bg-gray-50">
                           <div className="flex flex-col items-center">
                             <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -319,6 +362,7 @@ const Obras: React.FC = () => {
                           <td className="px-4 py-3 border border-gray-300 whitespace-nowrap text-gray-700">
                             {new Date(o.captura).toLocaleDateString("es-MX")}
                           </td>
+                          <td className="px-4 py-3 border border-gray-300 text-gray-700">{o.numerosPrediosContiguos || "-"}</td>
                           <td className="px-4 py-3 border border-gray-300 text-gray-700">{o.propietario}</td>
                           <td className="px-4 py-3 border border-gray-300 text-gray-700">
                             {o.noOficial ? (

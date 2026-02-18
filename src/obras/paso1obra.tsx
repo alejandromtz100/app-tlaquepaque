@@ -742,12 +742,13 @@ const Paso1Obra: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+              <div>
                 <Input
                   label="RFC"
                   name="rfcPropietario"
                   value={form.rfcPropietario}
                   onChange={handleChange}
+                  disabled={esSupervisor}
                 />
               </div>
 

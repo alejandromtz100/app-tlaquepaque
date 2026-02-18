@@ -1,5 +1,33 @@
 import jsPDF from 'jspdf';
 
+// Función helper para dividir texto por palabras completas sin cortar palabras
+function splitTextByWords(pdf: jsPDF, text: string, maxWidth: number): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  words.forEach((word) => {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const testWidth = pdf.getTextWidth(testLine);
+
+    if (testWidth > maxWidth && currentLine) {
+      // La palabra no cabe, guardar la línea actual y empezar nueva
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      // La palabra cabe, agregarla a la línea actual
+      currentLine = testLine;
+    }
+  });
+
+  // Agregar la última línea si tiene contenido
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines.length > 0 ? lines : [text];
+}
+
 interface ObraData {
   consecutivo: string;
   folioDeLaForma?: string;
@@ -33,21 +61,24 @@ interface ObraData {
   servidumbrePosterior?: string;
   vigencia?: string;
   estadoVerificacion?: string;
+  // Datos del director (cuando existe idDirectorObra)
   directorNombre?: string;
-  directorFechaActualizacion?: string;
-  directorBitacora?: string;
+  directorFechaActualizacion?: string | Date;
   directorDomicilio?: string;
   directorColonia?: string;
   directorMunicipio?: string;
   directorTelefono?: string;
+  // Bitácora viene de op_obras, no del director
+  bitacoraObra?: string;
   direccionMedioAmbiente?: string;
   observaciones?: string;
   verificador?: string;
   notaServidumbre?: string;
   conceptos?: Array<{
-    conceptoPath: Array<{ nombre: string }>;
+    conceptoPath: Array<{ nombre: string; id?: number }>;
     conceptoNombre?: string;
-    observaciones?: string;
+    observaciones?: string; // Observaciones de obra-conceptos
+    conceptoObservaciones?: string; // Observaciones del concepto hijo
     costo_unitario: number;
     medicion?: string;
     cantidad: number;
@@ -72,71 +103,70 @@ export class PDFObra {
     const pdf = new jsPDF({ unit: 'mm', format: 'letter' });
     const W = pdf.internal.pageSize.getWidth();
     const H = pdf.internal.pageSize.getHeight();
-    const L = 15;
-    const R = W - 15;
-    let y = 18;
+    const L = 8; // Margen izquierdo reducido (de 15 a 8mm)
+    const R = W - 8; // Margen derecho reducido (de 15 a 8mm)
+    // Margen superior amplio para poder colocar un logo
+    let y = 40;
 
-    // ——— 1. TÍTULO (centrado) + FOLIO (arriba a la derecha) ———
+    // ——— 1. TÍTULO (centrado) ———
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(14);
+    pdf.setFontSize(10);
     pdf.text(titulo.toUpperCase(), W / 2, y, { align: 'center' });
-    if (obra.folioDeLaForma) {
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(10);
-      pdf.text(`Folio: ${obra.folioDeLaForma}`, R, y, { align: 'right' });
-    }
-    y += 8;
+    y += 6;
 
     // ——— 2. FILA: DENSIDAD | USO DEL PREDIO | VIGENCIA | CLAVE (CLAVE = consecutivo) ———
     const densidad = (obra.idDensidadColoniaObra || '').toUpperCase() || '—';
-    const usoPredio = (obra.destinoActualProyeto || obra.destinoPropuestoProyecto || '').toUpperCase() || '—';
+    const usoPredio = (obra.destinoPropuestoProyecto || '').toUpperCase() || '—';
     const vigencia = obra.vigencia || '—';
     const clave = obra.consecutivo || '—';
 
-    pdf.setFontSize(9);
+    pdf.setFontSize(7);
     pdf.setFont('helvetica', 'bold');
     pdf.text('DENSIDAD', L, y);
     pdf.text('USO DEL PREDIO', L + 38, y);
     pdf.text('VIGENCIA', L + 95, y);
     pdf.text('CLAVE', L + 145, y);
-    y += 5;
+    y += 4;
 
     pdf.setFont('helvetica', 'normal');
     pdf.text(densidad, L, y);
     pdf.text(usoPredio, L + 38, y);
     pdf.text(vigencia, L + 95, y);
     pdf.text(clave, L + 145, y);
-    y += 10;
+    y += 8;
 
     // ——— 3. UBICACION DE LA OBRA ———
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10);
+    pdf.setFontSize(8);
     pdf.text('UBICACION DE LA OBRA', L, y);
-    y += 6;
+    y += 4;
 
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(9);
-    pdf.text(`NOMBRE DEL PROPIETARIO ${(obra.nombrePropietario || '—').toUpperCase()}`, L, y);
-    y += 5;
+    pdf.setFontSize(7);
+    pdf.text('NOMBRE DEL PROPIETARIO', L, y);
+    pdf.text((obra.nombrePropietario || '—').toUpperCase(), L + 50, y);
+    y += 4;
 
     const direccionObra = obra.numerosOficiales?.length
       ? obra.numerosOficiales.map(n => [n.calle, n.numeroOficial].filter(Boolean).join(' , ')).filter(Boolean).join(' , ')
       : '—';
-    pdf.text(`CALLE/NUMERO OFICIAL ${direccionObra}`, L, y);
-    y += 5;
+    pdf.text('CALLE/NUMERO OFICIAL', L, y);
+    pdf.text(direccionObra, L + 50, y);
+    y += 4;
 
-    pdf.text(`COLONIA ${(obra.nombreColoniaObra || '—').toUpperCase()}`, L, y);
-    y += 5;
+    pdf.text('COLONIA', L, y);
+    pdf.text((obra.nombreColoniaObra || '—').toUpperCase(), L + 50, y);
+    y += 4;
 
     const entreCalles = [obra.entreCalle1Obra, obra.entreCalle2Obra].filter(Boolean).join(' Y ') || '—';
-    pdf.text(`ENTRE LA CALLE Y LA CALLE ${entreCalles}`, L, y);
-    y += 10;
+    pdf.text('ENTRE LA CALLE Y LA CALLE', L, y);
+    pdf.text(entreCalles, L + 50, y);
+    y += 8;
 
     // ——— 4. DIRECTOR RESPONSABLE (solo si hay datos de director) ———
     const tieneDirector = !!(
       obra.directorNombre ||
       obra.directorFechaActualizacion ||
-      obra.directorBitacora ||
       obra.directorDomicilio ||
       obra.directorColonia ||
       obra.directorMunicipio ||
@@ -144,32 +174,51 @@ export class PDFObra {
     );
     if (tieneDirector) {
       pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8);
       pdf.text('DIRECTOR RESPONSABLE', L, y);
-      y += 6;
+      y += 4;
 
       pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(9);
+      pdf.setFontSize(7);
       const col1X = L;
       const col2X = L + 95;
 
       if (obra.directorNombre) {
-        pdf.text(`NOMBRE ${obra.directorNombre.toUpperCase()}`, col1X, y);
-        y += 5;
+        pdf.text('NOMBRE', col1X, y);
+        pdf.text(obra.directorNombre.toUpperCase(), col1X + 20, y);
+        y += 4;
       }
       if (obra.directorFechaActualizacion) {
-        pdf.text(`REGISTRO Fecha de Actualizacion ${obra.directorFechaActualizacion}`, col1X, y);
-        if (obra.directorBitacora) pdf.text(`BITACORA ${obra.directorBitacora}`, col2X, y);
-        y += 5;
+        const fechaActualizacion = obra.directorFechaActualizacion instanceof Date
+          ? obra.directorFechaActualizacion.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })
+          : typeof obra.directorFechaActualizacion === 'string'
+            ? new Date(obra.directorFechaActualizacion).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : obra.directorFechaActualizacion;
+        pdf.text('REGISTRO', col1X, y);
+        pdf.text(`Fecha de Actualizacion ${fechaActualizacion}`, col1X + 25, y);
+        if (obra.bitacoraObra) {
+          pdf.text('BITACORA', col2X, y);
+          pdf.text(obra.bitacoraObra, col2X + 20, y);
+        }
+        y += 4;
       }
       if (obra.directorDomicilio) {
-        pdf.text(`DOMICILIO ${obra.directorDomicilio.toUpperCase()}`, col1X, y);
-        if (obra.directorColonia) pdf.text(`COLONIA ${obra.directorColonia.toUpperCase()}`, col2X, y);
-        y += 5;
+        pdf.text('DOMICILIO', col1X, y);
+        pdf.text(obra.directorDomicilio.toUpperCase(), col1X + 20, y);
+        if (obra.directorColonia) {
+          pdf.text('COLONIA', col2X, y);
+          pdf.text(obra.directorColonia.toUpperCase(), col2X + 20, y);
+        }
+        y += 4;
       }
       if (obra.directorMunicipio || obra.directorTelefono) {
-        pdf.text(`MUNICIPIO ${(obra.directorMunicipio || '').toUpperCase()}`, col1X, y);
-        if (obra.directorTelefono) pdf.text(`TELEFONO ${obra.directorTelefono}`, col2X, y);
-        y += 5;
+        pdf.text('MUNICIPIO', col1X, y);
+        pdf.text((obra.directorMunicipio || '').toUpperCase(), col1X + 20, y);
+        if (obra.directorTelefono) {
+          pdf.text('TELEFONO', col2X, y);
+          pdf.text(obra.directorTelefono, col2X + 20, y);
+        }
+        y += 4;
       }
       pdf.setDrawColor(0, 0, 0);
       pdf.setLineWidth(0.1);
@@ -179,25 +228,27 @@ export class PDFObra {
 
     // ——— 5. DETALLES DE LA LICENCIA (título centrado con líneas) ———
     pdf.line(L, y, R, y);
-    y += 4;
+    y += 3;
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10);
+    pdf.setFontSize(8);
     pdf.text('DETALLES DE LA LICENCIA', W / 2, y, { align: 'center' });
-    y += 5;
+    y += 3;
     pdf.line(L, y, R, y);
-    y += 6;
+    y += 4;
 
     // Tabla de conceptos (encabezado con fondo gris simulado con rectángulo)
-    // Ajustar anchos: CONCEPTO más ancho, OBSERVACIONES más ancho, números alineados a la derecha
-    const colWidths = [60, 35, 20, 20, 18, 22];
-    const headers = ['CONCEPTO', 'LEY DE INGRESOS', 'COSTO', 'MEDICION', 'CANT.', 'TOTAL'];
+    // Ajustar anchos: CONCEPTO mucho más ancho, otras columnas más cortas
+    // Aprovechando mejor el espacio disponible con márgenes reducidos (ancho disponible ~200mm)
+    // Total: 95+30+18+18+15+20 = 196mm (más espacio para conceptos)
+    const colWidths = [95, 30, 18, 18, 15, 20];
+    const headers = ['CONCEPTO', 'OBSERVACIONES', 'COSTO', 'MEDICION', 'CANT.', 'TOTAL'];
     const tableLeft = L;
     const tableRight = L + colWidths.reduce((a, b) => a + b, 0);
 
     pdf.setFillColor(200, 200, 200);
-    pdf.rect(tableLeft, y - 4, tableRight - tableLeft, 6, 'F');
+    pdf.rect(tableLeft, y - 3, tableRight - tableLeft, 5, 'F');
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(8);
+    pdf.setFontSize(7);
     let x = L;
     headers.forEach((h, i) => {
       if (i === 0 || i === 1) {
@@ -209,21 +260,22 @@ export class PDFObra {
       }
       x += colWidths[i];
     });
-    y += 6;
+    y += 5;
 
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(7);
+    pdf.setFontSize(6);
     let totalGeneral = 0;
 
     if (obra.conceptos && obra.conceptos.length > 0) {
       obra.conceptos.forEach((c) => {
         if (y > H - 35) {
           pdf.addPage();
-          y = 18;
+          y = 40;
           pdf.setFillColor(200, 200, 200);
-          pdf.rect(tableLeft, y - 4, tableRight - tableLeft, 6, 'F');
+          pdf.rect(tableLeft, y - 3, tableRight - tableLeft, 5, 'F');
           x = L;
           pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(7);
           headers.forEach((h, i) => {
             if (i === 0 || i === 1) {
               pdf.text(h, x + 2, y);
@@ -232,29 +284,76 @@ export class PDFObra {
             }
             x += colWidths[i];
           });
-          y += 6;
+          y += 5;
           pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(6);
         }
 
-        const conceptoNombre = c.conceptoNombre || (c.conceptoPath?.map((n: { nombre: string }) => n.nombre).join(' , ') || '—');
-        const conceptoLines = pdf.splitTextToSize(conceptoNombre, colWidths[0] - 4);
-        const observaciones = c.observaciones || '—';
-        const observacionesLines = pdf.splitTextToSize(observaciones, colWidths[1] - 4);
+        // Mostrar hasta 4 generaciones de conceptos en la misma línea (Abuelo, Padre, Hijo, Nieto)
+        const path = c.conceptoPath || [];
+        const conceptosNombres = path.map((p: { nombre: string }) => p.nombre.toUpperCase()).filter(Boolean);
         
-        // Calcular altura de fila basada en el contenido más alto
+        // Usar observaciones del último concepto de la tabla conceptos (conceptoObservaciones)
+        const observaciones = c.conceptoObservaciones || c.observaciones || null;
+        const observacionesText = observaciones && observaciones.trim() !== '' ? observaciones.toUpperCase() : '—';
+        // Dividir observaciones por palabras completas también
+        const observacionesLines = splitTextByWords(pdf, observacionesText, colWidths[1] - 4);
+        
+        // Formato: todos los conceptos con ancho fijo y bien alineados
+        const anchoTotalDisponible = colWidths[0] - 4;
+        const espacioEntreConceptos = 3; // Espacio mínimo entre conceptos
+        const maxConceptos = 4; // Máximo de 4 generaciones
+        
+        // Ancho fijo para cada concepto (todos tienen el mismo límite)
+        // Esto asegura que todos se vean del mismo tamaño y bien alineados
+        const espacioTotalEntreConceptos = espacioEntreConceptos * (maxConceptos - 1);
+        const anchoFijoPorConcepto = (anchoTotalDisponible - espacioTotalEntreConceptos) / maxConceptos;
+        
+        // Dividir cada concepto en líneas según su ancho fijo asignado
+        // Usar función personalizada para dividir por palabras completas
+        const conceptosLines = conceptosNombres.map((nombre: string) => 
+          splitTextByWords(pdf, nombre, anchoFijoPorConcepto)
+        );
+        
+        x = L;
+        // Todos los conceptos alineados desde arriba (mismo Y inicial)
+        let maxHeight = 0;
+        let currentX = x + 2;
+        
+        conceptosLines.forEach((lines: string[]) => {
+          if (lines.length > 0) {
+            // Renderizar cada línea del concepto horizontalmente, ajustando Y para cada línea
+            let currentY = y;
+            lines.forEach((line: string) => {
+              pdf.text(line, currentX, currentY);
+              currentY += 3.5; // Espacio entre líneas del mismo concepto
+            });
+            // Calcular altura máxima de este concepto
+            const conceptoHeight = lines.length * 3.5;
+            maxHeight = Math.max(maxHeight, conceptoHeight);
+            // Avanzar X para el siguiente concepto con el ancho fijo
+            currentX += anchoFijoPorConcepto + espacioEntreConceptos;
+          }
+        });
+        
+        // Calcular altura total de la fila (máximo entre concepto y observaciones)
+        // Agregar más espacio vertical para mejor legibilidad
         const rowH = Math.max(
-          conceptoLines.length * 3.2,
-          observacionesLines.length * 3.2,
-          5
+          maxHeight + 1, // +1mm de espacio extra
+          observacionesLines.length * 3.5 + 1,
+          6 // Mínimo de 6mm de altura
         );
 
-        x = L;
-        // CONCEPTO (izquierda)
-        pdf.text(conceptoLines, x + 2, y);
         x += colWidths[0];
         
-        // OBSERVACIONES (izquierda)
-        pdf.text(observacionesLines, x + 2, y);
+        // OBSERVACIONES (izquierda) - usar observaciones de obra_conceptos
+        // Alinear desde la parte superior de la fila (y)
+        // Renderizar cada línea de observaciones correctamente
+        let obsY = y;
+        observacionesLines.forEach((line: string) => {
+          pdf.text(line, x + 2, obsY);
+          obsY += 3.5;
+        });
         x += colWidths[1];
         
         // COSTO (derecha)
@@ -284,79 +383,93 @@ export class PDFObra {
     // Total general (arriba a la derecha, como en la captura)
     y += 2;
     pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10);
+    pdf.setFontSize(8);
     const totalStr = `$${totalGeneral.toFixed(2)}`;
     pdf.text(totalStr, R, y, { align: 'right' });
-    y += 12;
+    y += 8;
 
     // ——— 6. Parámetros técnicos (COS, CUS, SERVIDUMBRES) ———
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(9);
+    pdf.setFontSize(7);
     const cos = obra.coeficienteOcupacion ?? '—';
     const cus = obra.coeficienteUtilizacion ?? '—';
     pdf.text(`COS: ${cos} CUS: ${cus} SERVIDUMBRES FRONTAL: ${obra.servidumbreFrontal ?? '0'}mts LATERAL: ${obra.servidumbreLateral ?? '0'} POSTERIOR: ${obra.servidumbrePosterior ?? '0'}mts`, L, y);
-    y += 6;
-    if (obra.notaServidumbre) {
-      pdf.setFontSize(8);
-      pdf.text(`NOTA: ${obra.notaServidumbre}`, L, y);
-      y += 6;
-    }
     y += 4;
+    if (obra.notaServidumbre) {
+      pdf.setFontSize(6);
+      pdf.text(`NOTA: ${obra.notaServidumbre}`, L, y);
+      y += 4;
+    }
+    y += 3;
 
     // ——— 7. DESCRIPCION ———
     pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
     pdf.text('DESCRIPCION', L, y);
-    y += 6;
+    y += 4;
     pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(9);
+    pdf.setFontSize(7);
     const descripcion = obra.descripcionProyecto || obra.destinoActualProyeto || '—';
-    const descLines = pdf.splitTextToSize(descripcion, W - L - R);
-    pdf.text(descLines, L, y);
-    y += descLines.length * 4 + 4;
+    const descLines = splitTextByWords(pdf, descripcion.toUpperCase(), R - L);
+    descLines.forEach((line: string) => {
+      pdf.text(line, L, y);
+      y += 3.5;
+    });
+    y += 3;
 
     if (obra.direccionMedioAmbiente) {
       pdf.text(`DIRECCION DE MEDIO AMBIENTE: ${obra.direccionMedioAmbiente}.`, L, y);
-      y += 6;
+      y += 5;
     }
-    y += 4;
+    y += 3;
 
     // ——— 8. OBSERVACIONES ———
     pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8);
     pdf.text('OBSERVACIONES', L, y);
-    y += 6;
+    y += 4;
     pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7);
     if (obra.observaciones) {
-      const obsLines = pdf.splitTextToSize(obra.observaciones, W - L - R);
-      pdf.text(obsLines, L, y);
-      y += obsLines.length * 4 + 4;
+      const obsLines = splitTextByWords(pdf, obra.observaciones.toUpperCase(), R - L);
+      obsLines.forEach((line: string) => {
+        pdf.text(line, L, y);
+        y += 3.5;
+      });
+      y += 3;
     }
     if (obra.verificador) {
       pdf.text(`VERIFICADOR: ${obra.verificador.toUpperCase()}`, L, y);
-      y += 5;
+      y += 4;
     }
     const autorizacion = 'SE AUTORIZA LA PRESENTE LICENCIA EN BASE A DATOS PROPORCIONADOS POR EL INTERESADO. CUALQUIER ANOMALIA PRESENTADA EN EL TRANSCURSO DE LA OBRA SE HARA ACREEDOR A LAS SANCIONES ESTIPULADAS EN EL REGLAMENTO DE CONSTRUCCION Y EN ESPECIAL AL ART. 200 DEL MISMO.';
-    const autLines = pdf.splitTextToSize(autorizacion, W - L - R);
-    pdf.text(autLines, L, y);
-    y += autLines.length * 3.5 + 8;
-
-    // ——— 9. AUTORIZACION (centrado) ———
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(10);
-    pdf.text('AUTORIZACION', W / 2, y, { align: 'center' });
+    const autLines = splitTextByWords(pdf, autorizacion, R - L);
+    autLines.forEach((line: string) => {
+      pdf.text(line, L, y);
+      y += 3;
+    });
     y += 6;
-    pdf.setFont('helvetica', 'normal');
+
+    // ——— 9. AUTORIZACION (centrado, con espacio para firmas y sellos) ———
+    pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(9);
-    pdf.text('C. JONATHAN TORRES SIFUENTES', W / 2, y, { align: 'center' });
-    y += 5;
-    pdf.text('DIRECTOR PADRON Y LICENCIAS', W / 2, y, { align: 'center' });
-    y += 5;
-    pdf.text('AAJJ / PFM / MGR / EAAO / JLR', W / 2, y, { align: 'center' });
-    y += 8;
+    pdf.text('AUTORIZACION', W / 2, y, { align: 'center' });
+    y += 10; // Más espacio después del título para firmas/sellos
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8); // Texto más grande
+    pdf.text('C. JONATHAN TORRES SIFUENTES', L, y);
+    y += 8; // Más espacio entre nombre y título
+    pdf.text('DIRECTOR PADRON Y LICENCIAS', L, y);
+    y += 10; // Más espacio entre título e iniciales (para sellos)
+    pdf.text('AAJJ / PFM / MGR / EAAO / JLR', L, y);
+    y += 10; // Más espacio antes de Rev/Cuant
 
     // ——— 10. Rev, Cuant, FECHAS ———
-    pdf.setFontSize(8);
+    pdf.setFontSize(7);
     pdf.text('Rev:', L, y);
-    pdf.text('Cuant: AFAI', L + 25, y);
+    y += 4; // Espacio para que Cuant esté abajo
+    pdf.text('Cuant: AFAI', L, y);
+    y += 4;
     const fechaIngreso = obra.fechaIngreso
       ? new Date(obra.fechaIngreso).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })
       : obra.fechaCaptura
@@ -365,8 +478,9 @@ export class PDFObra {
     const fechaDictamen = obra.fechaDictamen
       ? new Date(obra.fechaDictamen).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' })
       : '—';
-    pdf.text(`FECHA DE INGRESO: ${fechaIngreso}`, L, y + 6);
-    pdf.text(`FECHA DE DICTAMEN: ${fechaDictamen}`, R, y + 6, { align: 'right' });
+    pdf.text(`FECHA DE INGRESO: ${fechaIngreso}`, L, y);
+    y += 4;
+    pdf.text(`FECHA DE DICTAMEN: ${fechaDictamen}`, L, y);
 
     const nombreArchivo = titulo.replace(/\s+/g, '_').replace(/Ó/g, 'O').toUpperCase();
     pdf.save(`${nombreArchivo}_${obra.consecutivo || 'SIN_CONSECUTIVO'}.pdf`);

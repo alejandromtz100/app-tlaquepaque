@@ -473,8 +473,7 @@ const Directores: React.FC = () => {
                         <button
                           onClick={() => puedeModificar && handleEdit(director)}
                           disabled={!puedeModificar}
-                          className={!puedeModificar ? "opacity-50 cursor-not-allowed" : ""}
-                          className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                          className={`text-blue-600 hover:text-blue-800 font-medium transition-colors ${!puedeModificar ? "opacity-50 cursor-not-allowed" : ""}`}
                         >
                           Editar
                         </button>

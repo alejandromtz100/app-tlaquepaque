@@ -153,8 +153,8 @@ export default function Paso4Obra({ obraId }: Props) {
         return {
           ...c,
           conceptoNombre,
-          // Usar observaciones de obra-conceptos
-          observaciones: c.observaciones || undefined,
+          // Usar observaciones del último concepto de la tabla conceptos (conceptoObservaciones)
+          observaciones: c.conceptoObservaciones || undefined,
         };
       });
 
@@ -191,14 +191,15 @@ export default function Paso4Obra({ obraId }: Props) {
         servidumbrePosterior: obra.servidumbrePosterior,
         vigencia: obra.vigencia,
         estadoVerificacion: obra.estadoVerificacion,
-        // Director responsable (opcional - se puede agregar después si hay relación)
-        directorNombre: obra.directorNombre,
-        directorFechaActualizacion: obra.directorFechaActualizacion,
-        directorBitacora: obra.directorBitacora,
-        directorDomicilio: obra.directorDomicilio,
-        directorColonia: obra.directorColonia,
-        directorMunicipio: obra.directorMunicipio,
-        directorTelefono: obra.directorTelefono,
+        // Director responsable (si existe idDirectorObra)
+        directorNombre: obra.directorObra?.nombre_completo,
+        directorFechaActualizacion: obra.directorObra?.fecha_actualizacion,
+        directorDomicilio: obra.directorObra?.domicilio,
+        directorColonia: obra.directorObra?.colonia,
+        directorMunicipio: obra.directorObra?.municipio,
+        directorTelefono: obra.directorObra?.telefono,
+        // Bitácora viene de op_obras
+        bitacoraObra: obra.bitacoraObra,
         direccionMedioAmbiente: obra.direccionMedioAmbiente,
         observaciones: obra.observaciones,
         verificador: obra.verificador,

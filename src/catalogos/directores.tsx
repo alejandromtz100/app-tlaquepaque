@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import ExcelJS from 'exceljs';
 import Menu from '../layout/menu';
 
 // Importar tipos por separado
@@ -38,6 +39,9 @@ const Directores: React.FC = () => {
   const [previewDirector, setPreviewDirector] = useState<DirectorObra | null>(null);
   const [previewFormato, setPreviewFormato] = useState<number>(1);
 
+  // Estado para exportación
+  const [exportando, setExportando] = useState(false);
+
   // Cargar datos iniciales
   const load = async () => {
     try {
@@ -65,7 +69,6 @@ const Directores: React.FC = () => {
     currentPage,
     itemsPerPage
   );
-  const { startPage, endPage } = DirectoresService.getPageRange(currentPage, totalPages);
 
   // ========== HANDLERS DEL FORMULARIO ==========
 
@@ -152,6 +155,12 @@ const Directores: React.FC = () => {
     }
   };
 
+  const limpiarFiltros = () => {
+    setSearch('');
+    setStatusFilter('TODOS');
+    setCurrentPage(1);
+  };
+
   const handleCancel = () => {
     setForm({
       ...emptyForm,
@@ -215,6 +224,102 @@ const Directores: React.FC = () => {
     }
   };
 
+  const fetchImageAsBase64 = async (url: string): Promise<{ base64: string; extension: string } | null> => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataUrl = reader.result as string;
+          const match = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+          if (match) resolve(match[2]);
+          else reject(new Error('Invalid data URL'));
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      const ext = (blob.type?.split('/')[1] || 'jpg').toLowerCase();
+      return { base64, extension: ext === 'jpeg' ? 'jpeg' : ext };
+    } catch {
+      return null;
+    }
+  };
+
+  const exportarAExcel = async () => {
+    setExportando(true);
+    try {
+      const domicilioCompleto = (d: DirectorObra) => {
+        const partes = [d.domicilio, d.colonia, d.municipio].filter(Boolean);
+        return partes.length > 0 ? partes.join(', ') : '-';
+      };
+
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Directores', { views: [{ state: 'frozen', ySplit: 1 }] });
+
+      const IMG_SIZE = 50;
+      worksheet.properties.defaultRowHeight = IMG_SIZE + 4;
+      worksheet.columns = [
+        { header: 'Clave', key: 'clave', width: 12 },
+        { header: 'Imagen', key: 'imagen', width: 12 },
+        { header: 'Nombre', key: 'nombre', width: 35 },
+        { header: 'Domicilio (Colonia, Municipio)', key: 'domicilio', width: 45 },
+        { header: 'Teléfono', key: 'telefono', width: 18 },
+        { header: 'En qué es responsable', key: 'responsable', width: 55 },
+      ];
+      worksheet.getRow(1).font = { bold: true };
+
+      for (let i = 0; i < filtered.length; i++) {
+        const d = filtered[i];
+        const row = worksheet.addRow({
+          clave: d.clave_director || '-',
+          imagen: d.imagen ? '' : 'Sin imagen',
+          nombre: d.nombre_completo || '-',
+          domicilio: domicilioCompleto(d),
+          telefono: d.telefono || '-',
+          responsable: DirectoresService.getResponsableText(d),
+        });
+        row.height = IMG_SIZE + 4;
+
+        if (d.imagen) {
+          const url = DirectoresService.getImagenUrl(d.imagen);
+          if (!url.startsWith('data:')) {
+            const imgData = await fetchImageAsBase64(url);
+            if (imgData) {
+              const imageId = workbook.addImage({
+                base64: imgData.base64,
+                extension: imgData.extension as 'jpeg' | 'png' | 'gif',
+              });
+              worksheet.addImage(imageId, {
+                tl: { col: 1, row: i + 2 },
+                ext: { width: IMG_SIZE, height: IMG_SIZE },
+                editAs: 'oneCell',
+              });
+            } else {
+              row.getCell(2).value = 'Error al cargar';
+            }
+          }
+        }
+      }
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const fecha = new Date().toISOString().split('T')[0];
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Directores_${fecha}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al exportar:', error);
+      alert('Error al exportar a Excel. Por favor, intente de nuevo.');
+    } finally {
+      setExportando(false);
+    }
+  };
+
   // ========== COMPONENTE PRINCIPAL ==========
 
   return (
@@ -235,6 +340,7 @@ const Directores: React.FC = () => {
 
       <Menu />
 
+      {/* MAIN CONTENT */}
       <main className="flex-1 w-full px-4 py-6">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-[98%] mx-auto">
           {/* HEADER DEL REPORTE */}
@@ -257,22 +363,41 @@ const Directores: React.FC = () => {
           <div className="p-6 border-b bg-gray-50">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-800">Filtros de Búsqueda</h3>
-              {puedeModificar && (
+              <div className="flex gap-2">
                 <button
-                  onClick={() => {
-                    setShowForm(true);
-                    setSelected(null);
-                    setForm(emptyForm);
-                  setPreviewUrl('');
-                  setImagenFile(null);
-                }}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium flex items-center gap-2"
-              >
-                + Nuevo Director
-              </button>
-              )}
+                  onClick={limpiarFiltros}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition text-sm font-medium"
+                >
+                  Limpiar Filtros
+                </button>
+                <button
+                  onClick={exportarAExcel}
+                  disabled={exportando || filtered.length === 0}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  {exportando ? 'Exportando...' : `Exportar a Excel (${filtered.length} registros)`}
+                </button>
+                {puedeModificar && (
+                  <button
+                    onClick={() => {
+                      setShowForm(true);
+                      setSelected(null);
+                      setForm(emptyForm);
+                      setPreviewUrl('');
+                      setImagenFile(null);
+                    }}
+                    className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition text-sm font-medium flex items-center gap-2"
+                  >
+                    + Nuevo Director
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
                 <input
@@ -296,8 +421,9 @@ const Directores: React.FC = () => {
                 </select>
               </div>
             </div>
-            <div className="mt-4 text-sm text-gray-600">
-              Mostrando <span className="font-semibold">{filtered.length}</span> registros
+
+            <div className="text-sm text-gray-600 mb-2">
+              Mostrando <span className="font-semibold">{filtered.length}</span> registro{filtered.length !== 1 ? 's' : ''}
             </div>
           </div>
 
@@ -376,7 +502,7 @@ const Directores: React.FC = () => {
                                 className="w-20 h-20 object-cover border rounded" 
                                 alt={`Foto de ${director.nombre_completo}`}
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).src = "/no-image.png";
+                                  (e.target as HTMLImageElement).src = DirectoresService.getImagenUrl(null);
                                 }}
                               />
                             ) : (
@@ -473,8 +599,7 @@ const Directores: React.FC = () => {
                         <button
                           onClick={() => puedeModificar && handleEdit(director)}
                           disabled={!puedeModificar}
-                          className={!puedeModificar ? "opacity-50 cursor-not-allowed" : ""}
-                          className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                          className={`text-blue-600 hover:text-blue-800 font-medium transition-colors ${!puedeModificar ? "opacity-50 cursor-not-allowed" : ""}`}
                         >
                           Editar
                         </button>
@@ -486,29 +611,73 @@ const Directores: React.FC = () => {
             </div>
           </div>
 
-          {/* PAGINACIÓN */}
+          {/* PAGINACIÓN E INFORMACIÓN DE REGISTROS */}
           <div className="p-4 border-t bg-gray-50">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="text-sm text-gray-600 text-center sm:text-left">
-                Mostrando <span className="font-semibold text-gray-900">{filtered.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</span> - <span className="font-semibold text-gray-900">{Math.min(currentPage * itemsPerPage, filtered.length)}</span> de <span className="font-semibold text-gray-900">{filtered.length}</span> registros
+                Mostrando <span className="font-semibold text-gray-900">
+                  {filtered.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}
+                </span> - <span className="font-semibold text-gray-900">
+                  {Math.min(currentPage * itemsPerPage, filtered.length)}
+                </span> de <span className="font-semibold text-gray-900">{filtered.length}</span> registros
               </div>
               {totalPages > 1 && (
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors">««</button>
-                  <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors">&lt;</button>
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(1)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                  >
+                    ««
+                  </button>
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(currentPage - 1)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                  >
+                    &lt;
+                  </button>
                   <div className="flex items-center gap-1">
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i;
-                      if (pageNum < 1) pageNum = i + 1;
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
                       return (
-                        <button key={pageNum} onClick={() => setCurrentPage(pageNum)} className={`min-w-[36px] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? "bg-black text-white" : "border border-gray-300 bg-white hover:bg-gray-100"}`}>
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`min-w-[36px] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            currentPage === pageNum
+                              ? "bg-black text-white"
+                              : "border border-gray-300 bg-white hover:bg-gray-100"
+                          }`}
+                        >
                           {pageNum}
                         </button>
                       );
                     })}
                   </div>
-                  <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages} className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors">&gt;</button>
-                  <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors">»»</button>
+                  <button
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(currentPage + 1)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                  >
+                    &gt;
+                  </button>
+                  <button
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(totalPages)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                  >
+                    »»
+                  </button>
                 </div>
               )}
             </div>

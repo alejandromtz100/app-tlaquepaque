@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 
 import { getColonias } from "../services/colonias.service";
+import usuariosService from "../services/usuarios.service";
 
 import Menu from "../layout/menu";
 
@@ -299,9 +300,41 @@ const Paso1Obra: React.FC = () => {
   const [coloniaBusqueda, setColoniaBusqueda] = useState("");
   const [mostrarColoniasDropdown, setMostrarColoniasDropdown] = useState(false);
   const coloniaDropdownRef = useRef<HTMLDivElement>(null);
+  const [usuarioRevisorOptions, setUsuarioRevisorOptions] = useState<{ value: string; label: string }[]>([]);
+  const [cuantificadorOptions, setCuantificadorOptions] = useState<{ value: string; label: string }[]>([]);
 
   useEffect(() => {
     getColonias().then(setColonias).catch(console.error);
+  }, []);
+
+  // Cargar usuarios por función: value = id_usuarios para guardar IDs en BD; label = nombre completo para mostrar
+  useEffect(() => {
+    const cargarUsuariosPorFuncion = async () => {
+      try {
+        const { usuarios } = await usuariosService.obtenerTodosLosDatos();
+        const nombreCompleto = (u: { nombre?: string; ap_paterno?: string; ap_materno?: string }) =>
+          [u.nombre, u.ap_paterno, u.ap_materno].filter(Boolean).join(" ").trim();
+        const recepcion = usuarios.filter(
+          (u) =>
+            u.funcionEspecial?.nombre &&
+            /recepcion|recepción|documento/i.test(u.funcionEspecial.nombre)
+        );
+        const cuantificador = usuarios.filter(
+          (u) =>
+            u.funcionEspecial?.nombre &&
+            /cuantificador/i.test(u.funcionEspecial.nombre)
+        );
+        setUsuarioRevisorOptions(
+          recepcion.map((u) => ({ value: String(u.id_usuarios ?? ""), label: nombreCompleto(u) }))
+        );
+        setCuantificadorOptions(
+          cuantificador.map((u) => ({ value: String(u.id_usuarios ?? ""), label: nombreCompleto(u) }))
+        );
+      } catch (e) {
+        console.error("Error al cargar usuarios por función:", e);
+      }
+    };
+    cargarUsuariosPorFuncion();
   }, []);
 
   useEffect(() => {
@@ -374,6 +407,8 @@ const Paso1Obra: React.FC = () => {
             machuelos: data.machuelos ?? prev.machuelos,
             banquetas: data.banquetas ?? prev.banquetas,
             pavimento: data.pavimento ?? prev.pavimento,
+            revisor: data.revisor != null ? String(data.revisor) : prev.revisor,
+            cuantificador: data.cuantificador != null ? String(data.cuantificador) : prev.cuantificador,
           }));
           if (data.numerosOficiales && Array.isArray(data.numerosOficiales)) {
             setNumerosOficiales(data.numerosOficiales);
@@ -518,24 +553,6 @@ const Paso1Obra: React.FC = () => {
     { value: "Concreto Hidraulico", label: "Concreto Hidraulico" },
     { value: "Empedrado", label: "Empedrado" },
     { value: "Terracera", label: "Terracera" },
-  ];
-
-  const usuarioRevisorOptions = [
-    { value: "ARQ. ALICIA MONRAZ GONZALEZ", label: "ARQ. ALICIA MONRAZ GONZALEZ" },
-    { value: "ING. JUAN PEREZ", label: "ING. JUAN PEREZ" },
-    { value: "ARQ. MARIA RODRIGUEZ", label: "ARQ. MARIA RODRIGUEZ" },
-    { value: "LIC. CARLOS SANCHEZ", label: "LIC. CARLOS SANCHEZ" },
-    { value: "ARQ. PEDRO LOPEZ", label: "ARQ. PEDRO LOPEZ" },
-    { value: "ING. ANA GARCIA", label: "ING. ANA GARCIA" },
-  ];
-
-  const cuantificadorOptions = [
-    { value: "PORFIRIO FLORES MEZA", label: "PORFIRIO FLORES MEZA" },
-    { value: "ANA LOPEZ MARTINEZ", label: "ANA LOPEZ MARTINEZ" },
-    { value: "LUIS GARCIA HERNANDEZ", label: "LUIS GARCIA HERNANDEZ" },
-    { value: "SOFIA RAMIREZ TORRES", label: "SOFIA RAMIREZ TORRES" },
-    { value: "CARLOS MENDOZA", label: "CARLOS MENDOZA" },
-    { value: "MARIA SANCHEZ", label: "MARIA SANCHEZ" },
   ];
 
   return (
@@ -725,12 +742,13 @@ const Paso1Obra: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+              <div>
                 <Input
                   label="RFC"
                   name="rfcPropietario"
                   value={form.rfcPropietario}
                   onChange={handleChange}
+                  disabled={esSupervisor}
                 />
               </div>
 
@@ -1027,7 +1045,7 @@ const Paso1Obra: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Descripción Proyecto *
+                  Descripción Proyecto
                 </label>
                 <textarea
                   name="descripcionProyecto"

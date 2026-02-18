@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Printer } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { DirectoresService } from "../services/directores.service";
+import { PDFPreForma } from "../services/pdfPreForma";
+import { getConceptosByObra } from "../services/obraConceptos.service";
 
 const API_OBRAS = "http://localhost:3001/op_obras";
 
@@ -54,10 +58,12 @@ function toDateLocal(date: Date | string | null): string {
 }
 
 export default function Paso3Obra({ obraId }: Props) {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [directores, setDirectores] = useState<{ id: number; clave_director?: string; nombre_completo: string; activo?: boolean }[]>([]);
+  const [obraCompleta, setObraCompleta] = useState<any>(null);
 
   const [form, setForm] = useState({
     idDirectorObra: "" as string | number,
@@ -76,6 +82,8 @@ export default function Paso3Obra({ obraId }: Props) {
     otrosRecibos: "",
   });
 
+  const [estadoObra, setEstadoObra] = useState<string>("En Proceso");
+
   const [archivo, setArchivo] = useState<File | null>(null);
   const [descripcion, setDescripcion] = useState("");
   const [estadoAdjunto, setEstadoAdjunto] = useState("Activo");
@@ -91,13 +99,19 @@ export default function Paso3Obra({ obraId }: Props) {
       .get(`${API_OBRAS}/${obraId}`)
       .then((res) => {
         const d = res.data;
+        const estadoVerificacionValue = d.estadoVerificacion ?? "No";
+        const estadoObraValue = d.estadoObra ?? "En Proceso";
+        
+        // Guardar la obra completa
+        setObraCompleta(d);
+        
         setForm({
           idDirectorObra: d.idDirectorObra ?? "",
           bitacoraObra: d.bitacoraObra ?? "",
           nota: d.nota ?? "",
           verificacion: d.verificacion ?? "",
           fechaVerificacion: toDateLocal(d.fechaVerificacion),
-          estadoVerificacion: d.estadoVerificacion ?? "No",
+          estadoVerificacion: estadoVerificacionValue,
           vigencia: d.vigencia ?? "365",
           fechaAprovacion: toDateTimeLocal(d.fechaAprovacion),
           fechaPago: toDateTimeLocal(d.fechaPago),
@@ -107,6 +121,13 @@ export default function Paso3Obra({ obraId }: Props) {
           fechaPagoTesoreria: toDateLocal(d.fechaPagoTesoreria),
           otrosRecibos: d.otrosRecibos ?? "",
         });
+        
+        // Si estadoVerificacion es "Si", asegurar que estadoObra sea "Verificado"
+        if (estadoVerificacionValue === "Si") {
+          setEstadoObra("Verificado");
+        } else {
+          setEstadoObra(estadoObraValue);
+        }
       })
       .catch((err) => {
         setError(err.response?.data?.message || "Error al cargar la obra");
@@ -116,6 +137,17 @@ export default function Paso3Obra({ obraId }: Props) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    
+    // Si se selecciona "Si" en obra inspeccionada, cambiar estado de obra a "Verificado"
+    if (name === "estadoVerificacion") {
+      if (value === "Si") {
+        setEstadoObra("Verificado");
+      } else if (value === "No") {
+        // Si se cambia a "No", mantener el estado actual o volver a "En Proceso" si estaba en "Verificado"
+        setEstadoObra((prev) => prev === "Verificado" ? "En Proceso" : prev);
+      }
+    }
+    
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -123,6 +155,15 @@ export default function Paso3Obra({ obraId }: Props) {
     setError(null);
     setGuardando(true);
     try {
+      // Determinar el estado de la obra basado en estadoVerificacion
+      let nuevoEstadoObra: string;
+      if (form.estadoVerificacion === "Si") {
+        nuevoEstadoObra = "Verificado";
+      } else {
+        // Si es "No", mantener el estado actual pero si estaba en "Verificado", volver a "En Proceso"
+        nuevoEstadoObra = estadoObra === "Verificado" ? "En Proceso" : estadoObra;
+      }
+      
       const payload: Record<string, unknown> = {
         idDirectorObra: form.idDirectorObra ? Number(form.idDirectorObra) : null,
         bitacoraObra: form.bitacoraObra || null,
@@ -134,18 +175,92 @@ export default function Paso3Obra({ obraId }: Props) {
         reciboDePago: form.reciboDePago || null,
         folioDeLaForma: form.folioDeLaForma || null,
         otrosRecibos: form.otrosRecibos || null,
+        estadoObra: nuevoEstadoObra,
       };
-      if (form.fechaVerificacion) payload.fechaVerificacion = new Date(form.fechaVerificacion);
-      if (form.fechaAprovacion) payload.fechaAprovacion = new Date(form.fechaAprovacion);
-      if (form.fechaPago) payload.fechaPago = new Date(form.fechaPago);
-      if (form.fechaPagoTesoreria) payload.fechaPagoTesoreria = new Date(form.fechaPagoTesoreria);
+      // Manejar fechas: enviar null si están vacías para poder borrarlas
+      payload.fechaVerificacion = form.fechaVerificacion ? new Date(form.fechaVerificacion) : null;
+      payload.fechaAprovacion = form.fechaAprovacion ? new Date(form.fechaAprovacion) : null;
+      payload.fechaPago = form.fechaPago ? new Date(form.fechaPago) : null;
+      payload.fechaPagoTesoreria = form.fechaPagoTesoreria ? new Date(form.fechaPagoTesoreria) : null;
 
-      await axios.put(`${API_OBRAS}/${obraId}`, payload);
+      const res = await axios.put(`${API_OBRAS}/${obraId}`, payload);
+      // Actualizar el estado local después de guardar exitosamente
+      setEstadoObra(nuevoEstadoObra);
+      if (res.data) setObraCompleta((prev) => prev ? { ...prev, ...res.data } : res.data);
       alert("Datos guardados correctamente.");
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || "Error al guardar");
     } finally {
       setGuardando(false);
+    }
+  };
+
+  const handleGenerarPreForma = async () => {
+    try {
+      if (!obraCompleta) {
+        alert("Error: No se encontraron los datos de la obra.");
+        return;
+      }
+
+      // Obtener conceptos de la obra
+      const conceptos = await getConceptosByObra(obraId);
+
+      // Preparar conceptos con información adicional
+      const conceptosFormateados = conceptos.map((c: any) => {
+        const conceptoNombre = c.conceptoPath && Array.isArray(c.conceptoPath)
+          ? c.conceptoPath.map((n: { nombre: string }) => n.nombre).join(' , ')
+          : c.concepto?.nombre || '—';
+        
+        return {
+          ...c,
+          conceptoNombre,
+          observaciones: c.observaciones || undefined,
+        };
+      });
+
+      const obraData = {
+        consecutivo: obraCompleta.consecutivo || '',
+        folioDeLaForma: obraCompleta.folioDeLaForma || form.folioDeLaForma,
+        fechaCaptura: obraCompleta.fechaCaptura,
+        fechaIngreso: obraCompleta.fechaCaptura,
+        fechaDictamen: obraCompleta.fechaDictamen || obraCompleta.fechaCaptura,
+        nombrePropietario: obraCompleta.nombrePropietario || '',
+        tipoPropietario: obraCompleta.tipoPropietario,
+        representanteLegal: obraCompleta.representanteLegal,
+        identificacion: obraCompleta.identificacion,
+        tipoIdentificacion: obraCompleta.tipoIdentificacion,
+        domicilioPropietario: obraCompleta.domicilioPropietario,
+        coloniaPropietario: obraCompleta.coloniaPropietario,
+        codigoPostalPropietario: obraCompleta.codigoPostalPropietario,
+        municipioPropietario: obraCompleta.municipioPropietario,
+        entidadPropietario: obraCompleta.entidadPropietario,
+        telefonoPropietario: obraCompleta.telefonoPropietario,
+        rfcPropietario: obraCompleta.rfcPropietario,
+        numerosOficiales: obraCompleta.numerosOficiales,
+        nombreColoniaObra: obraCompleta.nombreColoniaObra,
+        idDensidadColoniaObra: obraCompleta.idDensidadColoniaObra,
+        entreCalle1Obra: obraCompleta.entreCalle1Obra,
+        entreCalle2Obra: obraCompleta.entreCalle2Obra,
+        descripcionProyecto: obraCompleta.descripcionProyecto,
+        destinoActualProyeto: obraCompleta.destinoActualProyeto,
+        destinoPropuestoProyecto: obraCompleta.destinoPropuestoProyecto,
+        coeficienteOcupacion: obraCompleta.coeficienteOcupacion,
+        coeficienteUtilizacion: obraCompleta.coeficienteUtilizacion,
+        servidumbreFrontal: obraCompleta.servidumbreFrontal,
+        servidumbreLateral: obraCompleta.servidumbreLateral,
+        servidumbrePosterior: obraCompleta.servidumbrePosterior,
+        vigencia: obraCompleta.vigencia || form.vigencia,
+        estadoVerificacion: obraCompleta.estadoVerificacion || form.estadoVerificacion,
+        directorNombre: obraCompleta.directorObraLabel,
+        directorBitacora: obraCompleta.bitacoraObra || form.bitacoraObra,
+        observaciones: obraCompleta.observaciones,
+        conceptos: conceptosFormateados,
+      };
+
+      await PDFPreForma.generar(obraData);
+    } catch (error: any) {
+      console.error('Error al generar Pre Forma:', error);
+      alert(`Error al generar el PDF: ${error.message || 'Error desconocido'}`);
     }
   };
 
@@ -267,7 +382,10 @@ export default function Paso3Obra({ obraId }: Props) {
                     name="nota"
                     value={opt.label}
                     checked={form.nota === opt.label}
-                    onChange={() => setForm((p) => ({ ...p, nota: opt.label }))}
+                    onChange={() => {
+                      // Si ya está seleccionada, deseleccionar; si no, seleccionar
+                      setForm((p) => ({ ...p, nota: p.nota === opt.label ? "" : opt.label }));
+                    }}
                     className="mt-1"
                   />
                   <span className="text-sm text-gray-700">{opt.label}</span>
@@ -426,7 +544,7 @@ export default function Paso3Obra({ obraId }: Props) {
             </div>
           </section>
 
-          <div className="flex justify-end pt-4">
+          <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
               onClick={handleGuardarCambios}
@@ -435,8 +553,29 @@ export default function Paso3Obra({ obraId }: Props) {
             >
               {guardando ? "Guardando..." : "Guardar Cambios"}
             </button>
+            <button
+              type="button"
+              onClick={() => navigate(`/obras/paso4/${obraId}`)}
+              disabled={form.estadoVerificacion !== "Si"}
+              className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Continuar
+            </button>
           </div>
         </div>
+      </div>
+
+      {/* Botón Pre Forma */}
+      <div className="mt-6 flex justify-center">
+        <button
+          type="button"
+          onClick={handleGenerarPreForma}
+          disabled={loading || !obraCompleta}
+          className="flex items-center gap-3 px-6 py-3 bg-white border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Printer className="w-5 h-5 text-gray-700 shrink-0" />
+          <span className="text-sm font-medium text-gray-800">PRE FORMA</span>
+        </button>
       </div>
 
       {/* ===== AGREGAR/EDITAR DATOS ADJUNTOS ===== */}

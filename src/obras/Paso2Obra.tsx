@@ -1,22 +1,49 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { getConceptosByObra } from '../services/obraConceptos.service';
 import TablaConceptosObra from './TablaConceptosObra';
 import FormAgregarConcepto from './FormAgregarConcepto';
+
+const API_OBRAS = 'http://localhost:3001/op_obras';
 
 interface Props {
   obraId: number;
 }
 
 export default function Paso2Obra({ obraId }: Props) {
+  const navigate = useNavigate();
   const [conceptos, setConceptos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingConcepto, setEditingConcepto] = useState<any | null>(null);
+  const [actualizando, setActualizando] = useState(false);
 
   const cargarConceptos = async () => {
     setLoading(true);
-    const data = await getConceptosByObra(obraId);
-    setConceptos(data);
-    setLoading(false);
+    try {
+      const data = await getConceptosByObra(obraId);
+      setConceptos(data);
+
+      // Calcular el total y enviarlo a op_obras.totalCostoConceptos
+      const total = data.reduce(
+        (sum: number, c: any) =>
+          sum + Number(c.total ?? c.costo_unitario * c.cantidad),
+        0,
+      );
+
+      try {
+        const totalValue = Number(total.toFixed(2));
+        await axios.put(`${API_OBRAS}/${obraId}`, {
+          totalCostoConceptos: totalValue,
+        });
+        console.log('Total actualizado automáticamente:', totalValue);
+      } catch (error: any) {
+        console.error('Error al actualizar totalCostoConceptos:', error);
+        console.error('Detalles del error:', error.response?.data);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -27,6 +54,36 @@ export default function Paso2Obra({ obraId }: Props) {
     (sum, c) => sum + Number(c.total ?? c.costo_unitario * c.cantidad),
     0
   );
+
+  const actualizarTotal = async () => {
+    setActualizando(true);
+    try {
+      const totalValue = Number(totalGeneral.toFixed(2));
+      console.log('Enviando totalCostoConceptos:', totalValue, 'Tipo:', typeof totalValue);
+      const response = await axios.put(`${API_OBRAS}/${obraId}`, {
+        totalCostoConceptos: totalValue,
+      });
+      console.log('Respuesta del servidor:', response.data);
+      alert(`Total actualizado correctamente: $${totalValue.toFixed(2)}`);
+    } catch (error: any) {
+      console.error('Error al actualizar totalCostoConceptos:', error);
+      console.error('Detalles del error:', error.response?.data);
+      const errorMessage = error.response?.data?.message || error.message || 'Error desconocido';
+      alert(`Error al actualizar el total: ${errorMessage}`);
+    } finally {
+      setActualizando(false);
+    }
+  };
+
+  const handleContinuar = () => {
+    navigate(`/obras/paso3/${obraId}`);
+  };
+
+  const handleCancelar = () => {
+    if (confirm('¿Desea cancelar y volver atrás?')) {
+      navigate(-1);
+    }
+  };
 
   if (loading) {
     return (
@@ -60,6 +117,34 @@ export default function Paso2Obra({ obraId }: Props) {
             ${totalGeneral.toFixed(2)}
           </span>
         </div>
+      </div>
+
+      {/* Botones de acción */}
+      <div className="mt-6 flex justify-center gap-4">
+        <button
+          type="button"
+          onClick={actualizarTotal}
+          disabled={actualizando || loading}
+          className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          {actualizando ? 'Actualizando...' : 'Actualizar'}
+        </button>
+        <button
+          type="button"
+          onClick={handleCancelar}
+          disabled={loading}
+          className="px-6 py-2 bg-gray-500 text-white rounded-xl hover:bg-gray-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          onClick={handleContinuar}
+          disabled={loading}
+          className="px-6 py-2 bg-black text-white rounded-xl hover:bg-gray-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
+        >
+          Continuar
+        </button>
       </div>
 
       <div className="mt-8">

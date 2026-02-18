@@ -79,6 +79,7 @@ const Menu: React.FC = () => {
           onClick={() => toggleMenu("obras")}
           items={[
             { label: "Listado de obras registradas", path: "/obras" },
+            { label: "Buscar obra", path: "/buscar-obra" },
           ]}
           onSelect={goTo}
         />

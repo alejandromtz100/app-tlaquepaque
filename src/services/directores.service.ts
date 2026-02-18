@@ -36,9 +36,17 @@ export interface DirectorFormData extends Partial<DirectorObra> {
   imagenFile?: File;
 }
 
-const API_BASE = 'http://localhost:3001';
+// Base vacía = mismo origen; las peticiones pasan por el proxy de Vite al backend (dev)
+// En producción puedes usar: VITE_API_URL=http://tu-backend
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
 const API_URL = `${API_BASE}/directores-obra`;
-const UPLOADS_BASE = `${API_BASE}/uploads`;
+
+// Placeholder cuando no hay imagen (data URL para no depender de /no-image.png)
+const NO_IMAGE_SRC =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect fill="#e5e7eb" width="80" height="80"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-size="10" font-family="sans-serif">Sin imagen</text></svg>'
+  );
 
 export const emptyForm: Partial<DirectorObra> = {
   clave_director: '',
@@ -198,18 +206,15 @@ export const DirectoresService = {
     };
   },
 
-  // Obtener URL de imagen
+  // Obtener URL de imagen (usa endpoint del backend que sirve el archivo desde uploads/directores)
   getImagenUrl(imagenPath: string | null | undefined): string {
-    if (!imagenPath) return '/no-image.png';
-    
-    // Verificar si la ruta ya contiene "directores/"
-    // Si la imagen ya viene con el prefijo "directores/", úsala tal cual
-    // Si no, agregar el directorio "directores/"
-    const path = imagenPath.startsWith('directores/') 
-      ? imagenPath 
-      : `directores/${imagenPath}`;
-    
-    return `${UPLOADS_BASE}/${path}`;
+    if (!imagenPath) return NO_IMAGE_SRC;
+
+    const normalized = imagenPath.replace(/^uploads[/\\]/i, '').replace(/^directores[/\\]/i, '').trim();
+    if (!normalized) return NO_IMAGE_SRC;
+
+    const filename = normalized.includes('/') ? normalized.split('/').pop()! : normalized;
+    return `${API_BASE}/directores-obra/imagen/${encodeURIComponent(filename)}`;
   },
 
   // Validar imagen
@@ -361,6 +366,37 @@ export const DirectoresService = {
     // Retorna true si tiene un oficio de autorización
     return !!director.oficio_autorizacion_pu && 
            director.oficio_autorizacion_pu.trim() !== '';
+  },
+
+  // Obtener texto de "en qué es responsable" para exportación
+  getResponsableText(director: DirectorObra): string {
+    const partes: string[] = [];
+
+    if (this.hasResponsableObra(director)) {
+      const roTipos: string[] = [];
+      if (director.ro_edificacion) roTipos.push('Edificación');
+      if (director.ro_restauracion) roTipos.push('Restauración');
+      if (director.ro_urbanizacion) roTipos.push('Urbanización');
+      if (director.ro_infraestructura) roTipos.push('Infraestructura');
+      const roText = roTipos.length > 0 ? roTipos.join(', ') : 'Oficio';
+      partes.push(`Responsable de Obra: ${roText}`);
+    }
+
+    if (this.hasResponsableProyecto(director)) {
+      const rpTipos: string[] = [];
+      if (director.rp_edificacion) rpTipos.push('Edificación');
+      if (director.rp_restauracion) rpTipos.push('Restauración');
+      if (director.rp_urbanizacion) rpTipos.push('Urbanización');
+      if (director.rp_infraestructura) rpTipos.push('Infraestructura');
+      const rpText = rpTipos.length > 0 ? rpTipos.join(', ') : 'Oficio';
+      partes.push(`Responsable de Proyecto: ${rpText}`);
+    }
+
+    if (this.hasResponsablePlaneacionUrbana(director)) {
+      partes.push('Responsable de Planeación Urbana');
+    }
+
+    return partes.length > 0 ? partes.join('; ') : '-';
   },
 };
 

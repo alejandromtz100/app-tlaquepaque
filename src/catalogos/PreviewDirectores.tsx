@@ -86,8 +86,10 @@ const PreviewDirectores: React.FC<PreviewDirectoresProps> = ({
   useEffect(() => {
     if (director.imagen) {
       setPreviewUrl(DirectoresService.getImagenUrl(director.imagen));
+    } else {
+      setPreviewUrl('');
     }
-  }, [director]);
+  }, [director.imagen]);
 
   const handleTextChange = (field: keyof PreviewTexts, value: string) => {
     setTexts(prev => ({ ...prev, [field]: value }));

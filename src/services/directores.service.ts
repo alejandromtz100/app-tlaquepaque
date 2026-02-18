@@ -99,11 +99,37 @@ export const DirectoresService = {
       if (params.search) searchParams.set('search', params.search);
       if (params.statusFilter) searchParams.set('statusFilter', params.statusFilter);
 
-      const response = await axios.get(`${API_URL}?${searchParams.toString()}`);
-      return response.data;
-    } catch (error) {
+      const url = `${API_URL}?${searchParams.toString()}`;
+      console.log('Cargando directores desde:', url);
+      const response = await axios.get(url);
+      console.log('Respuesta del servidor:', response.data);
+      
+      // Asegurar que la respuesta tenga el formato correcto
+      if (!response.data) {
+        console.warn('Respuesta vacía del servidor');
+        return { data: [], meta: { page: 1, limit: 10, totalRegistros: 0, totalPaginas: 1 } };
+      }
+      
+      // Si la respuesta no tiene el formato esperado, intentar adaptarla
+      if (Array.isArray(response.data)) {
+        // Si viene como array directo, convertir al formato esperado
+        return {
+          data: response.data,
+          meta: { page: 1, limit: response.data.length, totalRegistros: response.data.length, totalPaginas: 1 }
+        };
+      }
+      
+      // Si tiene data y meta, devolverlo tal cual
+      if (response.data.data && response.data.meta) {
+        return response.data;
+      }
+      
+      console.warn('Formato de respuesta inesperado:', response.data);
+      return { data: [], meta: { page: 1, limit: 10, totalRegistros: 0, totalPaginas: 1 } };
+    } catch (error: any) {
       console.error('Error al cargar directores:', error);
-      throw new Error('Error al cargar los directores');
+      console.error('Error details:', error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || error.message || 'Error al cargar los directores');
     }
   },
 

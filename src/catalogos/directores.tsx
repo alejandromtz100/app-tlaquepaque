@@ -33,7 +33,7 @@ const Directores: React.FC = () => {
   // Estados de paginación (servidor)
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const [meta, setMeta] = useState<{ totalRegistros: number; totalPaginas: number; page: number } | null>(null);
+  const [meta, setMeta] = useState<{ totalRegistros: number; totalPaginas: number; page: number; limit?: number } | null>(null);
 
   // Estados para preview de PDF
   const [showPreview, setShowPreview] = useState(false);
@@ -47,16 +47,25 @@ const Directores: React.FC = () => {
   const load = async () => {
     try {
       setLoading(true);
+      console.log('Cargando directores - página:', currentPage, 'búsqueda:', search, 'filtro:', statusFilter);
       const res = await DirectoresService.getPaginated({
         page: currentPage,
         limit: itemsPerPage,
         search: search || undefined,
         statusFilter: statusFilter !== 'TODOS' ? statusFilter : undefined,
       });
-      setData(res.data);
-      setMeta(res.meta);
+      console.log('Directores cargados:', res);
+      console.log('Datos recibidos:', res.data);
+      console.log('Meta recibida:', res.meta);
+      
+      // Asegurar que siempre tengamos arrays válidos
+      setData(Array.isArray(res.data) ? res.data : []);
+      setMeta(res.meta || { page: 1, limit: 10, totalRegistros: 0, totalPaginas: 1 });
     } catch (error: any) {
       console.error('Error al cargar directores:', error);
+      console.error('Error completo:', error.response || error);
+      setData([]);
+      setMeta({ page: 1, limit: 10, totalRegistros: 0, totalPaginas: 1 });
       alert(error.message || 'Error al cargar los directores');
     } finally {
       setLoading(false);
@@ -69,7 +78,7 @@ const Directores: React.FC = () => {
 
   const totalPages = meta?.totalPaginas ?? 1;
   const totalRegistros = meta?.totalRegistros ?? 0;
-  const currentData = data;
+  const currentData = data || [];
 
   // ========== HANDLERS DEL FORMULARIO ==========
 

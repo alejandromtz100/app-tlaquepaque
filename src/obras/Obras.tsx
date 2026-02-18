@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Pencil, Copy, Printer, Paperclip, Plus } from "lucide-react";
 import Menu from "../layout/menu";
@@ -17,6 +17,9 @@ interface Obra {
   estadoPago: string;
 }
 
+const API_OBRAS = "http://localhost:3001/op_obras/listado-filtrado";
+const registrosPorPagina = 10;
+
 const Obras: React.FC = () => {
   const navigate = useNavigate();
   const [obras, setObras] = useState<Obra[]>([]);
@@ -24,6 +27,9 @@ const Obras: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [haBuscado, setHaBuscado] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [meta, setMeta] = useState<{ totalRegistros: number; totalPaginas: number } | null>(null);
+  const [searchTrigger, setSearchTrigger] = useState(0); // Incrementar al hacer Buscar para forzar recarga
+  const filtrosRef = useRef({ consecutivo: "", fecha: "", nombrePropietario: "", calle: "", numerosPrediosContiguos: "" });
   
   // Verificar permisos del usuario logueado
   const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
@@ -36,105 +42,55 @@ const Obras: React.FC = () => {
     calle: "",
     numerosPrediosContiguos: "",
   });
+  filtrosRef.current = filtros;
 
-  const registrosPorPagina = 10;
-
-  // Cargar todas las obras automáticamente al montar el componente
-  useEffect(() => {
-    cargarTodasLasObras();
-  }, []);
-
-  const cargarTodasLasObras = useCallback(async () => {
+  const cargarDatos = useCallback(async (pageOverride?: number) => {
     try {
       setLoading(true);
       setError(null);
       setHaBuscado(true);
 
-      const url = `http://localhost:3001/op_obras/listado-filtrado`;
-      const response = await fetch(url);
+      const f = filtrosRef.current;
+      const pageToUse = pageOverride ?? paginaActual;
+      const params = new URLSearchParams();
+      params.append("page", String(pageToUse));
+      params.append("limit", String(registrosPorPagina));
+      if (f.consecutivo.trim()) params.append("consecutivo", f.consecutivo.trim());
+      if (f.fecha) params.append("fechaCaptura", f.fecha);
+      if (f.nombrePropietario.trim()) params.append("nombrePropietario", f.nombrePropietario.trim());
+      if (f.calle.trim()) params.append("calle", f.calle.trim());
+      if (f.numerosPrediosContiguos.trim()) params.append("numerosPrediosContiguos", f.numerosPrediosContiguos.trim());
+
+      const response = await fetch(`${API_OBRAS}?${params.toString()}`);
       if (!response.ok) throw new Error("Error al cargar obras");
-      const data = await response.json();
+      const res = await response.json();
       
-      const ordenadas = data.sort(
-        (a: Obra, b: Obra) =>
-          new Date(b.captura).getTime() -
-          new Date(a.captura).getTime()
-      );
-      setObras(ordenadas);
-      setPaginaActual(1);
-    } catch (error) {
-      console.error("Error al cargar obras:", error);
+      setObras(res.data ?? []);
+      setMeta(res.meta ?? null);
+    } catch (err) {
+      console.error("Error al cargar obras:", err);
       setError("Error al cargar las obras");
       setObras([]);
+      setMeta(null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [paginaActual, searchTrigger]);
+
+  // Cargar al montar, al cambiar página o al hacer Buscar (no en cada tecla)
+  useEffect(() => {
+    cargarDatos();
+  }, [cargarDatos]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFiltros((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFiltros((prev) => ({ ...prev, [name]: value }));
   };
 
-  const cargarDatos = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      setHaBuscado(true);
-
-      // Construir query parameters
-      const params = new URLSearchParams();
-      if (filtros.consecutivo.trim()) {
-        params.append('consecutivo', filtros.consecutivo.trim());
-      }
-      if (filtros.fecha) {
-        params.append('fechaCaptura', filtros.fecha);
-      }
-      if (filtros.nombrePropietario.trim()) {
-        params.append('nombrePropietario', filtros.nombrePropietario.trim());
-      }
-      if (filtros.numerosPrediosContiguos.trim()) {
-        params.append('numerosPrediosContiguos', filtros.numerosPrediosContiguos.trim());
-      }
-
-      const queryString = params.toString();
-      const url = `http://localhost:3001/op_obras/listado-filtrado${queryString ? `?${queryString}` : ''}`;
-
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("Error al cargar obras");
-      const data = await response.json();
-      
-      const ordenadas = data.sort(
-        (a: Obra, b: Obra) =>
-          new Date(b.captura).getTime() -
-          new Date(a.captura).getTime()
-      );
-      setObras(ordenadas);
-      setPaginaActual(1);
-    } catch (error) {
-      console.error("Error al cargar obras:", error);
-      setError("Error al cargar las obras");
-      setObras([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [filtros.consecutivo, filtros.fecha, filtros.nombrePropietario, filtros.numerosPrediosContiguos]);
-
-  // Filtrar por calle en memoria (ya que el backend no filtra por calle)
-  const obrasFiltradas = useMemo(() => {
-    let filtradas = obras;
-
-    if (filtros.calle.trim()) {
-      filtradas = filtradas.filter((obra) =>
-        obra.calle?.toLowerCase().includes(filtros.calle.toLowerCase())
-      );
-    }
-
-    return filtradas;
-  }, [obras, filtros.calle]);
+  const handleBuscar = () => {
+    setPaginaActual(1);
+    setSearchTrigger((t) => t + 1); // Forzar recarga con filtros actuales
+  };
 
   const limpiarFiltros = useCallback(() => {
     setFiltros({
@@ -144,16 +100,15 @@ const Obras: React.FC = () => {
       calle: "",
       numerosPrediosContiguos: "",
     });
-    setObras([]);
-    setHaBuscado(false);
-    setError(null);
     setPaginaActual(1);
+    setError(null);
+    setSearchTrigger((t) => t + 1); // Forzar recarga con filtros limpios
   }, []);
 
-  // PAGINACIÓN
-  const inicio = (paginaActual - 1) * registrosPorPagina;
-  const visibles = obrasFiltradas.slice(inicio, inicio + registrosPorPagina);
-  const totalPaginas = Math.ceil(obrasFiltradas.length / registrosPorPagina);
+  const totalRegistros = meta?.totalRegistros ?? 0;
+  const totalPaginas = meta?.totalPaginas ?? 1;
+  const visibles = obras;
+  const inicio = totalRegistros > 0 ? (paginaActual - 1) * registrosPorPagina + 1 : 0;
 
   const maxButtons = 5;
   let startPage = Math.max(1, paginaActual - Math.floor(maxButtons / 2));
@@ -195,7 +150,7 @@ const Obras: React.FC = () => {
               </div>
               <div className="text-right">
                 <div className="text-sm text-gray-300">Total de registros</div>
-                <div className="text-2xl font-bold">{haBuscado ? obrasFiltradas.length : "-"}</div>
+                <div className="text-2xl font-bold">{haBuscado ? totalRegistros : "-"}</div>
               </div>
             </div>
           </div>
@@ -212,7 +167,7 @@ const Obras: React.FC = () => {
                   Limpiar Filtros
                 </button>
                 <button
-                  onClick={cargarDatos}
+                  onClick={handleBuscar}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
                 >
                   Buscar
@@ -300,11 +255,8 @@ const Obras: React.FC = () => {
             </div>
 
             <div className="mt-4 text-sm text-gray-600">
-              {haBuscado && obras.length > 0 && (
-                <>
-                  Mostrando <span className="font-semibold">{obrasFiltradas.length}</span> de{" "}
-                  <span className="font-semibold">{obras.length}</span> obras
-                </>
+              {haBuscado && totalRegistros > 0 && (
+                <>Total: <span className="font-semibold">{totalRegistros}</span> obras</>
               )}
             </div>
           </div>
@@ -433,10 +385,10 @@ const Obras: React.FC = () => {
               <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="text-sm text-gray-600 text-center sm:text-left">
                   Mostrando <span className="font-semibold text-gray-900">
-                    {obrasFiltradas.length > 0 ? inicio + 1 : 0}
+                    {totalRegistros > 0 ? inicio : 0}
                   </span> - <span className="font-semibold text-gray-900">
-                    {Math.min(inicio + visibles.length, obrasFiltradas.length)}
-                  </span> de <span className="font-semibold text-gray-900">{obrasFiltradas.length}</span> registros
+                    {totalRegistros > 0 ? Math.min(inicio + visibles.length - 1, totalRegistros) : 0}
+                  </span> de <span className="font-semibold text-gray-900">{totalRegistros}</span> registros
                 </div>
 
                 {totalPaginas > 1 && (

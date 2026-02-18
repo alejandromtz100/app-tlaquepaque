@@ -22,7 +22,7 @@ export class PDFDirector {
     const pdf = new jsPDF({ unit: 'mm', format: 'letter' });
 
     await this.background(pdf);
-    this.header(pdf, d, formato);
+    this.header(pdf, d, formato, texts);
     this.body(pdf, d, formato, texts);
     await this.foto(pdf, d);
 
@@ -56,7 +56,7 @@ export class PDFDirector {
   }
 
   // ================= HEADER =================
-  private static header(pdf: jsPDF, d: DirectorObra, formato: number) {
+  private static header(pdf: jsPDF, d: DirectorObra, formato: number, texts?: PreviewTexts) {
     const W = pdf.internal.pageSize.getWidth();
 
     pdf.setFont('helvetica', 'bold');
@@ -70,13 +70,18 @@ export class PDFDirector {
 
     pdf.setFont('helvetica', 'normal');
     
+    // Usar el oficio editado si está disponible, sino usar el del director
     let oficio = '';
-    if (formato === 1) {
-      oficio = d.oficio_autorizacion_ro || 'Sin número';
-    } else if (formato === 2) {
-      oficio = d.oficio_autorizacion_rp || 'Sin número';
+    if (texts?.oficio !== undefined && texts.oficio !== '') {
+      oficio = texts.oficio;
     } else {
-      oficio = d.oficio_autorizacion_pu || 'Sin número';
+      if (formato === 1) {
+        oficio = d.oficio_autorizacion_ro || 'Sin número';
+      } else if (formato === 2) {
+        oficio = d.oficio_autorizacion_rp || 'Sin número';
+      } else {
+        oficio = d.oficio_autorizacion_pu || 'Sin número';
+      }
     }
 
     pdf.text(`OFICIO No. ${oficio}`, W - 20, 26, { align: 'right' });

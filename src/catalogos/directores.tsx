@@ -30,9 +30,10 @@ const Directores: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('TODOS');
 
-  // Estados de paginación
+  // Estados de paginación (servidor)
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [meta, setMeta] = useState<{ totalRegistros: number; totalPaginas: number; page: number } | null>(null);
 
   // Estados para preview de PDF
   const [showPreview, setShowPreview] = useState(false);
@@ -42,33 +43,33 @@ const Directores: React.FC = () => {
   // Estado para exportación
   const [exportando, setExportando] = useState(false);
 
-  // Cargar datos iniciales
+  // Cargar datos paginados desde servidor
   const load = async () => {
     try {
-      const directores = await DirectoresService.getAll();
-      setData(directores);
+      setLoading(true);
+      const res = await DirectoresService.getPaginated({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: search || undefined,
+        statusFilter: statusFilter !== 'TODOS' ? statusFilter : undefined,
+      });
+      setData(res.data);
+      setMeta(res.meta);
     } catch (error: any) {
       console.error('Error al cargar directores:', error);
       alert(error.message || 'Error al cargar los directores');
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     load();
-  }, []);
+  }, [currentPage, search, statusFilter]);
 
-  // Resetear página cuando cambian los filtros
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, statusFilter]);
-
-  // Datos filtrados y paginados
-  const filtered = DirectoresService.filterDirectores(data, search, statusFilter);
-  const { currentData, totalPages } = DirectoresService.getPaginatedData(
-    filtered,
-    currentPage,
-    itemsPerPage
-  );
+  const totalPages = meta?.totalPaginas ?? 1;
+  const totalRegistros = meta?.totalRegistros ?? 0;
+  const currentData = data;
 
   // ========== HANDLERS DEL FORMULARIO ==========
 
@@ -159,6 +160,7 @@ const Directores: React.FC = () => {
     setSearch('');
     setStatusFilter('TODOS');
     setCurrentPage(1);
+    // load() se ejecutará automáticamente por el useEffect
   };
 
   const handleCancel = () => {
@@ -250,6 +252,11 @@ const Directores: React.FC = () => {
   const exportarAExcel = async () => {
     setExportando(true);
     try {
+      const directoresParaExport = await DirectoresService.getAllFiltered({
+        search: search || undefined,
+        statusFilter: statusFilter !== 'TODOS' ? statusFilter : undefined,
+      });
+
       const domicilioCompleto = (d: DirectorObra) => {
         const partes = [d.domicilio, d.colonia, d.municipio].filter(Boolean);
         return partes.length > 0 ? partes.join(', ') : '-';
@@ -270,8 +277,8 @@ const Directores: React.FC = () => {
       ];
       worksheet.getRow(1).font = { bold: true };
 
-      for (let i = 0; i < filtered.length; i++) {
-        const d = filtered[i];
+      for (let i = 0; i < directoresParaExport.length; i++) {
+        const d = directoresParaExport[i];
         const row = worksheet.addRow({
           clave: d.clave_director || '-',
           imagen: d.imagen ? '' : 'Sin imagen',
@@ -354,7 +361,7 @@ const Directores: React.FC = () => {
               </div>
               <div className="text-right">
                 <div className="text-sm text-gray-300">Total de registros</div>
-                <div className="text-2xl font-bold">{filtered.length}</div>
+                <div className="text-2xl font-bold">{totalRegistros}</div>
               </div>
             </div>
           </div>
@@ -372,13 +379,13 @@ const Directores: React.FC = () => {
                 </button>
                 <button
                   onClick={exportarAExcel}
-                  disabled={exportando || filtered.length === 0}
+                  disabled={exportando || totalRegistros === 0}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  {exportando ? 'Exportando...' : `Exportar a Excel (${filtered.length} registros)`}
+                  {exportando ? 'Exportando...' : `Exportar a Excel (${totalRegistros} registros)`}
                 </button>
                 {puedeModificar && (
                   <button
@@ -405,14 +412,20 @@ const Directores: React.FC = () => {
                   placeholder="Buscar por nombre o clave..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setCurrentPage(1);
+                  }}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
                 >
                   <option value="TODOS">Todos los estados</option>
@@ -423,12 +436,17 @@ const Directores: React.FC = () => {
             </div>
 
             <div className="text-sm text-gray-600 mb-2">
-              Mostrando <span className="font-semibold">{filtered.length}</span> registro{filtered.length !== 1 ? 's' : ''}
+              Mostrando <span className="font-semibold">{totalRegistros}</span> registro{totalRegistros !== 1 ? 's' : ''}
             </div>
           </div>
 
           {/* TABLA */}
           <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
+            {loading ? (
+              <div className="min-h-[200px] flex items-center justify-center">
+                <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : (
             <div className="min-w-full inline-block align-middle">
               <table className="min-w-full text-xs border-collapse bg-white">
                 <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
@@ -596,19 +614,31 @@ const Directores: React.FC = () => {
                       
                       {/* COLUMNA 5: OPCIONES */}
                       <td className="px-4 py-3 border border-gray-300 align-top">
-                        <button
-                          onClick={() => puedeModificar && handleEdit(director)}
-                          disabled={!puedeModificar}
-                          className={`text-blue-600 hover:text-blue-800 font-medium transition-colors ${!puedeModificar ? "opacity-50 cursor-not-allowed" : ""}`}
-                        >
-                          Editar
-                        </button>
+                        <div className="flex flex-col gap-1">
+                          <button
+                            onClick={() => DirectoresService.generarConstanciaWord(director)}
+                            className="text-green-700 hover:text-green-900 font-medium transition-colors flex items-center gap-1"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Word
+                          </button>
+                          <button
+                            onClick={() => puedeModificar && handleEdit(director)}
+                            disabled={!puedeModificar}
+                            className={`text-blue-600 hover:text-blue-800 font-medium transition-colors flex items-center gap-1 ${!puedeModificar ? "opacity-50 cursor-not-allowed" : ""}`}
+                          >
+                            Editar
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )))}
                 </tbody>
               </table>
             </div>
+            )}
           </div>
 
           {/* PAGINACIÓN E INFORMACIÓN DE REGISTROS */}
@@ -616,10 +646,10 @@ const Directores: React.FC = () => {
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
               <div className="text-sm text-gray-600 text-center sm:text-left">
                 Mostrando <span className="font-semibold text-gray-900">
-                  {filtered.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}
+                  {totalRegistros > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}
                 </span> - <span className="font-semibold text-gray-900">
-                  {Math.min(currentPage * itemsPerPage, filtered.length)}
-                </span> de <span className="font-semibold text-gray-900">{filtered.length}</span> registros
+                  {Math.min(currentPage * itemsPerPage, totalRegistros)}
+                </span> de <span className="font-semibold text-gray-900">{totalRegistros}</span> registros
               </div>
               {totalPages > 1 && (
                 <div className="flex items-center gap-1">

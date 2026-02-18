@@ -32,6 +32,7 @@ interface PreviewTexts {
   copia1: string;
   copia2: string;
   descripcionEspecifica?: string; // Para formato 3 o cuando no hay especialidades
+  oficio?: string; // Número de oficio editable
 }
 
 interface PreviewDirectoresProps {
@@ -49,6 +50,12 @@ const PreviewDirectores: React.FC<PreviewDirectoresProps> = ({
 }) => {
   // Textos por defecto
   const getDefaultTexts = (): PreviewTexts => {
+    const getOficioDefault = () => {
+      if (formato === 1) return director.oficio_autorizacion_ro || '';
+      if (formato === 2) return director.oficio_autorizacion_rp || '';
+      return director.oficio_autorizacion_pu || '';
+    };
+
     const defaultTexts: PreviewTexts = {
       introduccion: 'En atención a su solicitud y una vez entregada la documentación requerida por el Reglamento de Construcción en vigor, queda el interesado, registrado en esta dependencia con los siguientes datos:',
       parrafo1: 'Como Profesional de la Ingeniería y la Arquitectura, estamos comprometidos en buena medida a que exista un ordenamiento urbano más acorde a la realidad que vivimos para coadyuvar a mejorar el deterioro social y humano por el crecimiento de nuestra ciudad.',
@@ -60,6 +67,7 @@ const PreviewDirectores: React.FC<PreviewDirectoresProps> = ({
       cargoFirmante: 'Coordinador General de Gestión Integral de la Ciudad',
       copia1: 'c.c. Dirección de Control de la Edificación',
       copia2: 'c.c. Archivo',
+      oficio: getOficioDefault(),
     };
 
     // Agregar descripción específica según el formato
@@ -112,6 +120,10 @@ const PreviewDirectores: React.FC<PreviewDirectoresProps> = ({
   };
 
   const getOficio = () => {
+    // Usar el oficio editado si está disponible, sino usar el del director
+    if (texts.oficio !== undefined && texts.oficio !== '') {
+      return texts.oficio;
+    }
     if (formato === 1) return director.oficio_autorizacion_ro || 'Sin número';
     if (formato === 2) return director.oficio_autorizacion_rp || 'Sin número';
     return director.oficio_autorizacion_pu || 'Sin número';
@@ -141,6 +153,17 @@ const PreviewDirectores: React.FC<PreviewDirectoresProps> = ({
             <div className="space-y-4">
               <h3 className="font-bold text-lg mb-4">Editar Textos</h3>
               
+              <div>
+                <label className="block text-sm font-medium mb-1">Oficio No.</label>
+                <input
+                  type="text"
+                  value={texts.oficio || ''}
+                  onChange={(e) => handleTextChange('oficio', e.target.value)}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  placeholder="Número de oficio"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">Introducción</label>
                 <textarea

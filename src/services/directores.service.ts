@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { PDFDirector } from '../services/pdfdirector';
+import { WordDirector } from '../services/worddirector';
 import type { PreviewTexts } from '../catalogos/PreviewDirectores';
 
 export interface DirectorObra {
@@ -75,12 +76,50 @@ export const emptyForm: Partial<DirectorObra> = {
   activo: true,
 };
 
+export interface DirectoresPaginatedParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  statusFilter?: string;
+}
+
+export interface DirectoresPaginatedResponse {
+  data: DirectorObra[];
+  meta: { page: number; limit: number; totalRegistros: number; totalPaginas: number };
+}
+
 // Servicio para manejar todas las operaciones de directores
 export const DirectoresService = {
-  // Obtener todos los directores
-  async getAll(): Promise<DirectorObra[]> {
+  // Obtener directores paginados (carga rápida)
+  async getPaginated(params: DirectoresPaginatedParams): Promise<DirectoresPaginatedResponse> {
     try {
-      const response = await axios.get(API_URL);
+      const searchParams = new URLSearchParams();
+      if (params.page) searchParams.set('page', String(params.page));
+      if (params.limit) searchParams.set('limit', String(params.limit));
+      if (params.search) searchParams.set('search', params.search);
+      if (params.statusFilter) searchParams.set('statusFilter', params.statusFilter);
+
+      const response = await axios.get(`${API_URL}?${searchParams.toString()}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al cargar directores:', error);
+      throw new Error('Error al cargar los directores');
+    }
+  },
+
+  // Obtener todos los directores (lista simple, p. ej. para selects)
+  async getAll(): Promise<DirectorObra[]> {
+    return this.getAllFiltered({});
+  },
+
+  // Obtener todos con filtros (para exportación Excel)
+  async getAllFiltered(params: { search?: string; statusFilter?: string }): Promise<DirectorObra[]> {
+    try {
+      const searchParams = new URLSearchParams();
+      if (params.search) searchParams.set('search', params.search);
+      if (params.statusFilter) searchParams.set('statusFilter', params.statusFilter);
+      const qs = searchParams.toString();
+      const response = await axios.get(`${API_URL}/export-all${qs ? `?${qs}` : ''}`);
       return response.data;
     } catch (error) {
       console.error('Error al cargar directores:', error);
@@ -344,6 +383,16 @@ export const DirectoresService = {
     } catch (error) {
       console.error('Error al generar PDF:', error);
       alert('Error al generar el PDF. Por favor, intente nuevamente.');
+    }
+  },
+
+  // Generar documento Word con constancia del director
+  generarConstanciaWord: async (director: DirectorObra): Promise<void> => {
+    try {
+      await WordDirector.generarConstancia(director);
+    } catch (error) {
+      console.error('Error al generar Word:', error);
+      alert('Error al generar el documento Word. Por favor, intente nuevamente.');
     }
   },
 

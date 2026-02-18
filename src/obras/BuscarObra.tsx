@@ -25,23 +25,33 @@ interface Obra {
   }>;
 }
 
+const REGISTROS_POR_PAGINA = 10;
+const ESTADOS_OBRA = [
+  { value: "", label: "Todos" },
+  { value: "En Proceso", label: "En Proceso" },
+  { value: "Verificado", label: "Verificado" },
+  { value: "Enviado a Firmas", label: "Enviado a Firmas" },
+  { value: "Concluido", label: "Concluido" },
+] as const;
+
 const BuscarObra: React.FC = () => {
   const navigate = useNavigate();
   const [obras, setObras] = useState<Obra[]>([]);
+  const [totalRegistros, setTotalRegistros] = useState(0);
   const [loading, setLoading] = useState(false);
   const [haBuscado, setHaBuscado] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paginaActual, setPaginaActual] = useState(1);
-  const registrosPorPagina = 50;
   const [filtros, setFiltros] = useState({
     consecutivo: "",
     fecha: "",
     nombrePropietario: "",
     calle: "",
     numerosPrediosContiguos: "",
+    estado: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFiltros((prev) => ({
       ...prev,
@@ -49,36 +59,27 @@ const BuscarObra: React.FC = () => {
     }));
   };
 
-  const cargarDatos = async () => {
+  const cargarDatos = useCallback(async (page: number) => {
     try {
       setLoading(true);
       setError(null);
       setHaBuscado(true);
 
-      // Construir query parameters
       const params = new URLSearchParams();
-      if (filtros.consecutivo.trim()) {
-        params.append('consecutivo', filtros.consecutivo.trim());
-      }
-      if (filtros.fecha) {
-        params.append('fechaCaptura', filtros.fecha);
-      }
-      if (filtros.nombrePropietario.trim()) {
-        params.append('nombrePropietario', filtros.nombrePropietario.trim());
-      }
-      if (filtros.numerosPrediosContiguos.trim()) {
-        params.append('numerosPrediosContiguos', filtros.numerosPrediosContiguos.trim());
-      }
+      params.set("page", String(page));
+      params.set("limit", String(REGISTROS_POR_PAGINA));
+      if (filtros.consecutivo.trim()) params.set("consecutivo", filtros.consecutivo.trim());
+      if (filtros.fecha) params.set("fechaCaptura", filtros.fecha);
+      if (filtros.nombrePropietario.trim()) params.set("nombrePropietario", filtros.nombrePropietario.trim());
+      if (filtros.numerosPrediosContiguos.trim()) params.set("numerosPrediosContiguos", filtros.numerosPrediosContiguos.trim());
+      if (filtros.estado.trim()) params.set("estadoObra", filtros.estado.trim());
 
-      const queryString = params.toString();
-      const url = `http://localhost:3001/op_obras/listado-filtrado${queryString ? `?${queryString}` : ''}`;
-
+      const url = `http://localhost:3001/op_obras/listado-filtrado-paginado?${params.toString()}`;
       const response = await fetch(url);
       if (!response.ok) throw new Error("Error al cargar obras");
-      const data = await response.json();
-      
-      // Transformar los datos al formato que necesitamos
-      const obrasTransformadas = data.map((obra: any) => ({
+      const { data, total } = await response.json();
+
+      const obrasTransformadas = (data || []).map((obra: any) => ({
         id: obra.id,
         idObra: obra.id,
         consecutivo: obra.consecutivo || "",
@@ -94,30 +95,28 @@ const BuscarObra: React.FC = () => {
         estadoObra: obra.estadoObra || "",
         estadoPago: obra.estadoPago || "",
       }));
-      
+
       setObras(obrasTransformadas);
-      setPaginaActual(1); // Resetear a primera página al buscar
-    } catch (error) {
-      console.error("Error al cargar obras:", error);
+      setTotalRegistros(total || 0);
+      setPaginaActual(page);
+    } catch (err) {
+      console.error("Error al cargar obras:", err);
       setError("Error al cargar las obras");
       setObras([]);
+      setTotalRegistros(0);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filtros.consecutivo, filtros.fecha, filtros.nombrePropietario, filtros.numerosPrediosContiguos, filtros.estado]);
 
-  // Filtrar obras por calle en memoria (ya que el backend no filtra por calle)
+  const buscar = () => cargarDatos(1);
+
+  // Filtrar por calle en memoria (sobre la página actual)
   const resultados = useMemo(() => {
-    let filtradas = obras;
-
-    // Filtrar por calle (este filtro se aplica en memoria ya que viene de números oficiales)
-    if (filtros.calle.trim()) {
-      filtradas = filtradas.filter((obra) =>
-        obra.calle?.toLowerCase().includes(filtros.calle.toLowerCase())
-      );
-    }
-
-    return filtradas;
+    if (!filtros.calle.trim()) return obras;
+    return obras.filter((obra) =>
+      obra.calle?.toLowerCase().includes(filtros.calle.toLowerCase())
+    );
   }, [obras, filtros.calle]);
 
   const limpiarFiltros = useCallback(() => {
@@ -127,20 +126,20 @@ const BuscarObra: React.FC = () => {
       nombrePropietario: "",
       calle: "",
       numerosPrediosContiguos: "",
+      estado: "",
     });
     setObras([]);
+    setTotalRegistros(0);
     setHaBuscado(false);
     setError(null);
     setPaginaActual(1);
   }, []);
 
-  // Paginación de resultados
-  const resultadosPaginados = useMemo(() => {
-    const inicio = (paginaActual - 1) * registrosPorPagina;
-    return resultados.slice(inicio, inicio + registrosPorPagina);
-  }, [resultados, paginaActual]);
-
-  const totalPaginas = Math.ceil(resultados.length / registrosPorPagina);
+  const totalPaginas = Math.ceil(totalRegistros / REGISTROS_POR_PAGINA) || 1;
+  const irAPagina = (pag: number) => {
+    if (pag < 1 || pag > totalPaginas) return;
+    cargarDatos(pag);
+  };
 
   const formatearFecha = (fecha: string | Date) => {
     if (!fecha) return "-";
@@ -184,7 +183,7 @@ const BuscarObra: React.FC = () => {
               </div>
               <div className="text-right">
                 <div className="text-sm text-gray-300">Total de registros</div>
-                <div className="text-2xl font-bold">{obras.length > 0 ? obras.length : "-"}</div>
+                <div className="text-2xl font-bold">{haBuscado ? totalRegistros : "-"}</div>
               </div>
             </div>
           </div>
@@ -201,7 +200,7 @@ const BuscarObra: React.FC = () => {
                   Limpiar Filtros
                 </button>
                 <button
-                  onClick={cargarDatos}
+                  onClick={buscar}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
                 >
                   Buscar
@@ -277,14 +276,31 @@ const BuscarObra: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Estado (flujo de obra)
+                </label>
+                <select
+                  name="estado"
+                  value={filtros.estado}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm bg-white"
+                >
+                  {ESTADOS_OBRA.map((op) => (
+                    <option key={op.value || "todos"} value={op.value}>
+                      {op.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="mt-4 text-sm text-gray-600">
-              {haBuscado && obras.length > 0 && (
-                <>
-                  Mostrando <span className="font-semibold">{resultados.length}</span> de{" "}
-                  <span className="font-semibold">{obras.length}</span> obras
-                </>
+              {haBuscado && (
+                totalRegistros === 0
+                  ? "0 resultados"
+                  : `Mostrando ${(paginaActual - 1) * REGISTROS_POR_PAGINA + 1}–${Math.min(paginaActual * REGISTROS_POR_PAGINA, totalRegistros)} de ${totalRegistros} resultados`
               )}
             </div>
           </div>
@@ -342,7 +358,7 @@ const BuscarObra: React.FC = () => {
                         </td>
                       </tr>
                     ) : (
-                      resultadosPaginados.map((obra) => (
+                      resultados.map((obra) => (
                         <tr
                           key={obra.idObra || obra.id}
                           className="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-200"
@@ -361,7 +377,13 @@ const BuscarObra: React.FC = () => {
                           <td className="px-4 py-3 border border-gray-300 text-gray-700">{obra.nombreColoniaObra || obra.colonia || "-"}</td>
                           <td className="px-4 py-3 border border-gray-300">
                             <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                              obra.estadoObra === "Verificado"
+                              obra.estadoObra === "Concluido"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : obra.estadoObra === "Enviado a Firmas"
+                                ? "bg-blue-100 text-blue-700"
+                                : obra.estadoObra === "Enviado a Pago"
+                                ? "bg-indigo-100 text-indigo-700"
+                                : obra.estadoObra === "Verificado"
                                 ? "bg-green-100 text-green-700"
                                 : obra.estadoObra === "En Proceso"
                                 ? "bg-yellow-100 text-yellow-700"
@@ -410,81 +432,44 @@ const BuscarObra: React.FC = () => {
             )}
           </div>
 
-          {/* PAGINACIÓN E INFORMACIÓN DE REGISTROS */}
-          {!loading && haBuscado && resultados.length > 0 && (
-            <div className="p-4 border-t bg-gray-50">
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div className="text-sm text-gray-600 text-center sm:text-left">
-                  Mostrando <span className="font-semibold text-gray-900">
-                    {resultados.length > 0 ? (paginaActual - 1) * registrosPorPagina + 1 : 0}
-                  </span> - <span className="font-semibold text-gray-900">
-                    {Math.min(paginaActual * registrosPorPagina, resultados.length)}
-                  </span> de <span className="font-semibold text-gray-900">{resultados.length}</span> registros
-                  {obras.length !== resultados.length && (
-                    <span className="text-gray-500"> (de {obras.length} totales)</span>
-                  )}
-                </div>
-
-                {totalPaginas > 1 && (
-                  <div className="flex items-center gap-1">
-                    <button
-                      disabled={paginaActual === 1}
-                      onClick={() => setPaginaActual(1)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                    >
-                      ««
-                    </button>
-                    <button
-                      disabled={paginaActual === 1}
-                      onClick={() => setPaginaActual(paginaActual - 1)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                    >
-                      &lt;
-                    </button>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
-                        let pageNum;
-                        if (totalPaginas <= 5) {
-                          pageNum = i + 1;
-                        } else if (paginaActual <= 3) {
-                          pageNum = i + 1;
-                        } else if (paginaActual >= totalPaginas - 2) {
-                          pageNum = totalPaginas - 4 + i;
-                        } else {
-                          pageNum = paginaActual - 2 + i;
-                        }
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => setPaginaActual(pageNum)}
-                            className={`min-w-[36px] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              paginaActual === pageNum
-                                ? "bg-black text-white"
-                                : "border border-gray-300 bg-white hover:bg-gray-100"
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <button
-                      disabled={paginaActual === totalPaginas}
-                      onClick={() => setPaginaActual(paginaActual + 1)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                    >
-                      &gt;
-                    </button>
-                    <button
-                      disabled={paginaActual === totalPaginas}
-                      onClick={() => setPaginaActual(totalPaginas)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                    >
-                      »»
-                    </button>
-                  </div>
-                )}
-              </div>
+          {/* PAGINACIÓN */}
+          {!loading && haBuscado && totalRegistros > 0 && totalPaginas > 1 && (
+            <div className="p-4 border-t bg-gray-50 flex flex-wrap justify-center items-center gap-2">
+              <button
+                type="button"
+                onClick={() => irAPagina(1)}
+                disabled={paginaActual === 1}
+                className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+              >
+                ««
+              </button>
+              <button
+                type="button"
+                onClick={() => irAPagina(paginaActual - 1)}
+                disabled={paginaActual === 1}
+                className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+              >
+                ‹
+              </button>
+              <span className="px-4 py-2 text-sm text-gray-700">
+                Página {paginaActual} de {totalPaginas}
+              </span>
+              <button
+                type="button"
+                onClick={() => irAPagina(paginaActual + 1)}
+                disabled={paginaActual === totalPaginas}
+                className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+              >
+                ›
+              </button>
+              <button
+                type="button"
+                onClick={() => irAPagina(totalPaginas)}
+                disabled={paginaActual === totalPaginas}
+                className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+              >
+                »»
+              </button>
             </div>
           )}
         </div>

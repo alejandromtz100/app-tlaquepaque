@@ -21,6 +21,7 @@ import RepObrasPage from "./reportes/rep_obras/RepObrasPage";
 import CambiarClave from "./cuenta/CambiarClave";
 import Administradores from "./administradores/Administradores";
 import Estadisticas from "./estadisticas/Estadisticas";
+import Alertas from "./alertas/Alertas";
 
 const App: React.FC = () => {
   return (
@@ -51,6 +52,7 @@ const App: React.FC = () => {
         <Route path="/administradores" element={<Administradores />} />
         <Route path="/buscar-obra" element={<BuscarObra />} />
         <Route path="/cambiar-clave" element={<CambiarClave />} />
+        <Route path="/alertas" element={<Alertas />} />
       </Routes>
     </Router>
   );

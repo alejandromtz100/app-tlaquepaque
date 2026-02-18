@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle, Edit, Trash2, Plus, X, Save } from "lucide-react";
+import { AlertCircle, Trash2, X, Save, Search } from "lucide-react";
 import Menu from "../layout/menu";
 
 interface Obra {
@@ -28,10 +28,12 @@ const TIPOS_PDF = [
 
 const API_OBRAS = "http://localhost:3001/op_obras";
 const API_ALERTAS = "http://localhost:3001/alertas";
+const REGISTROS_POR_PAGINA = 10;
 
 const Alertas: React.FC = () => {
   const navigate = useNavigate();
   const [obras, setObras] = useState<Obra[]>([]);
+  const [totalRegistros, setTotalRegistros] = useState(0);
   const [alertas, setAlertas] = useState<Alerta[]>([]);
   const [loading, setLoading] = useState(false);
   const [obraSeleccionada, setObraSeleccionada] = useState<number | null>(null);
@@ -40,44 +42,88 @@ const Alertas: React.FC = () => {
   const [mensajeAlerta, setMensajeAlerta] = useState("");
   const [alertaEditando, setAlertaEditando] = useState<Alerta | null>(null);
   const [paginaActual, setPaginaActual] = useState(1);
-  const registrosPorPagina = 10;
+  const [filtros, setFiltros] = useState({
+    consecutivo: "",
+    fecha: "",
+    nombrePropietario: "",
+    numerosPrediosContiguos: "",
+  });
 
-  // Verificar permisos del usuario logueado
   const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const esAdmin = usuarioLogueado?.rol === "ADMIN";
   const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const puedeModificar = !esSupervisor;
 
   useEffect(() => {
-    cargarObras();
+    if (!esAdmin) {
+      navigate("/home");
+      return;
+    }
     cargarAlertas();
-  }, []);
+  }, [esAdmin, navigate]);
 
-  const cargarObras = async () => {
+  const cargarObras = useCallback(async (page?: number, filtrosActuales?: typeof filtros) => {
+    if (!esAdmin) return;
+    const p = page ?? paginaActual;
+    const f = filtrosActuales ?? filtros;
     try {
       setLoading(true);
-      const response = await fetch(`${API_OBRAS}/listado-filtrado`);
+      const params = new URLSearchParams();
+      params.set("page", String(p));
+      params.set("limit", String(REGISTROS_POR_PAGINA));
+      if (f.consecutivo.trim()) params.set("consecutivo", f.consecutivo.trim());
+      if (f.fecha) params.set("fechaCaptura", f.fecha);
+      if (f.nombrePropietario.trim()) params.set("nombrePropietario", f.nombrePropietario.trim());
+      if (f.numerosPrediosContiguos.trim()) params.set("numerosPrediosContiguos", f.numerosPrediosContiguos.trim());
+      const response = await fetch(`${API_OBRAS}/listado-filtrado-paginado?${params.toString()}`);
       if (!response.ok) throw new Error("Error al cargar obras");
-      const data = await response.json();
-      const ordenadas = data.sort(
-        (a: Obra, b: Obra) =>
-          new Date(b.captura).getTime() - new Date(a.captura).getTime()
-      );
-      setObras(ordenadas);
+      const { data, total } = await response.json();
+      setObras(data || []);
+      setTotalRegistros(total || 0);
     } catch (error) {
       console.error("Error al cargar obras:", error);
+      setObras([]);
+      setTotalRegistros(0);
     } finally {
       setLoading(false);
     }
+  }, [esAdmin, paginaActual, filtros]);
+
+  useEffect(() => {
+    if (esAdmin) cargarObras();
+  }, [esAdmin, paginaActual]);
+
+  const buscar = () => {
+    setPaginaActual(1);
+    cargarObras(1, filtros);
+  };
+
+  const limpiarFiltros = () => {
+    const nuevosFiltros = {
+      consecutivo: "",
+      fecha: "",
+      nombrePropietario: "",
+      numerosPrediosContiguos: "",
+    };
+    setFiltros(nuevosFiltros);
+    setPaginaActual(1);
+    cargarObras(1, nuevosFiltros);
   };
 
   const cargarAlertas = async () => {
     try {
       const response = await fetch(API_ALERTAS);
+      if (response.status === 404) {
+        // Backend puede no tener la ruta /alertas si no se reinició después de agregar AlertasModule
+        setAlertas([]);
+        return;
+      }
       if (!response.ok) throw new Error("Error al cargar alertas");
       const data = await response.json();
       setAlertas(data);
     } catch (error) {
       console.error("Error al cargar alertas:", error);
+      setAlertas([]);
     }
   };
 
@@ -127,6 +173,10 @@ const Alertas: React.FC = () => {
             idUsuario: usuarioLogueado?.id || null,
           }),
         });
+        if (response.status === 404) {
+          alert("El servicio de alertas no está disponible. Reinicia el backend (npm run start:dev) y vuelve a intentar.");
+          return;
+        }
         if (!response.ok) throw new Error("Error al actualizar la alerta");
       } else {
         // Crear nueva alerta
@@ -140,6 +190,10 @@ const Alertas: React.FC = () => {
             idUsuario: usuarioLogueado?.id || null,
           }),
         });
+        if (response.status === 404) {
+          alert("El servicio de alertas no está disponible. Reinicia el backend (npm run start:dev) y vuelve a intentar.");
+          return;
+        }
         if (!response.ok) throw new Error("Error al crear la alerta");
       }
 
@@ -152,7 +206,11 @@ const Alertas: React.FC = () => {
       alert(alertaEditando ? "Alerta actualizada correctamente" : "Alerta creada correctamente");
     } catch (error: any) {
       console.error("Error al guardar alerta:", error);
-      alert(`Error: ${error.message || "Error desconocido"}`);
+      if (error.message?.includes("404") || error.name === "TypeError") {
+        alert("El servicio de alertas no está disponible. Reinicia el backend (npm run start:dev) y vuelve a intentar.");
+      } else {
+        alert(`Error: ${error.message || "Error desconocido"}`);
+      }
     }
   };
 
@@ -185,10 +243,12 @@ const Alertas: React.FC = () => {
     setTipoPdfSeleccionado(null);
   };
 
-  // Paginación
-  const inicio = (paginaActual - 1) * registrosPorPagina;
-  const obrasPaginadas = obras.slice(inicio, inicio + registrosPorPagina);
-  const totalPaginas = Math.ceil(obras.length / registrosPorPagina);
+  const totalPaginas = Math.ceil(totalRegistros / REGISTROS_POR_PAGINA) || 1;
+
+  const irAPagina = (pag: number) => {
+    if (pag < 1 || pag > totalPaginas) return;
+    setPaginaActual(pag);
+  };
 
   const formatearFecha = (fecha: string | Date) => {
     if (!fecha) return "-";
@@ -231,6 +291,68 @@ const Alertas: React.FC = () => {
                   Gestión de alertas para PDFs de obras
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* FILTROS */}
+          <div className="p-4 border-b bg-gray-50">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Consecutivo</label>
+                <input
+                  type="text"
+                  value={filtros.consecutivo}
+                  onChange={(e) => setFiltros((f) => ({ ...f, consecutivo: e.target.value }))}
+                  placeholder="Ej. 2024-001"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Fecha captura</label>
+                <input
+                  type="date"
+                  value={filtros.fecha}
+                  onChange={(e) => setFiltros((f) => ({ ...f, fecha: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Nombre propietario</label>
+                <input
+                  type="text"
+                  value={filtros.nombrePropietario}
+                  onChange={(e) => setFiltros((f) => ({ ...f, nombrePropietario: e.target.value }))}
+                  placeholder="Buscar por nombre"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Números predios contiguos</label>
+                <input
+                  type="text"
+                  value={filtros.numerosPrediosContiguos}
+                  onChange={(e) => setFiltros((f) => ({ ...f, numerosPrediosContiguos: e.target.value }))}
+                  placeholder="Ej. 123, 124"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-3">
+              <button
+                type="button"
+                onClick={buscar}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 text-sm"
+              >
+                <Search size={16} />
+                Buscar
+              </button>
+              <button
+                type="button"
+                onClick={limpiarFiltros}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 text-sm"
+              >
+                Limpiar
+              </button>
             </div>
           </div>
 
@@ -343,7 +465,7 @@ const Alertas: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {obrasPaginadas.map((obra) => (
+                      {obras.map((obra) => (
                         <tr key={obra.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 border border-gray-300 text-gray-700 font-medium">
                             {obra.consecutivo || "-"}
@@ -416,18 +538,25 @@ const Alertas: React.FC = () => {
                   </table>
                 </div>
 
-                {/* PAGINACIÓN */}
+                {/* Resumen y paginación */}
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm text-gray-600">
+                    {totalRegistros === 0
+                      ? "0 resultados"
+                      : `Mostrando ${(paginaActual - 1) * REGISTROS_POR_PAGINA + 1}–${Math.min(paginaActual * REGISTROS_POR_PAGINA, totalRegistros)} de ${totalRegistros} resultados`}
+                  </p>
+                </div>
                 {totalPaginas > 1 && (
                   <div className="mt-6 flex justify-center items-center gap-2">
                     <button
-                      onClick={() => setPaginaActual(1)}
+                      onClick={() => irAPagina(1)}
                       disabled={paginaActual === 1}
                       className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
                     >
                       ««
                     </button>
                     <button
-                      onClick={() => setPaginaActual(paginaActual - 1)}
+                      onClick={() => irAPagina(paginaActual - 1)}
                       disabled={paginaActual === 1}
                       className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
                     >
@@ -437,14 +566,14 @@ const Alertas: React.FC = () => {
                       Página {paginaActual} de {totalPaginas}
                     </span>
                     <button
-                      onClick={() => setPaginaActual(paginaActual + 1)}
+                      onClick={() => irAPagina(paginaActual + 1)}
                       disabled={paginaActual === totalPaginas}
                       className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
                     >
                       ›
                     </button>
                     <button
-                      onClick={() => setPaginaActual(totalPaginas)}
+                      onClick={() => irAPagina(totalPaginas)}
                       disabled={paginaActual === totalPaginas}
                       className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
                     >

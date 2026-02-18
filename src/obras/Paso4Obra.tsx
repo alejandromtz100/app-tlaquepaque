@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'react';
 import { getConceptosByObra } from '../services/obraConceptos.service';
-import { Printer, FileSignature } from 'lucide-react';
+import { Printer, AlertCircle, X } from 'lucide-react';
 import { PDFObra } from '../services/pdfobra';
 
 const API_OBRAS = 'http://localhost:3001/op_obras';
 const API_LUGARES_RECIBIDOS = 'http://localhost:3001/lugares-recibidos';
+const API_ALERTAS = 'http://localhost:3001/alertas';
+
+interface AlertaPdf {
+  idAlerta: number;
+  idObra: number;
+  tipoPdf: string;
+  mensaje: string;
+}
 const NIVELES_LABELS = ['Abuelo', 'Padre', 'Hijo', 'Nieto'] as const;
 const MAX_NIVELES = 4;
 
@@ -25,17 +33,17 @@ export default function Paso4Obra({ obraId }: Props) {
   const [error, setError] = useState('');
   const [nuevoEstado, setNuevoEstado] = useState('');
   const [actualizandoEstado, setActualizandoEstado] = useState(false);
-  // Estados para el formulario de lugares que recibieron
   const [recibidoSecretaria, setRecibidoSecretaria] = useState<string>('');
   const [recibidoPresidencia, setRecibidoPresidencia] = useState<string>('');
   const [recibidoPadron, setRecibidoPadron] = useState<string>('');
   const [guardandoRecibidos, setGuardandoRecibidos] = useState(false);
-  // Estados para el modal de edición de PDF
+  const [alertasObra, setAlertasObra] = useState<AlertaPdf[]>([]);
   const [mostrarModalPDF, setMostrarModalPDF] = useState(false);
   const [tipoPDFSeleccionado, setTipoPDFSeleccionado] = useState<string>('');
   const [nombreAutorizacion, setNombreAutorizacion] = useState('C. JONATHAN TORRES SIFUENTES');
   const [rev, setRev] = useState('');
   const [cuant, setCuant] = useState('AFAI');
+  const [tamanoFuente, setTamanoFuente] = useState<'normal' | 'pequeno' | 'muyPequeno'>('normal');
 
   useEffect(() => {
     const cargar = async () => {
@@ -56,8 +64,7 @@ export default function Paso4Obra({ obraId }: Props) {
         const dataObra = await resObra.json();
         setObra(dataObra);
         setConceptos(dataConceptos);
-        
-        // Cargar lugares recibidos
+
         try {
           const resLugares = await fetch(`${API_LUGARES_RECIBIDOS}/obra/${obraId}`);
           if (resLugares.ok) {
@@ -69,6 +76,19 @@ export default function Paso4Obra({ obraId }: Props) {
         } catch (err) {
           console.error('Error al cargar lugares recibidos:', err);
         }
+
+        try {
+          const resAlertas = await fetch(`${API_ALERTAS}/obra/${obraId}`);
+          if (resAlertas.ok) {
+            const dataAlertas = await resAlertas.json();
+            setAlertasObra(Array.isArray(dataAlertas) ? dataAlertas : []);
+          } else {
+            setAlertasObra([]);
+          }
+        } catch (err) {
+          console.error('Error al cargar alertas:', err);
+          setAlertasObra([]);
+        }
       } catch (err: any) {
         setError(err.message || 'Error al cargar los datos');
       } finally {
@@ -78,7 +98,7 @@ export default function Paso4Obra({ obraId }: Props) {
     cargar();
   }, [obraId]);
 
-  // Inicializar nuevoEstado cuando la obra está "Enviado a Pago" o "Enviado a Firmas" (siempre mismo orden de hooks)
+  // Inicializar nuevoEstado cuando la obra está "Enviado a Pago" o "Enviado a Firmas"
   useEffect(() => {
     if (!obra) return;
     const estadoLower = obra.estadoObra ? String(obra.estadoObra).toLowerCase() : '';
@@ -131,13 +151,69 @@ export default function Paso4Obra({ obraId }: Props) {
   const municipioObra = [obra.municipioPropietario, obra.entidadPropietario].filter(Boolean).join(' / ') || '—';
   const totalGeneral = conceptos.reduce((sum, c) => sum + Number(c.total ?? (c.costo_unitario ?? 0) * (c.cantidad ?? 0)), 0);
 
-  const estadoObraLower = obra.estadoObra ? String(obra.estadoObra).toLowerCase() : '';
-  const esEnviadoAPago = estadoObraLower === 'enviado a pago';
-  const esEnviadoAFirmas = estadoObraLower === 'enviado a firmas';
-  const esVerificado = estadoObraLower === 'verificado';
+  const estadoObraLower = obra.estadoObra ? String(obra.estadoObra).toLowerCase().trim() : '';
+  const esEnviadoAPago = estadoObraLower === 'enviado a pago' || estadoObraLower.includes('enviado a pago');
+  const esEnviadoAFirmas = estadoObraLower === 'enviado a firmas' || estadoObraLower.includes('enviado a firmas');
+  const puedeGenerarPDFs = esEnviadoAPago || estadoObraLower === 'verificado' || esEnviadoAFirmas || estadoObraLower === 'concluido';
+  const mostrarLugaresYConcluir = esEnviadoAPago || esEnviadoAFirmas;
+
+  const getAlertaPorTipo = (tipoPdf: string): AlertaPdf | null =>
+    alertasObra.find((a) => a.tipoPdf === tipoPdf) || null;
+
+  const handleGenerarPDFClick = (tipo: string) => {
+    const alerta = getAlertaPorTipo(tipo);
+    if (alerta) {
+      alert(
+        `No se puede imprimir este documento.\n\nMotivo: ${alerta.mensaje}\n\nPara poder imprimir, un administrador debe revisar el documento y quitar o modificar la alerta desde el menú Administradores → Alertas.`
+      );
+      return;
+    }
+    setTipoPDFSeleccionado(tipo);
+    setMostrarModalPDF(true);
+  };
+
+  const handleCerrarModalPDF = () => {
+    setMostrarModalPDF(false);
+    setTipoPDFSeleccionado('');
+  };
+
+  const handleGuardarRecibidos = async () => {
+    setGuardandoRecibidos(true);
+    try {
+      const res = await fetch(`${API_LUGARES_RECIBIDOS}/obra/${obraId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          secretariaObrasPublicas: recibidoSecretaria,
+          presidencia: recibidoPresidencia,
+          padronLicencias: recibidoPadron,
+        }),
+      });
+      if (!res.ok) throw new Error('Error al guardar los datos');
+      alert('Datos guardados correctamente');
+    } catch (err: any) {
+      alert(err.message || 'Error al guardar los datos');
+    } finally {
+      setGuardandoRecibidos(false);
+    }
+  };
 
   const handleActualizarEstado = async () => {
     if (!nuevoEstado || nuevoEstado === obra.estadoObra) return;
+
+    if (nuevoEstado === 'Concluido') {
+      const resAlertas = await fetch(`${API_ALERTAS}/obra/${obraId}`);
+      const alertasActuales = resAlertas.ok ? (await resAlertas.json()) || [] : [];
+      if (alertasActuales.length > 0) {
+        alert(
+          'No se puede marcar la obra como concluida. Hay alertas pendientes en uno o más PDFs. Un administrador debe revisar cada documento con alerta en Administradores → Alertas, quitarlas o modificarlas, y luego podrá enviar a concluido.'
+        );
+        setAlertasObra(Array.isArray(alertasActuales) ? alertasActuales : []);
+        return;
+      }
+      const confirmar = window.confirm('¿Estás seguro que quieres enviar el estado de la obra a concluido?');
+      if (!confirmar) return;
+    }
 
     setActualizandoEstado(true);
     try {
@@ -167,74 +243,9 @@ export default function Paso4Obra({ obraId }: Props) {
     }
   };
 
-  const handleEnviarACaja = async () => {
-    const confirmar = window.confirm(
-      '¿Está seguro que desea cambiar el estado de la obra de "VERIFICADO" a "ENVIADO A FIRMAS"?'
-    );
-
-    if (!confirmar) return;
-
-    setActualizandoEstado(true);
+  const handleGenerarPDF = async (tipo: string) => {
     try {
-      const res = await fetch(`${API_OBRAS}/${obraId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estadoObra: 'Enviado a Firmas' }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Error al actualizar el estado');
-      }
-
-      // Recargar los datos completos de la obra
-      const resObra = await fetch(`${API_OBRAS}/${obraId}`);
-      if (resObra.ok) {
-        const obraActualizada = await resObra.json();
-        setObra(obraActualizada);
-        alert('Estado actualizado correctamente a "Enviado a Firmas"');
-      } else {
-        throw new Error('Error al recargar los datos');
-      }
-    } catch (err: any) {
-      alert(err.message || 'Error al actualizar el estado');
-    } finally {
-      setActualizandoEstado(false);
-    }
-  };
-
-  const handleGuardarRecibidos = async () => {
-    setGuardandoRecibidos(true);
-    try {
-      const res = await fetch(`${API_LUGARES_RECIBIDOS}/obra/${obraId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          secretariaObrasPublicas: recibidoSecretaria,
-          presidencia: recibidoPresidencia,
-          padronLicencias: recibidoPadron,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Error al guardar los datos');
-      }
-
-      alert('Datos guardados correctamente');
-    } catch (err: any) {
-      alert(err.message || 'Error al guardar los datos');
-    } finally {
-      setGuardandoRecibidos(false);
-    }
-  };
-
-  const handleAbrirModalPDF = (tipo: string) => {
-    setTipoPDFSeleccionado(tipo);
-    setMostrarModalPDF(true);
-  };
-
-  const handleGenerarPDF = async () => {
-    try {
-      if (!obra || !tipoPDFSeleccionado) return;
+      if (!obra) return;
 
       // Preparar conceptos con información adicional
       const conceptosFormateados = conceptos.map((c: any) => {
@@ -293,26 +304,24 @@ export default function Paso4Obra({ obraId }: Props) {
         // Bitácora viene de op_obras
         bitacoraObra: obra.bitacoraObra,
         direccionMedioAmbiente: obra.direccionMedioAmbiente,
-        observaciones: obra.nota || obra.observaciones, // Usar el campo nota de op_obras para OBSERVACIONES
+        observaciones: obra.nota || obra.observaciones,
         verificador: obra.verificador,
         notaServidumbre: obra.notaServidumbre,
         conceptos: conceptosFormateados,
-        // Campos editables para autorización
-        nombreAutorizacion: nombreAutorizacion,
-        rev: rev,
-        cuant: cuant,
+        nombreAutorizacion,
+        rev,
+        cuant,
+        tamanoFuente,
       };
 
-      if (tipoPDFSeleccionado === 'ALINEAMIENTO Y NUMERO OFICIAL') {
+      if (tipo === 'ALINEAMIENTO Y NUMERO OFICIAL') {
         await PDFObra.generarAlineamientoNumeroOficial(obraData);
-      } else if (tipoPDFSeleccionado === 'LICENCIA DE CONSTRUCCIÓN') {
+      } else if (tipo === 'LICENCIA DE CONSTRUCCIÓN') {
         await PDFObra.generarLicenciaConstruccion(obraData);
-      } else if (tipoPDFSeleccionado === 'CERTIFICADO DE HABITABILIDAD') {
+      } else if (tipo === 'CERTIFICADO DE HABITABILIDAD') {
         await PDFObra.generarCertificadoHabitabilidad(obraData);
       }
-
-      // Cerrar el modal después de generar el PDF
-      setMostrarModalPDF(false);
+      handleCerrarModalPDF();
     } catch (error: any) {
       console.error('Error al generar PDF:', error);
       alert(`Error al generar el PDF: ${error.message || 'Error desconocido'}`);
@@ -451,159 +460,159 @@ export default function Paso4Obra({ obraId }: Props) {
         </div>
       )}
 
-      {/* Botón ENVIAR A FIRMAS cuando la obra está VERIFICADO */}
-      {esVerificado && (
-        <div className="mt-6 px-6 flex justify-center">
-          <button
-            type="button"
-            onClick={handleEnviarACaja}
-            disabled={actualizandoEstado}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
-          >
-            <FileSignature className="w-4 h-4" />
-            ENVIAR A FIRMAS
-          </button>
-        </div>
-      )}
-
-      {/* Sección cuando está Enviado a Pago o Enviado a Firmas */}
-      {(esEnviadoAPago || esEnviadoAFirmas) && (
+      {/* Sección de PDFs y gestión de estado */}
+      {(
         <div className="mt-6 space-y-6">
           {/* Botones de PDF */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
-              type="button"
-              onClick={() => handleAbrirModalPDF('ALINEAMIENTO Y NUMERO OFICIAL')}
-              className="flex items-center gap-3 px-4 py-3 bg-white border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
-            >
-              <Printer className="w-5 h-5 text-gray-700 shrink-0" />
-              <span className="text-sm font-medium text-gray-800">ALINEAMIENTO Y NUMERO OFICIAL</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleAbrirModalPDF('LICENCIA DE CONSTRUCCIÓN')}
-              className="flex items-center gap-3 px-4 py-3 bg-white border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
-            >
-              <Printer className="w-5 h-5 text-gray-700 shrink-0" />
-              <span className="text-sm font-medium text-gray-800">LICENCIA DE CONSTRUCCIÓN</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleAbrirModalPDF('CERTIFICADO DE HABITABILIDAD')}
-              className="flex items-center gap-3 px-4 py-3 bg-white border-2 border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition text-left"
-            >
-              <Printer className="w-5 h-5 text-gray-700 shrink-0" />
-              <span className="text-sm font-medium text-gray-800">CERTIFICADO DE HABITABILIDAD</span>
-            </button>
-          </div>
-
-          {/* Formulario de lugares que recibieron */}
-          <div className="bg-white border-2 border-gray-300 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Lugares que recibieron</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between py-2 border-b border-gray-200">
-                <span className="text-sm font-medium text-gray-700">Secretaria obras públicas</span>
-                <select
-                  value={recibidoSecretaria}
-                  onChange={(e) => setRecibidoSecretaria(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                >
-                  <option value="">Seleccionar</option>
-                  <option value="Si">Sí</option>
-                  <option value="No">No</option>
-                </select>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b border-gray-200">
-                <span className="text-sm font-medium text-gray-700">Presidencia</span>
-                <select
-                  value={recibidoPresidencia}
-                  onChange={(e) => setRecibidoPresidencia(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                >
-                  <option value="">Seleccionar</option>
-                  <option value="Si">Sí</option>
-                  <option value="No">No</option>
-                </select>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b border-gray-200">
-                <span className="text-sm font-medium text-gray-700">Padron y licencias</span>
-                <select
-                  value={recibidoPadron}
-                  onChange={(e) => setRecibidoPadron(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                >
-                  <option value="">Seleccionar</option>
-                  <option value="Si">Sí</option>
-                  <option value="No">No</option>
-                </select>
-              </div>
-              <div className="flex justify-end pt-4">
+            {(['ALINEAMIENTO Y NUMERO OFICIAL', 'LICENCIA DE CONSTRUCCIÓN', 'CERTIFICADO DE HABITABILIDAD'] as const).map((tipo) => {
+              const tieneAlerta = !!getAlertaPorTipo(tipo);
+              return (
                 <button
+                  key={tipo}
                   type="button"
-                  onClick={handleGuardarRecibidos}
-                  disabled={guardandoRecibidos}
-                  className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => handleGenerarPDFClick(tipo)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition text-left ${
+                    tieneAlerta
+                      ? 'bg-red-50 border-red-300 hover:border-red-500 hover:bg-red-100'
+                      : 'bg-white border-gray-300 hover:border-blue-500 hover:bg-blue-50'
+                  }`}
                 >
-                  {guardandoRecibidos ? 'Guardando...' : 'Guardar'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Panel Dar por concluida la obra */}
-          <div className="bg-white border-2 border-gray-300 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Dar por concluida la obra</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-                <select
-                  value={nuevoEstado}
-                  onChange={(e) => setNuevoEstado(e.target.value)}
-                  className="w-full md:w-64 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                >
-                  {esEnviadoAFirmas ? (
-                    <>
-                      <option value="Enviado a Firmas">Enviado a Firmas</option>
-                      <option value="Concluido">Concluido</option>
-                    </>
+                  {tieneAlerta ? (
+                    <AlertCircle className="w-5 h-5 text-red-600 shrink-0" title="Este PDF tiene una alerta" />
                   ) : (
-                    <>
-                      <option value="Enviado a Pago">Enviado a Pago</option>
-                      <option value="Concluido">Concluido</option>
-                    </>
+                    <Printer className="w-5 h-5 text-gray-700 shrink-0" />
                   )}
-                </select>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={handleActualizarEstado}
-                  disabled={actualizandoEstado || !nuevoEstado || nuevoEstado === obra.estadoObra}
-                  className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {actualizandoEstado ? 'Enviando...' : 'Enviar'}
+                  <span className={`text-sm font-medium ${tieneAlerta ? 'text-red-800' : 'text-gray-800'}`}>
+                    {tipo}
+                    {tieneAlerta && ' (con alerta)'}
+                  </span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setNuevoEstado(obra.estadoObra)}
-                  disabled={actualizandoEstado}
-                  className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancelar
-                </button>
+              );
+            })}
+          </div>
+
+          {/* Lugares que recibieron - cuando está Enviado a Pago o Enviado a Firmas */}
+          {mostrarLugaresYConcluir && (
+            <div className="bg-white border-2 border-gray-300 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Lugares que recibieron</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                  <span className="text-sm font-medium text-gray-700">Secretaria obras públicas</span>
+                  <select
+                    value={recibidoSecretaria}
+                    onChange={(e) => setRecibidoSecretaria(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="Si">Sí</option>
+                    <option value="No">No</option>
+                  </select>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                  <span className="text-sm font-medium text-gray-700">Presidencia</span>
+                  <select
+                    value={recibidoPresidencia}
+                    onChange={(e) => setRecibidoPresidencia(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="Si">Sí</option>
+                    <option value="No">No</option>
+                  </select>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                  <span className="text-sm font-medium text-gray-700">Padron y licencias</span>
+                  <select
+                    value={recibidoPadron}
+                    onChange={(e) => setRecibidoPadron(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="Si">Sí</option>
+                    <option value="No">No</option>
+                  </select>
+                </div>
+                <div className="flex justify-end pt-4">
+                  <button
+                    type="button"
+                    onClick={handleGuardarRecibidos}
+                    disabled={guardandoRecibidos}
+                    className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {guardandoRecibidos ? 'Guardando...' : 'Guardar'}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Dar por concluida la obra - cuando está Enviado a Pago o Enviado a Firmas */}
+          {mostrarLugaresYConcluir && (
+            <div className="bg-white border-2 border-gray-300 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Dar por concluida la obra</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+                  <select
+                    value={nuevoEstado}
+                    onChange={(e) => setNuevoEstado(e.target.value)}
+                    className="w-full md:w-64 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  >
+                    {esEnviadoAFirmas ? (
+                      <>
+                        <option value="Enviado a Firmas">Enviado a Firmas</option>
+                        <option value="Concluido">Concluido</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="Enviado a Pago">Enviado a Pago</option>
+                        <option value="Concluido">Concluido</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={handleActualizarEstado}
+                    disabled={actualizandoEstado || !nuevoEstado || nuevoEstado === obra.estadoObra}
+                    className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {actualizandoEstado ? 'Enviando...' : 'Enviar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNuevoEstado(obra.estadoObra)}
+                    disabled={actualizandoEstado}
+                    className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Modal para editar campos del PDF */}
-      {mostrarModalPDF && (
+      {/* Modal para editar información de autorización del PDF */}
+      {mostrarModalPDF && tipoPDFSeleccionado && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">
-              Editar información de autorización
-            </h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-gray-800">
+                Editar información de autorización
+              </h3>
+              <button
+                type="button"
+                onClick={handleCerrarModalPDF}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">{tipoPDFSeleccionado}</p>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -619,7 +628,7 @@ export default function Paso4Obra({ obraId }: Props) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rev:
+                  Rev
                 </label>
                 <input
                   type="text"
@@ -631,7 +640,7 @@ export default function Paso4Obra({ obraId }: Props) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cuant:
+                  Cuant
                 </label>
                 <input
                   type="text"
@@ -641,18 +650,35 @@ export default function Paso4Obra({ obraId }: Props) {
                   placeholder="AFAI"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tamaño de fuente
+                </label>
+                <select
+                  value={tamanoFuente}
+                  onChange={(e) => setTamanoFuente(e.target.value as 'normal' | 'pequeno' | 'muyPequeno')}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                >
+                  <option value="normal">Normal (9pt) - Una hoja</option>
+                  <option value="pequeno">Pequeño (8pt) - Si se pasa a dos hojas</option>
+                  <option value="muyPequeno">Muy pequeño (7pt) - Para textos muy largos</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Selecciona un tamaño más pequeño si el texto se pasa a dos hojas
+                </p>
+              </div>
             </div>
             <div className="flex gap-3 mt-6">
               <button
                 type="button"
-                onClick={() => setMostrarModalPDF(false)}
+                onClick={handleCerrarModalPDF}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
               >
                 Cancelar
               </button>
               <button
                 type="button"
-                onClick={handleGenerarPDF}
+                onClick={() => handleGenerarPDF(tipoPDFSeleccionado)}
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
               >
                 Generar PDF

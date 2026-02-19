@@ -180,7 +180,7 @@ const RepLicenciasPage: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
+              <div className="overflow-x-auto">
                 <RepLicenciasTable
                   data={data}
                   loading={loading}
@@ -191,76 +191,66 @@ const RepLicenciasPage: React.FC = () => {
 
               {/* PAGINACIÓN */}
               {meta && meta.totalPaginas > 0 && (
-                <div className="p-4 border-t bg-gray-50">
-                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <div className="text-sm text-gray-600 text-center sm:text-left">
-                      Mostrando <span className="font-semibold text-gray-900">
-                        {(meta.page - 1) * meta.limit + 1}
-                      </span> - <span className="font-semibold text-gray-900">
-                        {Math.min(meta.page * meta.limit, meta.totalRegistros)}
-                      </span> de <span className="font-semibold text-gray-900">{meta.totalRegistros}</span> registros
-                    </div>
-
-                    {meta.totalPaginas > 1 && (
-                      <div className="flex items-center gap-1">
-                        <button
-                          disabled={meta.page <= 1}
-                          onClick={() => onPageChange(1)}
-                          className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                        >
-                          ««
-                        </button>
-                        <button
-                          disabled={meta.page <= 1}
-                          onClick={() => onPageChange(meta.page - 1)}
-                          className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                        >
-                          &lt;
-                        </button>
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: Math.min(5, meta.totalPaginas) }, (_, i) => {
-                            let pageNum: number;
-                            if (meta.totalPaginas <= 5) {
-                              pageNum = i + 1;
-                            } else if (meta.page <= 3) {
-                              pageNum = i + 1;
-                            } else if (meta.page >= meta.totalPaginas - 2) {
-                              pageNum = meta.totalPaginas - 4 + i;
-                            } else {
-                              pageNum = meta.page - 2 + i;
-                            }
-                            return (
-                              <button
-                                key={pageNum}
-                                onClick={() => onPageChange(pageNum)}
-                                className={`min-w-[36px] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                  meta.page === pageNum
-                                    ? "bg-black text-white"
-                                    : "border border-gray-300 bg-white hover:bg-gray-100"
-                                }`}
-                              >
-                                {pageNum}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <button
-                          disabled={meta.page >= meta.totalPaginas}
-                          onClick={() => onPageChange(meta.page + 1)}
-                          className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                        >
-                          &gt;
-                        </button>
-                        <button
-                          disabled={meta.page >= meta.totalPaginas}
-                          onClick={() => onPageChange(meta.totalPaginas)}
-                          className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                        >
-                          »»
-                        </button>
+                <div className="px-4 py-3 border-t border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <p className="text-sm text-slate-600 text-center sm:text-left order-2 sm:order-1">
+                    <span className="font-medium text-slate-800">{meta.totalRegistros > 0 ? (meta.page - 1) * meta.limit + 1 : 0}</span>
+                    <span className="mx-1">–</span>
+                    <span className="font-medium text-slate-800">{Math.min(meta.page * meta.limit, meta.totalRegistros)}</span>
+                    <span className="mx-1">de</span>
+                    <span className="font-medium text-slate-800">{meta.totalRegistros}</span>
+                    <span className="ml-1">registros</span>
+                  </p>
+                  {meta.totalPaginas > 1 && (
+                    <nav className="flex items-center justify-center gap-1 order-1 sm:order-2" aria-label="Paginación">
+                      <button
+                        onClick={() => onPageChange(1)}
+                        disabled={meta.page === 1}
+                        className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                        aria-label="Primera página"
+                      >
+                        <span className="sr-only">Primera</span>«
+                      </button>
+                      <button
+                        onClick={() => onPageChange(meta.page - 1)}
+                        disabled={meta.page === 1}
+                        className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                        aria-label="Anterior"
+                      >
+                        ‹
+                      </button>
+                      <div className="flex items-center gap-0.5 mx-1">
+                        {Array.from({ length: Math.min(5, meta.totalPaginas) }, (_, i) => {
+                          let pageNum = meta.totalPaginas <= 5 ? i + 1 : meta.page <= 3 ? i + 1 : meta.page >= meta.totalPaginas - 2 ? meta.totalPaginas - 4 + i : meta.page - 2 + i;
+                          if (pageNum < 1) pageNum = i + 1;
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => onPageChange(pageNum)}
+                              className={`min-w-[2.25rem] h-9 px-2 rounded-lg text-sm font-medium transition-colors ${meta.page === pageNum ? "bg-slate-800 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
                       </div>
-                    )}
-                  </div>
+                      <button
+                        onClick={() => onPageChange(meta.page + 1)}
+                        disabled={meta.page === meta.totalPaginas}
+                        className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                        aria-label="Siguiente"
+                      >
+                        ›
+                      </button>
+                      <button
+                        onClick={() => onPageChange(meta.totalPaginas)}
+                        disabled={meta.page === meta.totalPaginas}
+                        className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                        aria-label="Última página"
+                      >
+                        »
+                      </button>
+                    </nav>
+                  )}
                 </div>
               )}
             </>

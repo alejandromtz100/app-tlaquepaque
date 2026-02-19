@@ -45,11 +45,9 @@ export default function Paso2ObraPage() {
       <main className="flex-1 w-full px-4 py-6">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-[98%] mx-auto">
           <div className="bg-gradient-to-r from-black to-gray-800 text-white px-6 py-5">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold">Obra</h2>
-                <p className="text-sm text-gray-300 mt-1">{consecutivo}</p>
-              </div>
+            <div className="flex flex-col items-center justify-center text-center">
+              <h2 className="text-2xl font-bold">Obra</h2>
+              <p className="text-sm text-gray-300 mt-1">Consecutivo: {consecutivo}</p>
             </div>
           </div>
 

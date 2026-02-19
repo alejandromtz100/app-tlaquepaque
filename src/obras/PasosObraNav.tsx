@@ -1,4 +1,8 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getConceptosByObra } from "../services/obraConceptos.service";
+
+const API_OBRAS = "http://localhost:3001/op_obras";
 
 interface Props {
   obraId: number;
@@ -7,22 +11,53 @@ interface Props {
 
 export default function PasosObraNav({ obraId, pasoActual }: Props) {
   const navigate = useNavigate();
+  const [tieneConceptos, setTieneConceptos] = useState(false);
+  const [estadoVerificado, setEstadoVerificado] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [resObra, conceptos] = await Promise.all([
+          fetch(`${API_OBRAS}/${obraId}`).then((r) => r.json()),
+          getConceptosByObra(obraId).catch(() => []),
+        ]);
+        if (cancelled) return;
+        setTieneConceptos(Array.isArray(conceptos) && conceptos.length > 0);
+        setEstadoVerificado((resObra?.estadoVerificacion ?? "") === "Si");
+      } catch {
+        if (!cancelled) {
+          setTieneConceptos(false);
+          setEstadoVerificado(false);
+        }
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [obraId]);
 
   const goToStep = (step: number) => {
     if (step === 1) {
       navigate("/obras/paso1", { state: { id: obraId } });
       return;
     }
+    if (step === 3 && !tieneConceptos) return;
+    if (step === 4 && !estadoVerificado) return;
     navigate(`/obras/paso${step}/${obraId}`);
   };
 
-  const exists = (step: number) => step >= 1 && step <= 4;
+  const isStepAllowed = (step: number) => {
+    if (step === 1 || step === 2) return true;
+    if (step === 3) return tieneConceptos;
+    if (step === 4) return estadoVerificado;
+    return false;
+  };
 
   return (
     <div className="flex flex-col items-center shrink-0 pt-8">
       {[1, 2, 3, 4].map((step) => {
         const isActive = step === pasoActual;
-        const clickable = exists(step);
+        const clickable = isStepAllowed(step);
         const isDisabled = !clickable;
 
         return (

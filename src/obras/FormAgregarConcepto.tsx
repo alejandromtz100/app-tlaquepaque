@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { addConceptoToObra, updateConceptoObra } from '../services/obraConceptos.service';
-import { Plus, CheckCircle2, AlertCircle, Pencil } from 'lucide-react';
+import { Plus, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const API_CONCEPTOS = 'http://localhost:3001/conceptos/select';
 
@@ -198,36 +198,27 @@ export default function FormAgregarConcepto({
     : '0.00';
 
   return (
-    <div className="mt-8 border-t border-gray-200 pt-6">
-      <div className="flex items-center gap-2 mb-6">
-        {isEditMode ? (
-          <Pencil className="w-5 h-5 text-blue-600" />
-        ) : (
-          <Plus className="w-5 h-5 text-gray-700" />
-        )}
-        <h3 className="text-lg font-semibold text-gray-800">
-          {isEditMode ? 'Editar concepto' : 'Agregar nuevo concepto'}
-        </h3>
+    <div>
+      <div className="bg-gray-800 text-white text-center py-3 font-semibold text-sm">
+        {isEditMode ? 'EDITAR CONCEPTO' : 'AGREGAR NUEVO CONCEPTO'}
       </div>
+      <div className="p-6 space-y-6">
+        {/* Mensajes de éxito/error */}
+        {success && (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
+            <CheckCircle2 className="w-5 h-5" />
+            <span className="text-sm font-medium">
+              {isEditMode ? 'Concepto actualizado correctamente' : 'Concepto agregado correctamente'}
+            </span>
+          </div>
+        )}
 
-      {/* Mensajes de éxito/error */}
-      {success && (
-        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
-          <CheckCircle2 className="w-5 h-5" />
-          <span className="text-sm font-medium">
-            {isEditMode ? 'Concepto actualizado correctamente' : 'Concepto agregado correctamente'}
-          </span>
-        </div>
-      )}
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
-          <AlertCircle className="w-5 h-5" />
-          <span className="text-sm font-medium">{error}</span>
-        </div>
-      )}
-
-      <div className="bg-gray-50 rounded-xl p-6 space-y-6">
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+            <AlertCircle className="w-5 h-5" />
+            <span className="text-sm font-medium">{error}</span>
+          </div>
+        )}
         {/* Selección de conceptos jerárquicos */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">

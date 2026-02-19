@@ -21,66 +21,63 @@ const RepLicenciasTabla: React.FC<Props> = ({ data, loading }) => {
   }
 
   return (
-    <div className="min-w-full inline-block align-middle">
-      <table className="min-w-full text-xs border-collapse bg-white">
-        <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
-          <tr className="text-gray-700 uppercase">
-            <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Consecutivo</th>
-            <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Fecha Captura</th>
-            <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Nombre Concepto</th>
-            <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Tipo Licencia</th>
-            <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Clasificación</th>
-            <th className="px-4 py-3 text-right border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Cantidad</th>
-            <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Medición</th>
-            <th className="px-4 py-3 text-right border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Costo</th>
-            <th className="px-4 py-3 text-right border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Total</th>
+    <table className="min-w-full border-collapse bg-white text-sm">
+      <thead>
+        <tr className="bg-slate-50 border-b border-slate-200">
+          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Consecutivo</th>
+          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Fecha Captura</th>
+          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Nombre Concepto</th>
+          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Tipo Licencia</th>
+          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Clasificación</th>
+          <th className="px-3 py-2 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Cantidad</th>
+          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Medición</th>
+          <th className="px-3 py-2 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Costo</th>
+          <th className="px-3 py-2 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Total</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-slate-100">
+        {data.length === 0 ? (
+          <tr>
+            <td colSpan={9} className="px-3 py-10 text-center text-slate-500 bg-slate-50/50">
+              <div className="flex flex-col items-center gap-2">
+                <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="font-medium text-slate-600">No hay resultados</p>
+              </div>
+            </td>
           </tr>
-        </thead>
-
-        <tbody className="divide-y divide-gray-200">
-          {data.map((licencia) => (
-            <tr key={licencia.id} className="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-200">
-              <td className="px-4 py-3 border border-gray-300 font-medium text-gray-900">{licencia.consecutivo}</td>
-              <td className="px-4 py-3 border border-gray-300 text-gray-700">
+        ) : (
+          data.map((licencia) => (
+            <tr key={licencia.id} className="hover:bg-slate-50/80 transition-colors border-b border-slate-100 last:border-0">
+              <td className="px-3 py-2 text-slate-800 font-medium align-top whitespace-nowrap">{licencia.consecutivo}</td>
+              <td className="px-3 py-2 text-slate-700 align-top whitespace-nowrap">
                 {new Date(licencia.fechaCaptura).toLocaleDateString("es-MX")}
               </td>
-              <td className="px-4 py-3 border border-gray-300 text-gray-700">{licencia.nombreConcepto}</td>
-              <td className="px-4 py-3 border border-gray-300 text-gray-700">{licencia.tipoLicencia || "—"}</td>
-              <td className="px-4 py-3 border border-gray-300 text-gray-700">{licencia.clasificacion || "—"}</td>
-              <td className="px-4 py-3 border border-gray-300 text-gray-700 text-right">
+              <td className="px-3 py-2 text-slate-700 whitespace-normal break-words">{licencia.nombreConcepto}</td>
+              <td className="px-3 py-2 text-slate-700 whitespace-normal break-words">{licencia.tipoLicencia || "—"}</td>
+              <td className="px-3 py-2 text-slate-700 whitespace-normal break-words">{licencia.clasificacion || "—"}</td>
+              <td className="px-3 py-2 text-slate-700 text-right align-top whitespace-nowrap">
                 {Number(licencia.cantidad).toFixed(2)}
               </td>
-              <td className="px-4 py-3 border border-gray-300 text-gray-700">{licencia.medicionConcepto || "—"}</td>
-              <td className="px-4 py-3 border border-gray-300 text-gray-700 text-right">
+              <td className="px-3 py-2 text-slate-700 whitespace-normal break-words">{licencia.medicionConcepto || "—"}</td>
+              <td className="px-3 py-2 text-slate-700 text-right align-top whitespace-nowrap">
                 {new Intl.NumberFormat("es-MX", {
                   style: "currency",
                   currency: "MXN",
                 }).format(Number(licencia.costoConcepto))}
               </td>
-              <td className="px-4 py-3 border border-gray-300 text-gray-700 text-right font-semibold">
+              <td className="px-3 py-2 text-slate-700 text-right font-semibold align-top whitespace-nowrap">
                 {new Intl.NumberFormat("es-MX", {
                   style: "currency",
                   currency: "MXN",
                 }).format(Number(licencia.total))}
               </td>
             </tr>
-          ))}
-
-          {data.length === 0 && (
-            <tr>
-              <td colSpan={9} className="px-4 py-12 text-center text-gray-500 bg-gray-50">
-                <div className="flex flex-col items-center">
-                  <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <p className="text-base font-medium">No hay resultados</p>
-                </div>
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+          ))
+        )}
+      </tbody>
+    </table>
   );
 };
 

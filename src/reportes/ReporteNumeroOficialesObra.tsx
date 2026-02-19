@@ -168,12 +168,10 @@ const ReporteNumeroOficialesObra: React.FC = () => {
   const formatearFecha = useCallback((fecha: string | Date) => {
     if (!fecha) return "-";
     const date = new Date(fecha);
-    return date.toLocaleString("es-MX", {
+    return date.toLocaleDateString("es-MX", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
     });
   }, []);
 
@@ -330,7 +328,7 @@ const ReporteNumeroOficialesObra: React.FC = () => {
           </div>
 
           {/* TABLA O ESTADO DE CARGA */}
-          <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
+          <div className="overflow-x-auto">
             {!haBuscado ? (
               <div className="p-12 text-center">
                 <div className="max-w-md mx-auto">
@@ -363,143 +361,168 @@ const ReporteNumeroOficialesObra: React.FC = () => {
                 </div>
               </div>
             ) : (
-            <div className="min-w-full inline-block align-middle">
-              <table className="min-w-full text-xs border-collapse bg-white">
-                <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
-                  <tr className="text-gray-700 uppercase">
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Fecha</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Consecutivo</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Número Oficial</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Calle</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Colonia</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Tipo Propietario</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Propietario</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Predios Contiguos</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Condominio</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Etapa</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Lote</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Manzana</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Entre Calle</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Destino Actual</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Destino Propuesto</th>
+            <table className="min-w-full border-collapse bg-white text-sm">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[140px]">Fecha</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[110px]">Consecutivo</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[100px]">Número Oficial</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[130px]">Calle</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[150px]">Colonia</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[120px]">Tipo Propietario</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[200px]">Propietario</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[130px]">Predios Contiguos</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[110px]">Condominio</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[80px]">Etapa</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[80px]">Lote</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[90px]">Manzana</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[150px]">Entre Calle</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[130px]">Destino Actual</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[130px]">Destino Propuesto</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {visibles.length === 0 && !loading ? (
+                  <tr>
+                    <td colSpan={15} className="px-3 py-10 text-center text-slate-500 bg-slate-50/50">
+                      <div className="flex flex-col items-center gap-2">
+                        <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p className="font-medium text-slate-600">
+                          {(filtros.consecutivo || filtros.numeroOficial || filtros.calle)
+                            ? "No se encontraron resultados para los filtros aplicados" 
+                            : "No hay obras con números oficiales registrados"}
+                        </p>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {visibles.length === 0 && !loading ? (
-                    <tr>
-                      <td colSpan={15} className="px-4 py-12 text-center text-gray-500 bg-gray-50">
-                        <div className="flex flex-col items-center">
-                          <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          <p className="text-base font-medium">
-                            {(filtros.consecutivo || filtros.numeroOficial || filtros.calle)
-                              ? "No se encontraron resultados para los filtros aplicados" 
-                              : "No hay obras con números oficiales registrados"}
-                          </p>
+                ) : (
+                  visibles.map((obra, index) => (
+                    <tr
+                      key={`${obra.idObra}-${obra.numeroOficial}-${index}`}
+                      className="hover:bg-slate-50/80 transition-colors border-b border-slate-100 last:border-0"
+                    >
+                      <td className="px-3 py-2.5 text-slate-700 align-top whitespace-nowrap text-xs">{formatearFecha(obra.fechaCaptura)}</td>
+                      <td className="px-3 py-2.5 text-slate-700 align-top whitespace-nowrap">{obra.consecutivo || "—"}</td>
+                      <td className="px-3 py-2.5 text-slate-700 align-top whitespace-nowrap">{obra.numeroOficial || "—"}</td>
+                      <td className="px-3 py-2.5 text-slate-700 align-top">
+                        <div className="max-w-[130px] truncate" title={obra.calle || undefined}>
+                          {obra.calle || "—"}
                         </div>
                       </td>
-                    </tr>
-                  ) : (
-                    visibles.map((obra, index) => (
-                      <tr
-                        key={`${obra.idObra}-${obra.numeroOficial}-${index}`}
-                        className="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-200"
-                      >
-                        <td className="px-4 py-3 border border-gray-300 whitespace-nowrap text-gray-700">
-                          {formatearFecha(obra.fechaCaptura)}
-                        </td>
-                        <td className="px-4 py-3 border border-gray-300 font-medium text-gray-900">{obra.consecutivo || "-"}</td>
-                        <td className="px-4 py-3 border border-gray-300 text-gray-700">{obra.numeroOficial || "-"}</td>
-                        <td className="px-4 py-3 border border-gray-300 text-gray-700">{obra.calle || "-"}</td>
-                        <td className="px-4 py-3 border border-gray-300 text-gray-700">{obra.nombreColoniaObra || "-"}</td>
-                        <td className="px-4 py-3 border border-gray-300 text-gray-700">{obra.tipoPropietario || "-"}</td>
-                        <td className="px-4 py-3 border border-gray-300 text-gray-700">{obra.nombrePropietario || "-"}</td>
-                        <td className="px-4 py-3 border border-gray-300 text-gray-700">
-                          {obra.prediosContiguos && obra.prediosContiguos !== null && obra.prediosContiguos !== 'null' && obra.prediosContiguos.trim() !== '' ? obra.prediosContiguos : "-"}
-                        </td>
-                        <td className="px-4 py-3 border border-gray-300 text-gray-700">
-                          {obra.condominio && obra.condominio !== null && obra.condominio !== 'null' && obra.condominio.trim() !== '' ? obra.condominio : "-"}
-                        </td>
-                        <td className="px-4 py-3 border border-gray-300 text-gray-700">
-                          {obra.etapa && obra.etapa !== null && obra.etapa !== 'null' && obra.etapa.trim() !== '' ? obra.etapa : "-"}
-                        </td>
-                        <td className="px-4 py-3 border border-gray-300 text-gray-700">
-                          {obra.loteObra && obra.loteObra !== null && obra.loteObra !== 'null' && obra.loteObra.trim() !== '' ? obra.loteObra : "-"}
-                        </td>
-                        <td className="px-4 py-3 border border-gray-300 text-gray-700">
-                          {obra.manzanaObra && obra.manzanaObra !== null && obra.manzanaObra !== 'null' && obra.manzanaObra.trim() !== '' ? obra.manzanaObra : "-"}
-                        </td>
-                        <td className="px-4 py-3 border border-gray-300 text-gray-700">
+                      <td className="px-3 py-2.5 text-slate-700 align-top">
+                        <div className="max-w-[150px] truncate" title={obra.nombreColoniaObra || undefined}>
+                          {obra.nombreColoniaObra || "—"}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-700 align-top whitespace-nowrap">{obra.tipoPropietario || "—"}</td>
+                      <td className="px-3 py-2.5 text-slate-700 align-top">
+                        <div className="max-w-[200px] truncate" title={obra.nombrePropietario || undefined}>
+                          {obra.nombrePropietario || "—"}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-700 align-top">
+                        <div className="max-w-[130px] truncate" title={
+                          obra.prediosContiguos && obra.prediosContiguos !== null && obra.prediosContiguos !== 'null' && obra.prediosContiguos.trim() !== '' 
+                            ? obra.prediosContiguos 
+                            : undefined
+                        }>
+                          {obra.prediosContiguos && obra.prediosContiguos !== null && obra.prediosContiguos !== 'null' && obra.prediosContiguos.trim() !== '' ? obra.prediosContiguos : "—"}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-700 align-top">
+                        <div className="max-w-[110px] truncate" title={
+                          obra.condominio && obra.condominio !== null && obra.condominio !== 'null' && obra.condominio.trim() !== '' 
+                            ? obra.condominio 
+                            : undefined
+                        }>
+                          {obra.condominio && obra.condominio !== null && obra.condominio !== 'null' && obra.condominio.trim() !== '' ? obra.condominio : "—"}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-700 align-top whitespace-nowrap text-center">
+                        {obra.etapa && obra.etapa !== null && obra.etapa !== 'null' && obra.etapa.trim() !== '' ? obra.etapa : "—"}
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-700 align-top whitespace-nowrap text-center">
+                        {obra.loteObra && obra.loteObra !== null && obra.loteObra !== 'null' && obra.loteObra.trim() !== '' ? obra.loteObra : "—"}
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-700 align-top whitespace-nowrap text-center">
+                        {obra.manzanaObra && obra.manzanaObra !== null && obra.manzanaObra !== 'null' && obra.manzanaObra.trim() !== '' ? obra.manzanaObra : "—"}
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-700 align-top">
+                        <div className="max-w-[150px] truncate" title={
+                          obra.entreCalle1 && obra.entreCalle1 !== null && obra.entreCalle1 !== 'null' && obra.entreCalle2 && obra.entreCalle2 !== null && obra.entreCalle2 !== 'null'
+                            ? `${obra.entreCalle1} / ${obra.entreCalle2}`
+                            : (obra.entreCalle1 && obra.entreCalle1 !== null && obra.entreCalle1 !== 'null') || (obra.entreCalle2 && obra.entreCalle2 !== null && obra.entreCalle2 !== 'null') 
+                              ? (obra.entreCalle1 || obra.entreCalle2) 
+                              : undefined
+                        }>
                           {obra.entreCalle1 && obra.entreCalle1 !== null && obra.entreCalle1 !== 'null' && obra.entreCalle2 && obra.entreCalle2 !== null && obra.entreCalle2 !== 'null'
                             ? `${obra.entreCalle1} / ${obra.entreCalle2}`
                             : (obra.entreCalle1 && obra.entreCalle1 !== null && obra.entreCalle1 !== 'null') || (obra.entreCalle2 && obra.entreCalle2 !== null && obra.entreCalle2 !== 'null') 
                               ? (obra.entreCalle1 || obra.entreCalle2) 
-                              : "-"}
-                        </td>
-                        <td className="px-4 py-3 border border-gray-300 text-gray-700">{obra.destinoActual || "-"}</td>
-                        <td className="px-4 py-3 border border-gray-300 text-gray-700">{obra.destinoPropuesto || "-"}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                              : "—"}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-700 align-top">
+                        <div className="max-w-[130px] truncate" title={obra.destinoActual || undefined}>
+                          {obra.destinoActual || "—"}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-700 align-top">
+                        <div className="max-w-[130px] truncate" title={obra.destinoPropuesto || undefined}>
+                          {obra.destinoPropuesto || "—"}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
             )}
           </div>
 
-          {/* PAGINACIÓN E INFORMACIÓN DE REGISTROS */}
-          {!loading && (
-          <div className="p-4 border-t bg-gray-50">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="text-sm text-gray-600 text-center sm:text-left">
-                Mostrando <span className="font-semibold text-gray-900">
-                  {filtradas.length > 0 ? (paginaActual - 1) * registrosPorPagina + 1 : 0}
-                </span> - <span className="font-semibold text-gray-900">
-                  {Math.min(paginaActual * registrosPorPagina, filtradas.length)}
-                </span> de <span className="font-semibold text-gray-900">{filtradas.length}</span> registros
+          {/* PAGINACIÓN */}
+          {!loading && haBuscado && (
+            <div className="px-4 py-3 border-t border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-sm text-slate-600 text-center sm:text-left order-2 sm:order-1">
+                <span className="font-medium text-slate-800">{filtradas.length > 0 ? (paginaActual - 1) * registrosPorPagina + 1 : 0}</span>
+                <span className="mx-1">–</span>
+                <span className="font-medium text-slate-800">{Math.min(paginaActual * registrosPorPagina, filtradas.length)}</span>
+                <span className="mx-1">de</span>
+                <span className="font-medium text-slate-800">{filtradas.length}</span>
+                <span className="ml-1">registros</span>
                 {filasExpandidas.length !== filtradas.length && (
-                  <span className="text-gray-500"> (de {filasExpandidas.length} totales)</span>
+                  <span className="text-slate-500"> (de {filasExpandidas.length} totales)</span>
                 )}
-              </div>
-              
+              </p>
               {totalPaginas > 1 && (
-                <div className="flex items-center gap-1">
+                <nav className="flex items-center justify-center gap-1 order-1 sm:order-2" aria-label="Paginación">
                   <button
-                    disabled={paginaActual === 1}
                     onClick={() => setPaginaActual(1)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                    disabled={paginaActual === 1}
+                    className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                    aria-label="Primera página"
                   >
-                    ««
+                    <span className="sr-only">Primera</span>«
                   </button>
                   <button
-                    disabled={paginaActual === 1}
                     onClick={() => setPaginaActual(paginaActual - 1)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                    disabled={paginaActual === 1}
+                    className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                    aria-label="Anterior"
                   >
-                    &lt;
+                    ‹
                   </button>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5 mx-1">
                     {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
-                      let pageNum;
-                      if (totalPaginas <= 5) {
-                        pageNum = i + 1;
-                      } else if (paginaActual <= 3) {
-                        pageNum = i + 1;
-                      } else if (paginaActual >= totalPaginas - 2) {
-                        pageNum = totalPaginas - 4 + i;
-                      } else {
-                        pageNum = paginaActual - 2 + i;
-                      }
+                      let pageNum = totalPaginas <= 5 ? i + 1 : paginaActual <= 3 ? i + 1 : paginaActual >= totalPaginas - 2 ? totalPaginas - 4 + i : paginaActual - 2 + i;
+                      if (pageNum < 1) pageNum = i + 1;
                       return (
                         <button
                           key={pageNum}
                           onClick={() => setPaginaActual(pageNum)}
-                          className={`min-w-[36px] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            paginaActual === pageNum
-                              ? "bg-black text-white"
-                              : "border border-gray-300 bg-white hover:bg-gray-100"
-                          }`}
+                          className={`min-w-[2.25rem] h-9 px-2 rounded-lg text-sm font-medium transition-colors ${paginaActual === pageNum ? "bg-slate-800 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
                         >
                           {pageNum}
                         </button>
@@ -507,23 +530,24 @@ const ReporteNumeroOficialesObra: React.FC = () => {
                     })}
                   </div>
                   <button
-                    disabled={paginaActual === totalPaginas}
                     onClick={() => setPaginaActual(paginaActual + 1)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                    disabled={paginaActual === totalPaginas}
+                    className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                    aria-label="Siguiente"
                   >
-                    &gt;
+                    ›
                   </button>
                   <button
-                    disabled={paginaActual === totalPaginas}
                     onClick={() => setPaginaActual(totalPaginas)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                    disabled={paginaActual === totalPaginas}
+                    className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                    aria-label="Última página"
                   >
-                    »»
+                    »
                   </button>
-                </div>
+                </nav>
               )}
             </div>
-          </div>
           )}
         </div>
       </main>

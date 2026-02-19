@@ -172,8 +172,8 @@ export default function Paso3Obra({ obraId }: Props) {
         nuevoEstadoObra = estadoObra === "Verificado" ? "En Proceso" : estadoObra;
       }
 
-      // Si hay recibo de pago lleno, marcar estado de pago como Pagado
-      const estadoPago = form.reciboDePago?.trim() ? "Pagado" : (obraCompleta?.estadoPago ?? "Sin Pagar");
+      // Solo el campo Recibo de Pago define el estado: si tiene valor → Pagado, si no → Sin Pagar
+      const estadoPago = form.reciboDePago?.trim() ? "Pagado" : "Sin Pagar";
       
       const payload: Record<string, unknown> = {
         idDirectorObra: form.idDirectorObra ? Number(form.idDirectorObra) : null,
@@ -360,8 +360,8 @@ export default function Paso3Obra({ obraId }: Props) {
   return (
     <div className="space-y-6">
       {/* ===== DATOS DE ADICIONALES ===== */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="bg-black text-white px-4 py-2 font-semibold">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-gray-800 text-white px-6 py-3 font-semibold text-sm">
           Datos de Adicionales
         </div>
         <div className="p-6 space-y-6">
@@ -632,8 +632,8 @@ export default function Paso3Obra({ obraId }: Props) {
       </div>
 
       {/* ===== AGREGAR/EDITAR DATOS ADJUNTOS ===== */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="bg-black text-white px-4 py-2 font-semibold">Agregar/Editar Datos Adjuntos de la Obra</div>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-gray-800 text-white px-6 py-3 font-semibold text-sm">Agregar/Editar Datos Adjuntos de la Obra</div>
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Archivo</label>

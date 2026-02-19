@@ -34,18 +34,19 @@ interface Usuario {
 
 
 const Home: React.FC = () => {
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [usuario] = useState<Usuario | null>(() => {
+    try {
+      const data = localStorage.getItem("usuario");
+      return data ? JSON.parse(data) : null;
+    } catch {
+      return null;
+    }
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
-    const data = localStorage.getItem("usuario");
-
-    if (!data) {
-      navigate("/");
-    } else {
-      setUsuario(JSON.parse(data));
-    }
-  }, []);
+    if (!usuario) navigate("/");
+  }, [usuario, navigate]);
 
   const logout = () => {
     localStorage.removeItem("usuario");

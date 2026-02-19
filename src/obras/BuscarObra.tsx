@@ -1,7 +1,9 @@
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import Menu from "../layout/menu";
 import { Pencil, Copy, Printer, Paperclip } from "lucide-react";
+import { getConceptosByObra } from "../services/obraConceptos.service";
 
 interface Obra {
   id: number;
@@ -26,6 +28,7 @@ interface Obra {
 }
 
 const REGISTROS_POR_PAGINA = 10;
+const API_OBRA = "http://localhost:3001/op_obras";
 const ESTADOS_OBRA = [
   { value: "", label: "Todos" },
   { value: "En Proceso", label: "En Proceso" },
@@ -47,7 +50,6 @@ const BuscarObra: React.FC = () => {
     fecha: "",
     nombrePropietario: "",
     calle: "",
-    numerosPrediosContiguos: "",
     estado: "",
   });
 
@@ -71,7 +73,6 @@ const BuscarObra: React.FC = () => {
       if (filtros.consecutivo.trim()) params.set("consecutivo", filtros.consecutivo.trim());
       if (filtros.fecha) params.set("fechaCaptura", filtros.fecha);
       if (filtros.nombrePropietario.trim()) params.set("nombrePropietario", filtros.nombrePropietario.trim());
-      if (filtros.numerosPrediosContiguos.trim()) params.set("numerosPrediosContiguos", filtros.numerosPrediosContiguos.trim());
       if (filtros.estado.trim()) params.set("estadoObra", filtros.estado.trim());
 
       const url = `http://localhost:3001/op_obras/listado-filtrado-paginado?${params.toString()}`;
@@ -107,7 +108,7 @@ const BuscarObra: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [filtros.consecutivo, filtros.fecha, filtros.nombrePropietario, filtros.numerosPrediosContiguos, filtros.estado]);
+    }, [filtros.consecutivo, filtros.fecha, filtros.nombrePropietario, filtros.estado]);
 
   const buscar = () => cargarDatos(1);
 
@@ -125,7 +126,6 @@ const BuscarObra: React.FC = () => {
       fecha: "",
       nombrePropietario: "",
       calle: "",
-      numerosPrediosContiguos: "",
       estado: "",
     });
     setObras([]);
@@ -134,6 +134,111 @@ const BuscarObra: React.FC = () => {
     setError(null);
     setPaginaActual(1);
   }, []);
+
+  const handleCopiarObra = async (obraId: number) => {
+    try {
+      setLoading(true);
+      
+      // Obtener datos completos de la obra original
+      const response = await axios.get(`${API_OBRA}/${obraId}`);
+      const obraOriginal = response.data;
+
+      // Obtener usuario logueado
+      const usuarioData = localStorage.getItem("usuario");
+      let idUsuarioLogueado: number | undefined;
+      if (usuarioData) {
+        try {
+          const usuarioLogueado = JSON.parse(usuarioData);
+          if (usuarioLogueado.id) {
+            idUsuarioLogueado = usuarioLogueado.id;
+          }
+        } catch (error) {
+          console.error('Error al parsear usuario de localStorage:', error);
+        }
+      }
+
+      // Crear nueva obra copiando todos los campos del paso 1 EXCEPTO:
+      // - numerosOficiales (no se copian)
+      // - destinoActualProyecto
+      // - destinoPropuestoProyecto
+      // - descripcionProyecto
+      // - revisor
+      // - cuantificador
+      const obraNueva: any = {
+        // Datos del propietario
+        tipoPropietario: obraOriginal.tipoPropietario || "",
+        nombrePropietario: obraOriginal.nombrePropietario || "",
+        representanteLegal: obraOriginal.representanteLegal || "",
+        identificacion: obraOriginal.identificacion || "",
+        tipoIdentificacion: obraOriginal.tipoIdentificacion || "",
+        domicilioPropietario: obraOriginal.domicilioPropietario || "",
+        coloniaPropietario: obraOriginal.coloniaPropietario || "",
+        municipioPropietario: obraOriginal.municipioPropietario || "",
+        entidadPropietario: obraOriginal.entidadPropietario || "",
+        telefonoPropietario: obraOriginal.telefonoPropietario || "",
+        rfcPropietario: obraOriginal.rfcPropietario || "",
+        codigoPostalPropietario: obraOriginal.codigoPostalPropietario || "",
+        documentoAcreditaPropiedad: obraOriginal.documentoAcreditaPropiedad || "",
+        tipoDocumentoAcreditaPropiedad: obraOriginal.tipoDocumentoAcreditaPropiedad || "",
+        documentosRequeridos: obraOriginal.documentosRequeridos || "",
+        
+        // Datos de la obra
+        idColoniaObra: obraOriginal.idColoniaObra || null,
+        idDensidadColoniaObra: obraOriginal.idDensidadColoniaObra || "",
+        manzanaObra: obraOriginal.manzanaObra || "",
+        loteObra: obraOriginal.loteObra || "",
+        etapaObra: obraOriginal.etapaObra || "",
+        condominioObra: obraOriginal.condominioObra || "",
+        numerosPrediosContiguosObra: obraOriginal.numerosPrediosContiguosObra || "",
+        entreCalle1Obra: obraOriginal.entreCalle1Obra || "",
+        entreCalle2Obra: obraOriginal.entreCalle2Obra || "",
+        
+        // Servicios
+        aguaPotable: obraOriginal.aguaPotable || "Si",
+        drenaje: obraOriginal.drenaje || "Si",
+        electricidad: obraOriginal.electricidad || "Si",
+        alumbradoPublico: obraOriginal.alumbradoPublico || "Si",
+        machuelos: obraOriginal.machuelos || "Si",
+        banquetas: obraOriginal.banquetas || "Si",
+        pavimento: obraOriginal.pavimento || "No Definido",
+        
+        // Restricciones
+        servidumbreFrontal: obraOriginal.servidumbreFrontal || "",
+        servidumbreLateral: obraOriginal.servidumbreLateral || "",
+        servidumbrePosterior: obraOriginal.servidumbrePosterior || "",
+        coeficienteOcupacion: obraOriginal.coeficienteOcupacion || "",
+        coeficienteUtilizacion: obraOriginal.coeficienteUtilizacion || "",
+        
+        // El consecutivo de la obra original va en idObraSuperior
+        idObraSuperior: obraOriginal.consecutivo || "",
+        
+        // Campos que NO se copian (se dejan vacíos):
+        // destinoActualProyecto: NO se copia
+        // destinoPropuestoProyecto: NO se copia
+        // descripcionProyecto: NO se copia
+        // revisor: NO se copia
+        // cuantificador: NO se copia
+        
+        // Campos del sistema
+        consecutivo: "", // Se asignará después con el trámite
+        fechaCaptura: new Date(),
+        ultimaModificacion: new Date(),
+        idUsuarioCapturador: idUsuarioLogueado,
+      };
+
+      // Crear la nueva obra
+      const responseNueva = await axios.post(API_OBRA, obraNueva);
+      const nuevaObraId = responseNueva.data.idObra || responseNueva.data.id;
+
+      // Navegar al paso 1 de la nueva obra (el modal de trámite aparecerá cuando guarde)
+      navigate("/obras/paso1", { state: { id: nuevaObraId, esCopia: true } });
+    } catch (error: any) {
+      console.error("Error al copiar obra:", error);
+      alert(`Error al copiar la obra: ${error.response?.data?.message || error.message || "Error desconocido"}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const totalPaginas = Math.ceil(totalRegistros / REGISTROS_POR_PAGINA) || 1;
   const irAPagina = (pag: number) => {
@@ -265,20 +370,6 @@ const BuscarObra: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Números Predios Contiguos
-                </label>
-                <input
-                  type="text"
-                  name="numerosPrediosContiguos"
-                  placeholder="Buscar por prediales..."
-                  value={filtros.numerosPrediosContiguos}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Estado (flujo de obra)
                 </label>
                 <select
@@ -306,7 +397,7 @@ const BuscarObra: React.FC = () => {
           </div>
 
           {/* TABLA O ESTADO DE CARGA */}
-          <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
+          <div className="overflow-x-auto">
             {loading ? (
               <div className="min-h-[200px] flex items-center justify-center">
                 <div className="text-center">
@@ -331,145 +422,195 @@ const BuscarObra: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="min-w-full inline-block align-middle">
-                <table className="min-w-full text-xs border-collapse bg-white">
-                  <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
-                    <tr className="text-gray-700 uppercase">
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Consecutivo</th>
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Fecha Captura</th>
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Propietario</th>
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Calle / No. Oficial</th>
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Colonia</th>
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Estado Obra</th>
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Estado Pago</th>
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Opciones</th>
+              <table className="min-w-full border-collapse bg-white text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Consecutivo</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Fecha Captura</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Propietario</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Calle / No. Oficial</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Colonia</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Estado Obra</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Estado Pago</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[140px]">Opciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {resultados.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-3 py-10 text-center text-slate-500 bg-slate-50/50">
+                        <div className="flex flex-col items-center gap-2">
+                          <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <p className="font-medium text-slate-600">No se encontraron obras para los filtros aplicados</p>
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {resultados.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="px-4 py-12 text-center text-gray-500 bg-gray-50">
-                          <div className="flex flex-col items-center">
-                            <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <p className="text-base font-medium">No se encontraron obras para los filtros aplicados</p>
+                  ) : (
+                    resultados.map((obra) => (
+                      <tr key={obra.idObra || obra.id} className="hover:bg-slate-50/80 transition-colors border-b border-slate-100 last:border-0">
+                        <td className="px-3 py-2 text-slate-700 align-top whitespace-nowrap font-medium">{obra.consecutivo || "—"}</td>
+                        <td className="px-3 py-2 text-slate-700 align-top whitespace-nowrap">
+                          {formatearFecha(obra.fechaCaptura || obra.captura)}
+                        </td>
+                        <td className="px-3 py-2 text-slate-800 font-medium whitespace-normal break-words">{obra.nombrePropietario || obra.propietario || "—"}</td>
+                        <td className="px-3 py-2 text-slate-700 whitespace-normal break-words">
+                          <div>{obra.calle || "—"}</div>
+                          {(obra.numeroOficial || obra.noOficial) && (
+                            <div className="text-xs text-slate-500">No. {obra.numeroOficial || obra.noOficial}</div>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-slate-700 whitespace-normal break-words">{obra.nombreColoniaObra || obra.colonia || "—"}</td>
+                        <td className="px-3 py-2 align-top">
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                            obra.estadoObra === "Concluido"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : obra.estadoObra === "Enviado a Firmas"
+                              ? "bg-blue-100 text-blue-700"
+                              : obra.estadoObra === "Enviado a Pago"
+                              ? "bg-indigo-100 text-indigo-700"
+                              : obra.estadoObra === "Verificado"
+                              ? "bg-green-100 text-green-700"
+                              : obra.estadoObra === "En Proceso"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-gray-100 text-gray-700"
+                          }`}>
+                            {obra.estadoObra || "—"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 align-top">
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                            obra.estadoPago === "Pagado"
+                              ? "bg-blue-100 text-blue-700"
+                              : obra.estadoPago === "Sin Pagar"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-gray-100 text-gray-700"
+                          }`}>
+                            {obra.estadoPago || "—"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 align-top">
+                          <div className="flex justify-center gap-2">
+                            <button
+                              onClick={() => navigate("/paso1obras", { state: { id: obra.idObra || obra.id } })}
+                              className="p-1 hover:bg-gray-200 rounded transition-colors"
+                              title="Editar"
+                            >
+                              <Pencil size={18} />
+                            </button>
+                            <button 
+                              onClick={() => handleCopiarObra(obra.idObra || obra.id)}
+                              className="p-1 hover:bg-gray-200 rounded transition-colors" 
+                              title="Copiar"
+                            >
+                              <Copy size={18} />
+                            </button>
+                            <button
+                              className="p-1 hover:bg-gray-200 rounded transition-colors"
+                              title="Imprimir"
+                              onClick={() => {
+                                const id = obra.idObra ?? obra.id;
+                                if (obra.estadoObra === "En Proceso") {
+                                  alert("No se puede imprimir: la obra está en proceso. Debe estar verificada o en un estado posterior para acceder al paso 4 (Imprimir).");
+                                  return;
+                                }
+                                navigate(`/obras/paso4/${id}`);
+                              }}
+                            >
+                              <Printer size={18} />
+                            </button>
+                            <button
+                              className="p-1 hover:bg-gray-200 rounded transition-colors"
+                              title="Documentos"
+                              onClick={async () => {
+                                const id = obra.idObra ?? obra.id;
+                                try {
+                                  const conceptos = await getConceptosByObra(id);
+                                  if (!Array.isArray(conceptos) || conceptos.length === 0) {
+                                    alert("No se puede acceder a Documentos: la obra no tiene conceptos registrados en el paso 2. Debe agregar al menos un concepto antes.");
+                                    return;
+                                  }
+                                  navigate(`/obras/paso3/${id}`);
+                                } catch {
+                                  alert("No se pudo verificar los datos de la obra. Intente de nuevo.");
+                                }
+                              }}
+                            >
+                              <Paperclip size={18} />
+                            </button>
                           </div>
                         </td>
                       </tr>
-                    ) : (
-                      resultados.map((obra) => (
-                        <tr
-                          key={obra.idObra || obra.id}
-                          className="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-200"
-                        >
-                          <td className="px-4 py-3 border border-gray-300 font-medium text-gray-900">{obra.consecutivo || "-"}</td>
-                          <td className="px-4 py-3 border border-gray-300 whitespace-nowrap text-gray-700">
-                            {formatearFecha(obra.fechaCaptura || obra.captura)}
-                          </td>
-                          <td className="px-4 py-3 border border-gray-300 text-gray-700">{obra.nombrePropietario || obra.propietario || "-"}</td>
-                          <td className="px-4 py-3 border border-gray-300 text-gray-700">
-                            <div>{obra.calle || "-"}</div>
-                            {(obra.numeroOficial || obra.noOficial) && (
-                              <div className="text-xs text-gray-500">No. {obra.numeroOficial || obra.noOficial}</div>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 border border-gray-300 text-gray-700">{obra.nombreColoniaObra || obra.colonia || "-"}</td>
-                          <td className="px-4 py-3 border border-gray-300">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                              obra.estadoObra === "Concluido"
-                                ? "bg-emerald-100 text-emerald-700"
-                                : obra.estadoObra === "Enviado a Firmas"
-                                ? "bg-blue-100 text-blue-700"
-                                : obra.estadoObra === "Enviado a Pago"
-                                ? "bg-indigo-100 text-indigo-700"
-                                : obra.estadoObra === "Verificado"
-                                ? "bg-green-100 text-green-700"
-                                : obra.estadoObra === "En Proceso"
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-gray-100 text-gray-700"
-                            }`}>
-                              {obra.estadoObra || "-"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 border border-gray-300">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                              obra.estadoPago === "Pagado"
-                                ? "bg-blue-100 text-blue-700"
-                                : obra.estadoPago === "Sin Pagar"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-gray-100 text-gray-700"
-                            }`}>
-                              {obra.estadoPago || "-"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 border border-gray-300">
-                            <div className="flex justify-center gap-2">
-                              <button
-                                onClick={() => navigate("/paso1obras", { state: { id: obra.idObra || obra.id } })}
-                                className="p-1 hover:bg-gray-200 rounded transition-colors"
-                                title="Editar"
-                              >
-                                <Pencil size={18} />
-                              </button>
-                              <button className="p-1 hover:bg-gray-200 rounded transition-colors" title="Copiar">
-                                <Copy size={18} />
-                              </button>
-                              <button className="p-1 hover:bg-gray-200 rounded transition-colors" title="Imprimir">
-                                <Printer size={18} />
-                              </button>
-                              <button className="p-1 hover:bg-gray-200 rounded transition-colors" title="Documentos">
-                                <Paperclip size={18} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                    ))
+                  )}
+                </tbody>
+              </table>
             )}
           </div>
 
           {/* PAGINACIÓN */}
-          {!loading && haBuscado && totalRegistros > 0 && totalPaginas > 1 && (
-            <div className="p-4 border-t bg-gray-50 flex flex-wrap justify-center items-center gap-2">
-              <button
-                type="button"
-                onClick={() => irAPagina(1)}
-                disabled={paginaActual === 1}
-                className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-              >
-                ««
-              </button>
-              <button
-                type="button"
-                onClick={() => irAPagina(paginaActual - 1)}
-                disabled={paginaActual === 1}
-                className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-              >
-                ‹
-              </button>
-              <span className="px-4 py-2 text-sm text-gray-700">
-                Página {paginaActual} de {totalPaginas}
-              </span>
-              <button
-                type="button"
-                onClick={() => irAPagina(paginaActual + 1)}
-                disabled={paginaActual === totalPaginas}
-                className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-              >
-                ›
-              </button>
-              <button
-                type="button"
-                onClick={() => irAPagina(totalPaginas)}
-                disabled={paginaActual === totalPaginas}
-                className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-              >
-                »»
-              </button>
+          {!loading && haBuscado && (
+            <div className="px-4 py-3 border-t border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-sm text-slate-600 text-center sm:text-left order-2 sm:order-1">
+                <span className="font-medium text-slate-800">{totalRegistros > 0 ? (paginaActual - 1) * REGISTROS_POR_PAGINA + 1 : 0}</span>
+                <span className="mx-1">–</span>
+                <span className="font-medium text-slate-800">{Math.min(paginaActual * REGISTROS_POR_PAGINA, totalRegistros)}</span>
+                <span className="mx-1">de</span>
+                <span className="font-medium text-slate-800">{totalRegistros}</span>
+                <span className="ml-1">registros</span>
+              </p>
+              {totalPaginas > 1 && (
+                <nav className="flex items-center justify-center gap-1 order-1 sm:order-2" aria-label="Paginación">
+                  <button
+                    onClick={() => irAPagina(1)}
+                    disabled={paginaActual === 1}
+                    className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                    aria-label="Primera página"
+                  >
+                    <span className="sr-only">Primera</span>«
+                  </button>
+                  <button
+                    onClick={() => irAPagina(paginaActual - 1)}
+                    disabled={paginaActual === 1}
+                    className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                    aria-label="Anterior"
+                  >
+                    ‹
+                  </button>
+                  <div className="flex items-center gap-0.5 mx-1">
+                    {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
+                      let pageNum = totalPaginas <= 5 ? i + 1 : paginaActual <= 3 ? i + 1 : paginaActual >= totalPaginas - 2 ? totalPaginas - 4 + i : paginaActual - 2 + i;
+                      if (pageNum < 1) pageNum = i + 1;
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => irAPagina(pageNum)}
+                          className={`min-w-[2.25rem] h-9 px-2 rounded-lg text-sm font-medium transition-colors ${paginaActual === pageNum ? "bg-slate-800 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    onClick={() => irAPagina(paginaActual + 1)}
+                    disabled={paginaActual === totalPaginas}
+                    className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                    aria-label="Siguiente"
+                  >
+                    ›
+                  </button>
+                  <button
+                    onClick={() => irAPagina(totalPaginas)}
+                    disabled={paginaActual === totalPaginas}
+                    className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                    aria-label="Última página"
+                  >
+                    »
+                  </button>
+                </nav>
+              )}
             </div>
           )}
         </div>

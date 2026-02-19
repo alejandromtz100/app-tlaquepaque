@@ -202,84 +202,85 @@ const Tramites: React.FC = () => {
             </div>
           </div>
 
-          {/* TABLA */}
-          <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
-            <div className="min-w-full inline-block align-middle">
-              <table className="min-w-full text-xs border-collapse bg-white">
-                <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
-                  <tr className="text-gray-700 uppercase">
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">ID</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Nombre</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Letra</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100 w-48">Opciones</th>
+          {/* TABLA - Sin scroll interno, contenido completo con saltos de línea */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse bg-white text-sm">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">ID</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Nombre</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Letra</th>
+                  <th className="px-3 py-2 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[180px]">Opciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {currentTramites.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-3 py-10 text-center text-slate-500 bg-slate-50/50">
+                      <div className="flex flex-col items-center gap-2">
+                        <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p className="font-medium text-slate-600">No hay trámites registrados</p>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {currentTramites.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-12 text-center text-gray-500 bg-gray-50">
-                        <div className="flex flex-col items-center">
-                          <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          <p className="text-base font-medium">No hay trámites registrados</p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    currentTramites.map((t) => (
-                      <tr key={t.id} className="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-200">
-                        <td className="px-4 py-3 border border-gray-300 whitespace-nowrap text-gray-700">{t.id}</td>
-                        <td className="px-4 py-3 border border-gray-300 font-medium text-gray-900">{t.nombre}</td>
-                        <td className="px-4 py-3 border border-gray-300 text-center text-gray-700">{t.letra}</td>
-                        <td className="px-4 py-3 border border-gray-300 space-x-2 text-sm">
+                ) : (
+                  currentTramites.map((t) => (
+                    <tr key={t.id} className="hover:bg-slate-50/80 transition-colors border-b border-slate-100 last:border-0">
+                      <td className="px-3 py-2 text-slate-700 align-top whitespace-nowrap">{t.id}</td>
+                      <td className="px-3 py-2 text-slate-800 font-medium whitespace-normal break-words">{t.nombre}</td>
+                      <td className="px-3 py-2 text-slate-700 text-center align-top">{t.letra}</td>
+                      <td className="px-3 py-2 align-top text-center">
+                        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm">
                           {puedeModificar && (
                             <>
-                              <button onClick={() => handleEdit(t)} className="text-blue-600 hover:text-blue-800 font-medium">Editar</button>
-                              <span className="text-gray-400">|</span>
-                              <button onClick={() => handleDelete(t.id)} className="text-red-600 hover:text-red-800 font-medium">Eliminar</button>
-                              <span className="text-gray-400">|</span>
-                              <button onClick={() => openConceptos(t)} className="text-green-600 hover:text-green-800 font-medium">Definir Conceptos</button>
+                              <button onClick={() => handleEdit(t)} className="text-sky-600 hover:text-sky-800 font-medium">Editar</button>
+                              <span className="text-slate-300">|</span>
+                              <button onClick={() => handleDelete(t.id)} className="text-rose-600 hover:text-rose-800 font-medium">Eliminar</button>
+                              <span className="text-slate-300">|</span>
+                              <button onClick={() => openConceptos(t)} className="text-emerald-600 hover:text-emerald-800 font-medium">Definir Conceptos</button>
                             </>
                           )}
                           {!puedeModificar && (
-                            <span className="text-gray-400 text-sm">Solo lectura</span>
+                            <span className="text-slate-400 text-sm">Solo lectura</span>
                           )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
 
           {/* PAGINACIÓN */}
-          <div className="p-4 border-t bg-gray-50">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="text-sm text-gray-600 text-center sm:text-left">
-                Mostrando <span className="font-semibold text-gray-900">{filteredTramites.length > 0 ? startIndex + 1 : 0}</span> - <span className="font-semibold text-gray-900">{Math.min(endIndex, filteredTramites.length)}</span> de <span className="font-semibold text-gray-900">{filteredTramites.length}</span> registros
-              </div>
-              {totalPages > 1 && (
-                <div className="flex items-center gap-1">
-                  <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors">««</button>
-                  <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors">&lt;</button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i;
-                      if (pageNum < 1) pageNum = i + 1;
-                      return (
-                        <button key={pageNum} onClick={() => setCurrentPage(pageNum)} className={`min-w-[36px] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? "bg-black text-white" : "border border-gray-300 bg-white hover:bg-gray-100"}`}>
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages} className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors">&gt;</button>
-                  <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors">»»</button>
+          <div className="px-4 py-3 border-t border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-slate-600 text-center sm:text-left order-2 sm:order-1">
+              <span className="font-medium text-slate-800">{filteredTramites.length > 0 ? startIndex + 1 : 0}</span>
+              <span className="mx-1">–</span>
+              <span className="font-medium text-slate-800">{Math.min(endIndex, filteredTramites.length)}</span>
+              <span className="mx-1">de</span>
+              <span className="font-medium text-slate-800">{filteredTramites.length}</span>
+              <span className="ml-1">registros</span>
+            </p>
+            {totalPages > 1 && (
+              <nav className="flex items-center justify-center gap-1 order-1 sm:order-2" aria-label="Paginación">
+                <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors" aria-label="Primera página">«</button>
+                <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1} className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors" aria-label="Anterior">‹</button>
+                <div className="flex items-center gap-0.5 mx-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i;
+                    if (pageNum < 1) pageNum = i + 1;
+                    return (
+                      <button key={pageNum} onClick={() => setCurrentPage(pageNum)} className={`min-w-[2.25rem] h-9 px-2 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? "bg-slate-800 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}>{pageNum}</button>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
+                <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages} className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors" aria-label="Siguiente">›</button>
+                <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors" aria-label="Última página">»</button>
+              </nav>
+            )}
           </div>
         </div>
       </main>

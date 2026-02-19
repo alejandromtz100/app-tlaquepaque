@@ -408,10 +408,10 @@ export default function Paso4Obra({ obraId }: Props) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       {/* Datos de la Obra */}
       <div className="border-b border-slate-200">
-        <div className="bg-black text-white text-center py-2 font-semibold text-sm">
+        <div className="bg-gray-800 text-white text-center py-3 font-semibold text-sm">
           Datos de la Obra
         </div>
         <div className="px-6 py-2 text-sm text-slate-600 border-b border-slate-100">
@@ -480,7 +480,7 @@ export default function Paso4Obra({ obraId }: Props) {
 
       {/* Conceptos */}
       <div>
-        <div className="bg-black text-white text-center py-2 font-semibold text-sm">
+        <div className="bg-gray-800 text-white text-center py-3 font-semibold text-sm">
           CONCEPTOS
         </div>
         <div className="overflow-x-auto">

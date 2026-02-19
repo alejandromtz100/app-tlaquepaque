@@ -1,23 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { FaChevronDown } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 const Menu: React.FC = () => {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const [esAdmin, setEsAdmin] = useState(false);
-  const [puedeVerEstadisticas, setPuedeVerEstadisticas] = useState(false);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const usuarioData = localStorage.getItem("usuario");
-    if (usuarioData) {
+  const [permisos] = useState(() => {
+    try {
+      const usuarioData = localStorage.getItem("usuario");
+      if (!usuarioData) return { esAdmin: false, puedeVerEstadisticas: false };
       const usuario = JSON.parse(usuarioData);
       const esAdminUser = usuario.rol === "ADMIN";
-      setEsAdmin(esAdminUser);
-      // Solo ADMIN puede ver estadísticas
-      setPuedeVerEstadisticas(esAdminUser);
+      return { esAdmin: esAdminUser, puedeVerEstadisticas: esAdminUser };
+    } catch {
+      return { esAdmin: false, puedeVerEstadisticas: false };
     }
-  }, []);
+  });
+  const { esAdmin, puedeVerEstadisticas } = permisos;
+  const navigate = useNavigate();
 
   const toggleMenu = (menu: string) => {
     setOpenMenu(openMenu === menu ? null : menu);

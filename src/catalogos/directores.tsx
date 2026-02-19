@@ -32,7 +32,7 @@ const Directores: React.FC = () => {
 
   // Estados de paginación (servidor)
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
   const [meta, setMeta] = useState<{ totalRegistros: number; totalPaginas: number; page: number; limit?: number } | null>(null);
 
   // Estados para preview de PDF
@@ -61,12 +61,13 @@ const Directores: React.FC = () => {
       // Asegurar que siempre tengamos arrays válidos
       setData(Array.isArray(res.data) ? res.data : []);
       setMeta(res.meta || { page: 1, limit: 10, totalRegistros: 0, totalPaginas: 1 });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error al cargar directores:', error);
-      console.error('Error completo:', error.response || error);
+      const err = error as { response?: unknown; message?: string };
+      console.error('Error completo:', err.response || error);
       setData([]);
       setMeta({ page: 1, limit: 10, totalRegistros: 0, totalPaginas: 1 });
-      alert(error.message || 'Error al cargar los directores');
+      alert(err.message || 'Error al cargar los directores');
     } finally {
       setLoading(false);
     }
@@ -111,9 +112,9 @@ const Directores: React.FC = () => {
         load();
         setSuccess(false);
       }, 1200);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      alert(error.message || 'Error al guardar');
+      alert((error as Error).message || 'Error al guardar');
     } finally {
       setLoading(false);
     }
@@ -136,7 +137,7 @@ const Directores: React.FC = () => {
   const handleToggle = (key: keyof DirectorObra) => {
     setForm(prev => ({
       ...prev,
-      [key]: !Boolean(prev[key])
+      [key]: !prev[key]
     }));
   };
 
@@ -449,277 +450,224 @@ const Directores: React.FC = () => {
             </div>
           </div>
 
-          {/* TABLA */}
-          <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
+          {/* TABLA - Sin scroll interno, contenido completo con saltos de línea */}
+          <div className="overflow-x-auto">
             {loading ? (
-              <div className="min-h-[200px] flex items-center justify-center">
-                <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin" />
+              <div className="min-h-[200px] flex items-center justify-center py-12">
+                <div className="w-10 h-10 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin" />
               </div>
             ) : (
-            <div className="min-w-full inline-block align-middle">
-              <table className="min-w-full text-xs border-collapse bg-white">
-                <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
-                  <tr className="text-gray-700 uppercase">
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Clave</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Fecha Actualización</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Nombre</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Imprimir Formato</th>
-                    <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Opciones</th>
+              <table className="min-w-full border-collapse bg-white text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Clave</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap min-w-[120px]">Fecha Actualización</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[280px]">Nombre</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[120px]">Imprimir Formato</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider min-w-[100px]">Opciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-slate-100">
                   {currentData.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-12 text-center text-gray-500 bg-gray-50">
-                        <div className="flex flex-col items-center">
-                          <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <td colSpan={5} className="px-3 py-10 text-center text-slate-500 bg-slate-50/50">
+                        <div className="flex flex-col items-center gap-2">
+                          <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
-                          <p className="text-base font-medium">No hay directores registrados</p>
+                          <p className="font-medium text-slate-600">No hay directores registrados</p>
                         </div>
                       </td>
                     </tr>
                   ) : (
-                  currentData.map((director) => (
-                    <tr key={director.id} className="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-200">
-                      {/* COLUMNA 1: CLAVE */}
-                      <td className="px-4 py-3 border border-gray-300 align-top">
-                        <div className="font-bold text-lg">
-                          {director.clave_director || 'Sin clave'}
-                        </div>
-                      </td>
-                      
-                      {/* COLUMNA 2: FECHAS */}
-                      <td className="px-4 py-3 border border-gray-300 align-top">
-                        <div className="space-y-2">
-                          <div>
-                            <div className="font-medium text-xs text-gray-500">Fecha Registro</div>
-                            <div>{DirectoresService.formatFecha(director.fecha_registro)}</div>
+                    currentData.map((director) => (
+                      <tr key={director.id} className="hover:bg-slate-50/80 transition-colors border-b border-slate-100 last:border-0">
+                        <td className="px-3 py-2 align-top">
+                          <div className="font-semibold text-slate-800 whitespace-nowrap">
+                            {director.clave_director || 'Sin clave'}
                           </div>
-                          <div>
-                            <div className="font-medium text-xs text-gray-500">Fecha Actualización</div>
+                        </td>
+                        <td className="px-3 py-2 align-top">
+                          <div className="space-y-1.5 text-xs min-w-[120px]">
                             <div>
-                              {director.fecha_actualizacion 
-                                ? DirectoresService.formatFecha(director.fecha_actualizacion)
-                                : 'No actualizado'}
+                              <div className="font-medium text-slate-500 mb-0.5">Fecha de Registro</div>
+                              <div className="text-slate-700 whitespace-nowrap">{DirectoresService.formatFecha(director.fecha_registro)}</div>
                             </div>
-                          </div>
-                          {!director.activo && director.fecha_baja && (
                             <div>
-                              <div className="font-medium text-xs text-red-500">Fecha de Baja</div>
-                              <div className="text-red-600">
-                                {DirectoresService.formatFecha(director.fecha_baja)}
+                              <div className="font-medium text-slate-500 mb-0.5">Fecha de Actualización</div>
+                              <div className="text-slate-700 whitespace-nowrap">
+                                {director.fecha_actualizacion ? DirectoresService.formatFecha(director.fecha_actualizacion) : 'No actualizado'}
                               </div>
                             </div>
-                          )}
-                        </div>
-                      </td>
-                      
-                      {/* COLUMNA 3: INFORMACIÓN DEL DIRECTOR */}
-                      <td className="px-4 py-3 border border-gray-300 align-top">
-                        <div className="flex items-start gap-3">
-                          {/* IMAGEN */}
-                          <div>
-                            <div className="text-xs text-gray-500 mb-1">
-                              {director.imagen ? "" : ""}
-                            </div>
-                            {director.imagen ? (
-                              <img 
-                                src={getImagenUrl(director.imagen)} 
-                                className="w-20 h-20 object-cover border rounded" 
-                                alt={`Foto de ${director.nombre_completo}`}
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = DirectoresService.getImagenUrl(null);
-                                }}
-                              />
-                            ) : (
-                              <div className="w-20 h-20 border rounded bg-gray-100 flex items-center justify-center">
-                                <span className="text-gray-400 text-xs text-center">Sin imagen</span>
+                            {!director.activo && director.fecha_baja && (
+                              <div>
+                                <div className="font-medium text-rose-500 mb-0.5">Baja</div>
+                                <div className="text-rose-600 whitespace-nowrap">{DirectoresService.formatFecha(director.fecha_baja)}</div>
                               </div>
                             )}
                           </div>
-                          
-                          {/* DATOS PERSONALES */}
-                          <div>
-                            <p className="font-bold uppercase text-sm">
-                              {director.nombre_completo}
-                            </p>
-                            <p className="text-xs mt-1">
-                              <span className="font-medium">Colonia:</span> {director.colonia}
-                            </p>
-                            <p className="text-xs">
-                              <span className="font-medium">Municipio:</span> {director.municipio}
-                            </p>
-                            <p className="text-xs">
-                              <span className="font-medium">Teléfono:</span> {director.telefono || "-"}
-                            </p>
-                            
-                            {/* RESPONSABLE DE OBRA */}
+                        </td>
+                        <td className="px-3 py-2 align-top">
+                          <div className="flex items-start gap-3 min-w-[280px]">
+                            <div className="shrink-0">
+                              {director.imagen ? (
+                                <img
+                                  src={getImagenUrl(director.imagen)}
+                                  className="w-16 h-16 object-cover rounded-lg border border-slate-200"
+                                  alt={`Foto de ${director.nombre_completo}`}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = DirectoresService.getImagenUrl(null);
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-16 h-16 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
+                                  <span className="text-slate-400 text-xs text-center px-1">Sin imagen</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <p className="font-semibold text-slate-800 text-sm leading-tight whitespace-normal break-words">
+                                {director.nombre_completo}
+                              </p>
+                              <div className="text-xs text-slate-600 space-y-0.5">
+                                <p className="whitespace-normal break-words"><span className="font-medium">Colonia:</span> {director.colonia || "—"}</p>
+                                <p className="whitespace-normal break-words"><span className="font-medium">Municipio:</span> {director.municipio || "—"}</p>
+                                <p className="whitespace-normal break-words"><span className="font-medium">Teléfono:</span> {director.telefono || "—"}</p>
+                              </div>
+                              <div className="mt-1.5 pt-1 space-y-1">
+                                {DirectoresService.hasResponsableObra(director) && (
+                                  <div>
+                                    <p className="font-semibold text-xs text-slate-700">Responsable de Obra</p>
+                                    <p className="text-xs text-slate-600 whitespace-normal break-words"><span className="font-medium">Oficio:</span> {director.oficio_autorizacion_ro || "—"}</p>
+                                  </div>
+                                )}
+                                {DirectoresService.hasResponsableProyecto(director) && (
+                                  <div>
+                                    <p className="font-semibold text-xs text-slate-700">Responsable de Proyecto</p>
+                                    <p className="text-xs text-slate-600 whitespace-normal break-words"><span className="font-medium">Oficio:</span> {director.oficio_autorizacion_rp || "—"}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 align-top">
+                          <div className="flex flex-col gap-1.5 min-w-[140px]">
                             {DirectoresService.hasResponsableObra(director) && (
-                              <div className="mt-2">
-                                <p className="font-bold text-xs">Responsable de Obra</p>
-                                <p className="text-xs">
-                                  <span className="font-medium">Oficio:</span> {director.oficio_autorizacion_ro || ""}
-                                </p>
-                              </div>
+                              <button
+                                onClick={() => handleOpenPreview(director, 1)}
+                                className="w-full flex items-center gap-1.5 bg-slate-700 hover:bg-slate-800 text-white px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap"
+                                title="Vista previa e imprimir formato de Responsable de Obra"
+                              >
+                                <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                </svg>
+                                <span>Responsable de Obra</span>
+                              </button>
                             )}
-                            
-                            {/* RESPONSABLE DE PROYECTO */}
                             {DirectoresService.hasResponsableProyecto(director) && (
-                              <div className="mt-1">
-                                <p className="font-bold text-xs">Responsable de Proyecto</p>
-                                <p className="text-xs">
-                                  <span className="font-medium">Oficio:</span> {director.oficio_autorizacion_rp || ""}
-                                </p>
+                              <button
+                                onClick={() => handleOpenPreview(director, 2)}
+                                className="w-full flex items-center gap-1.5 bg-slate-700 hover:bg-slate-800 text-white px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap"
+                                title="Vista previa e imprimir formato de Responsable de Proyecto"
+                              >
+                                <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                </svg>
+                                <span>Responsable de Proyecto</span>
+                              </button>
+                            )}
+                            {DirectoresService.hasResponsablePlaneacionUrbana(director) && (
+                              <button
+                                onClick={() => handleOpenPreview(director, 3)}
+                                className="w-full flex items-center gap-1.5 bg-slate-700 hover:bg-slate-800 text-white px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap"
+                                title="Vista previa e imprimir formato de Planeación Urbana"
+                              >
+                                <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                </svg>
+                                <span>Planeación Urbana</span>
+                              </button>
+                            )}
+                            {!DirectoresService.hasResponsableObra(director) &&
+                             !DirectoresService.hasResponsableProyecto(director) &&
+                             !DirectoresService.hasResponsablePlaneacionUrbana(director) && (
+                              <div className="w-full px-2.5 py-1.5 rounded-md bg-slate-50 border border-slate-200 text-center">
+                                <svg className="w-3.5 h-3.5 mx-auto mb-0.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <p className="text-xs text-slate-500">Sin formatos</p>
                               </div>
                             )}
                           </div>
-                        </div>
-                      </td>
-                      
-                      {/* COLUMNA 4: IMPRIMIR FORMATO */}
-                      <td className="px-4 py-3 border border-gray-300 align-top">
-                        <div className="space-y-2">
-                          {/* Responsable de Obra */}
-                          {DirectoresService.hasResponsableObra(director) && (
-                            <button 
-                              onClick={() => handleOpenPreview(director, 1)}
-                              className="block w-full bg-gray-800 text-white px-3 py-1.5 rounded text-xs hover:bg-gray-700 transition-colors"
+                        </td>
+                        <td className="px-3 py-2 align-top">
+                          <div className="flex items-center gap-x-2 text-sm whitespace-nowrap">
+                            <button
+                              onClick={() => DirectoresService.generarConstanciaWord(director)}
+                              className="text-emerald-600 hover:text-emerald-800 font-medium transition-colors flex items-center gap-1"
                             >
-                              - Responsable de Obra
+                              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              Word
                             </button>
-                          )}
-                          
-                          {/* Responsable de Proyecto */}
-                          {DirectoresService.hasResponsableProyecto(director) && (
-                            <button 
-                              onClick={() => handleOpenPreview(director, 2)}
-                              className="block w-full bg-gray-800 text-white px-3 py-1.5 rounded text-xs hover:bg-gray-700 transition-colors"
-                            >
-                              - Responsable de Proyecto
-                            </button>
-                          )}
-                          
-                          {/* Responsable de Planeación Urbana */}
-                          {DirectoresService.hasResponsablePlaneacionUrbana(director) && (
-                            <button 
-                              onClick={() => handleOpenPreview(director, 3)}
-                              className="block w-full bg-gray-800 text-white px-3 py-1.5 rounded text-xs hover:bg-gray-700 transition-colors"
-                            >
-                              - Responsable de Planeación Urbana
-                            </button>
-                          )}
-                          
-                          {/* Sin formatos */}
-                          {!DirectoresService.hasResponsableObra(director) && 
-                           !DirectoresService.hasResponsableProyecto(director) && 
-                           !DirectoresService.hasResponsablePlaneacionUrbana(director) && (
-                            <p className="text-xs text-gray-500 text-center py-1">
-                              Sin formatos
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                      
-                      {/* COLUMNA 5: OPCIONES */}
-                      <td className="px-4 py-3 border border-gray-300 align-top">
-                        <div className="flex flex-col gap-1">
-                          <button
-                            onClick={() => DirectoresService.generarConstanciaWord(director)}
-                            className="text-green-700 hover:text-green-900 font-medium transition-colors flex items-center gap-1"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Word
-                          </button>
-                          <button
-                            onClick={() => puedeModificar && handleEdit(director)}
-                            disabled={!puedeModificar}
-                            className={`text-blue-600 hover:text-blue-800 font-medium transition-colors flex items-center gap-1 ${!puedeModificar ? "opacity-50 cursor-not-allowed" : ""}`}
-                          >
-                            Editar
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )))}
+                            {puedeModificar && (
+                              <>
+                                <span className="text-slate-300">|</span>
+                                <button
+                                  onClick={() => handleEdit(director)}
+                                  className="text-sky-600 hover:text-sky-800 font-medium transition-colors"
+                                >
+                                  Editar
+                                </button>
+                              </>
+                            )}
+                            {!puedeModificar && (
+                              <span className="text-slate-400 text-sm">Solo lectura</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
-            </div>
             )}
           </div>
 
-          {/* PAGINACIÓN E INFORMACIÓN DE REGISTROS */}
-          <div className="p-4 border-t bg-gray-50">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="text-sm text-gray-600 text-center sm:text-left">
-                Mostrando <span className="font-semibold text-gray-900">
-                  {totalRegistros > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}
-                </span> - <span className="font-semibold text-gray-900">
-                  {Math.min(currentPage * itemsPerPage, totalRegistros)}
-                </span> de <span className="font-semibold text-gray-900">{totalRegistros}</span> registros
-              </div>
-              {totalPages > 1 && (
-                <div className="flex items-center gap-1">
-                  <button
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(1)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                  >
-                    ««
-                  </button>
-                  <button
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                  >
-                    &lt;
-                  </button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={`min-w-[36px] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            currentPage === pageNum
-                              ? "bg-black text-white"
-                              : "border border-gray-300 bg-white hover:bg-gray-100"
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <button
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                  >
-                    &gt;
-                  </button>
-                  <button
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(totalPages)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                  >
-                    »»
-                  </button>
+          {/* PAGINACIÓN */}
+          <div className="px-4 py-3 border-t border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-slate-600 text-center sm:text-left order-2 sm:order-1">
+              <span className="font-medium text-slate-800">{totalRegistros > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</span>
+              <span className="mx-1">–</span>
+              <span className="font-medium text-slate-800">{Math.min(currentPage * itemsPerPage, totalRegistros)}</span>
+              <span className="mx-1">de</span>
+              <span className="font-medium text-slate-800">{totalRegistros}</span>
+              <span className="ml-1">registros</span>
+            </p>
+            {totalPages > 1 && (
+              <nav className="flex items-center justify-center gap-1 order-1 sm:order-2" aria-label="Paginación">
+                <button disabled={currentPage === 1} onClick={() => setCurrentPage(1)} className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors" aria-label="Primera página">«</button>
+                <button disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)} className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors" aria-label="Anterior">‹</button>
+                <div className="flex items-center gap-0.5 mx-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`min-w-[2.25rem] h-9 px-2 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? "bg-slate-800 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
+                <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(currentPage + 1)} className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors" aria-label="Siguiente">›</button>
+                <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(totalPages)} className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors" aria-label="Última página">»</button>
+              </nav>
+            )}
           </div>
         </div>
       </main>

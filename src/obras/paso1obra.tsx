@@ -5,6 +5,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import { getColonias } from "../services/colonias.service";
 import usuariosService from "../services/usuarios.service";
+import { getConceptosByObra } from "../services/obraConceptos.service";
+import { TramitesService } from "../services/tramites.service";
+import type { Tramite } from "../services/tramites.service";
 
 import Menu from "../layout/menu";
 
@@ -110,7 +113,7 @@ const NumerosOficiales = ({ numeros, onAdd, onRemove }: any) => {
 
   return (
     <div className="space-y-3">
-      <h3 className="font-medium text-gray-700">Calle y Número Oficial *</h3>
+      <h3 className="font-medium text-gray-800 mb-3">Calle y Número Oficial *</h3>
       
       <div className="grid grid-cols-2 gap-3">
         <input
@@ -118,7 +121,7 @@ const NumerosOficiales = ({ numeros, onAdd, onRemove }: any) => {
           placeholder="Calle"
           value={nuevoNumero.calle}
           onChange={(e) => setNuevoNumero({ ...nuevoNumero, calle: e.target.value })}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
         <div className="flex gap-2">
           <input
@@ -126,12 +129,12 @@ const NumerosOficiales = ({ numeros, onAdd, onRemove }: any) => {
             placeholder="Número"
             value={nuevoNumero.numeroOficial}
             onChange={(e) => setNuevoNumero({ ...nuevoNumero, numeroOficial: e.target.value })}
-            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <button
             type="button"
             onClick={handleAdd}
-            className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700"
+            className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium"
           >
             Agregar
           </button>
@@ -140,14 +143,14 @@ const NumerosOficiales = ({ numeros, onAdd, onRemove }: any) => {
 
       <div className="space-y-2">
         {numeros?.map((num: any, index: number) => (
-          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-            <span className="text-sm">
+          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-200">
+            <span className="text-sm text-gray-700">
               {num.calle}, No. {num.numeroOficial}
             </span>
             <button
               type="button"
               onClick={() => onRemove(index)}
-              className="text-red-600 hover:text-red-800"
+              className="text-red-600 hover:text-red-800 text-sm font-medium"
             >
               Quitar
             </button>
@@ -202,7 +205,7 @@ const DocumentosAdicionales = ({ documentos, onAdd, onRemove }: any) => {
           <select
             value={selectedDocument}
             onChange={(e) => setSelectedDocument(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
           >
             {opcionesDocumentos.map((doc) => (
               <option key={doc} value={doc}>
@@ -214,7 +217,7 @@ const DocumentosAdicionales = ({ documentos, onAdd, onRemove }: any) => {
         <button
           type="button"
           onClick={handleAddFromSelect}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 h-10"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 h-10 text-sm font-medium"
         >
           Agregar
         </button>
@@ -222,12 +225,12 @@ const DocumentosAdicionales = ({ documentos, onAdd, onRemove }: any) => {
 
       <div className="space-y-2">
         {documentos?.map((doc: string, index: number) => (
-          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-            <span className="text-sm">{doc}</span>
+          <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-200">
+            <span className="text-sm text-gray-700">{doc}</span>
             <button
               type="button"
               onClick={() => onRemove(index)}
-              className="text-red-600 hover:text-red-800"
+              className="text-red-600 hover:text-red-800 text-sm font-medium"
             >
               Quitar
             </button>
@@ -249,7 +252,8 @@ const Paso1Obra: React.FC = () => {
 
   // Estado inicial solo con campos usados en el formulario
   const [form, setForm] = useState<any>({
-    consecutivo: "",               // ← Ahora este es el campo correcto
+    consecutivo: "",
+    idObraSuperior: "",            // En creación no se muestra consecutivo; aquí va ID obra superior
     tipoPropietario: "",
     nombrePropietario: "",
     representanteLegal: "",
@@ -302,10 +306,24 @@ const Paso1Obra: React.FC = () => {
   const coloniaDropdownRef = useRef<HTMLDivElement>(null);
   const [usuarioRevisorOptions, setUsuarioRevisorOptions] = useState<{ value: string; label: string }[]>([]);
   const [cuantificadorOptions, setCuantificadorOptions] = useState<{ value: string; label: string }[]>([]);
+  const [tieneConceptosFromApi, setTieneConceptosFromApi] = useState(false);
+  const tieneConceptos = id ? tieneConceptosFromApi : false;
+  // Modal de trámite solo al crear obra: para armar consecutivo = letra-idObra
+  const [showTramiteModal, setShowTramiteModal] = useState(false);
+  const [tramites, setTramites] = useState<Tramite[]>([]);
+  const [obraIdPendiente, setObraIdPendiente] = useState<number | null>(null);
+  const [tramiteSeleccionado, setTramiteSeleccionado] = useState<Tramite | null>(null);
 
   useEffect(() => {
     getColonias().then(setColonias).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (!id) return;
+    getConceptosByObra(Number(id))
+      .then((list) => setTieneConceptosFromApi(Array.isArray(list) && list.length > 0))
+      .catch(() => setTieneConceptosFromApi(false));
+  }, [id]);
 
   // Cargar usuarios por función: value = id_usuarios para guardar IDs en BD; label = nombre completo para mostrar
   useEffect(() => {
@@ -374,6 +392,33 @@ const Paso1Obra: React.FC = () => {
     setDocumentosAdicionales(documentosAdicionales.filter((_, i) => i !== index));
   };
 
+  /** Al crear obra: usuario confirmó trámite → consecutivo = letra-idObra, actualizar obra y continuar */
+  const confirmarTramite = async () => {
+    if (!tramiteSeleccionado) return;
+    const idObra = obraIdPendiente;
+    if (idObra == null) return;
+    try {
+      // Solo actualizar el consecutivo (los números oficiales ya se guardaron antes del modal)
+      const consecutivo = `${tramiteSeleccionado.letra}-${idObra}`;
+      await axios.put(`${api}/${idObra}`, { consecutivo });
+      
+      setShowTramiteModal(false);
+      setObraIdPendiente(null);
+      setTramiteSeleccionado(null);
+      alert("¡Obra guardada correctamente!");
+      navigate(`/obras/paso2/${idObra}`);
+    } catch (error: any) {
+      console.error("Error al asignar consecutivo:", error);
+      alert(`Error: ${error.response?.data?.message || error.message || "Error al asignar consecutivo"}`);
+    }
+  };
+
+  const cerrarModalTramite = () => {
+    setShowTramiteModal(false);
+    setObraIdPendiente(null);
+    setTramiteSeleccionado(null);
+  };
+
   const handleSelectColonia = (colonia: { id_colonia: number; nombre: string; densidad: string | null }) => {
     setForm((prev: any) => ({
       ...prev,
@@ -391,14 +436,18 @@ const Paso1Obra: React.FC = () => {
 
   // Cargar datos si es edición
   useEffect(() => {
-    if (id) {
-      setLoading(true);
-      axios.get(`${api}/${id}`)
+    if (!id) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setLoading(true);
+    });
+    axios.get(`${api}/${id}`)
         .then((res) => {
           const data = res.data;
           setForm((prev: any) => ({
             ...prev,
             ...data,
+            idObraSuperior: (data.idObraSuperior ?? data.idobrasuperior ?? '').toString().trim(),
             destinoActualProyecto: (data.destinoActualProyecto ?? data.destinoActualProyeto ?? '').toString().trim(),
             destinoPropuestoProyecto: (data.destinoPropuestoProyecto ?? '').toString().trim(),
             aguaPotable: data.aguaPotable ?? prev.aguaPotable,
@@ -437,10 +486,8 @@ const Paso1Obra: React.FC = () => {
           console.error("Error cargando datos:", error);
           alert("Error al cargar los datos de la obra");
         })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+        .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [id]);
 
   const handleSave = async () => {
@@ -493,15 +540,26 @@ const Paso1Obra: React.FC = () => {
         }
       }
 
+      // Construir obraData asegurando que destinoActualProyecto y destinoPropuestoProyecto se envíen explícitamente
       const obraData: any = {
         ...form,
         documentosRequeridos: documentosAdicionales.join(', '),
         fechaCaptura: id ? form.fechaCaptura : new Date(),
         ultimaModificacion: new Date(),
       };
+      // Asignar explícitamente después del spread para asegurar que se sobrescriba cualquier valor del form
       obraData.destinoActualProyecto = destinoActual;
       obraData.destinoPropuestoProyecto = destinoPropuesto;
+      // Asegurar que idObraSuperior se envíe con el nombre correcto para el backend
+      if (form.idObraSuperior !== undefined && form.idObraSuperior !== null && form.idObraSuperior !== '') {
+        obraData.idObraSuperior = form.idObraSuperior;
+      }
       delete obraData.numerosOficiales;
+
+      // Si es creación nueva: no enviar consecutivo (se asigna después con el trámite)
+      if (!id) {
+        obraData.consecutivo = "";
+      }
 
       // Si es creación nueva y no tiene idUsuarioCapturador, usar el usuario logueado
       if (!id && idUsuarioLogueado && !obraData.idUsuarioCapturador) {
@@ -513,15 +571,86 @@ const Paso1Obra: React.FC = () => {
         obraData.idUsuarioLogueado = idUsuarioLogueado;
       }
 
+      // Debug: verificar que destinoActualProyecto se esté enviando
+      console.log('Enviando obraData:', { 
+        destinoActualProyecto: obraData.destinoActualProyecto,
+        destinoPropuestoProyecto: obraData.destinoPropuestoProyecto 
+      });
+
       let obraId = id;
+      const esCopia = location.state?.esCopia || false;
+      
       if (id) {
         await axios.put(`${api}/${id}`, obraData);
+        
+        // Si es una copia (sin consecutivo), mostrar modal de trámite
+        // Verificar si el consecutivo está vacío en el form (después de cargar)
+        const tieneConsecutivo = form.consecutivo && form.consecutivo.trim() !== '';
+        if (esCopia && !tieneConsecutivo) {
+          // Guardar números oficiales primero
+          try {
+            const usuarioData = localStorage.getItem("usuario");
+            const payload: any = {
+              numeros: numerosOficiales.map((n: any) => ({
+                calle: (n.calle ?? '').toString().trim(),
+                numeroOficial: (n.numeroOficial ?? n.numerooficial ?? '').toString().trim(),
+              })),
+            };
+            if (usuarioData) {
+              try {
+                const usuarioLogueado = JSON.parse(usuarioData);
+                if (usuarioLogueado?.id) payload.idUsuarioLogueado = usuarioLogueado.id;
+              } catch (error) {
+                console.error('Error al parsear usuario de localStorage:', error);
+              }
+            }
+            await axios.post(`${api}/${obraId}/numeros-manual`, payload);
+          } catch (error) {
+            console.warn("No se pudieron guardar los números oficiales:", error);
+          }
+          
+          // Guardar referencia para el modal de trámite
+          setObraIdPendiente(obraId);
+          setTramiteSeleccionado(null); // Resetear selección al abrir modal
+          const list = await TramitesService.getAll().catch(() => []);
+          setTramites(Array.isArray(list) ? list : []);
+          setShowTramiteModal(true);
+          return;
+        }
       } else {
         const response = await axios.post(api, obraData);
         obraId = response.data.idObra || response.data.id;
+        
+        // Al crear: guardar números oficiales INMEDIATAMENTE después de crear la obra
+        try {
+          const usuarioData = localStorage.getItem("usuario");
+          const numerosPayload: any = {
+            numeros: numerosOficiales.map((n: any) => ({
+              calle: (n.calle ?? '').toString().trim(),
+              numeroOficial: (n.numeroOficial ?? n.numerooficial ?? '').toString().trim(),
+            })),
+          };
+          if (usuarioData) {
+            try {
+              const usuarioLogueado = JSON.parse(usuarioData);
+              if (usuarioLogueado?.id) numerosPayload.idUsuarioLogueado = usuarioLogueado.id;
+            } catch (_) {}
+          }
+          await axios.post(`${api}/${obraId}/numeros-manual`, numerosPayload);
+        } catch (error) {
+          console.warn("No se pudieron guardar los números oficiales:", error);
+        }
+        
+        // Guardar referencia para el modal de trámite
+        setObraIdPendiente(obraId);
+        setTramiteSeleccionado(null); // Resetear selección al abrir modal
+        const list = await TramitesService.getAll().catch(() => []);
+        setTramites(Array.isArray(list) ? list : []);
+        setShowTramiteModal(true);
+        return;
       }
 
-      // Siempre sincronizar números oficiales (crear o editar) para que no se pierdan al guardar
+      // Edición normal: sincronizar números oficiales y salir
       try {
         const usuarioData = localStorage.getItem("usuario");
         const payload: any = {
@@ -607,13 +736,11 @@ const Paso1Obra: React.FC = () => {
         <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-[98%] mx-auto">
           {/* HEADER DEL REPORTE - igual que Obras.tsx */}
           <div className="bg-gradient-to-r from-black to-gray-800 text-white px-6 py-5">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold">Obra</h2>
-                <p className="text-sm text-gray-300 mt-1">
-                  {id ? (form.consecutivo || '—') : 'Nueva obra'}
-                </p>
-              </div>
+            <div className="flex flex-col items-center justify-center text-center">
+              <h2 className="text-2xl font-bold">Obra</h2>
+              <p className="text-sm text-gray-300 mt-1">
+                Consecutivo: {id ? (form.consecutivo || '—') : 'Nueva obra'}
+              </p>
             </div>
           </div>
 
@@ -630,7 +757,11 @@ const Paso1Obra: React.FC = () => {
         <div className="flex flex-col items-center shrink-0 pt-8">
           {[1, 2, 3, 4].map((step) => {
             const isEditando = !!id;
-            const stepClickable = step > 1 && step <= 4 && isEditando;
+            const paso2Permitido = isEditando && step === 2;
+            const paso3Permitido = isEditando && step === 3 && tieneConceptos;
+            const paso4Permitido = isEditando && step === 4 && (form.estadoVerificacion === "Si");
+            const stepClickable =
+              step === 1 ? false : (paso2Permitido || paso3Permitido || paso4Permitido);
             const isDisabled = !stepClickable;
 
             return (
@@ -645,7 +776,7 @@ const Paso1Obra: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      if (step > 1 && id) navigate(`/obras/paso${step}/${id}`);
+                      if (step > 1 && id && stepClickable) navigate(`/obras/paso${step}/${id}`);
                     }}
                     disabled={!stepClickable}
                     className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm transition
@@ -663,24 +794,23 @@ const Paso1Obra: React.FC = () => {
         </div>
 
         <div className="flex-1 min-w-0 bg-white overflow-hidden">
-          <p className="text-sm text-gray-500 px-6 pt-4">
+          <p className="text-sm text-gray-500 px-6 pt-4 pb-2">
             Los campos requeridos están señalados con un asterisco *
           </p>
 
-
-        <div className="p-4 md:p-8 space-y-8">
+        <div className="px-6 pb-6 space-y-6">
           {/* ===== 1. DATOS DEL PROPIETARIO ===== */}
-          <section className="bg-gray-50 p-4 md:p-6 rounded-lg">
-            <h2 className="text-lg font-bold mb-4 text-gray-800 border-b pb-2">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-gray-800 text-white px-6 py-3 font-semibold text-sm">
               1. DATOS DEL PROPIETARIO
-            </h2>
-            <div className="space-y-4">
-              {/* Consecutivo - AHORA USA EL CAMPO CORRECTO */}
+            </div>
+            <div className="p-6 space-y-6">
               <Input
                 label="Consecutivo anterior"
-                name="consecutivo"
-                value={form.consecutivo}
+                name="idObraSuperior"
+                value={form.idObraSuperior}
                 onChange={handleChange}
+                placeholder=""
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -780,8 +910,8 @@ const Paso1Obra: React.FC = () => {
                 />
               </div>
 
-              <div className="bg-white p-4 rounded border">
-                <h3 className="font-medium text-gray-700 mb-3">DOCUMENTOS</h3>
+              <section>
+                <h3 className="font-medium text-gray-800 mb-3">DOCUMENTOS</h3>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Documento que Acredita la Propiedad
@@ -793,7 +923,7 @@ const Paso1Obra: React.FC = () => {
                       value={form.documentoAcreditaPropiedad || ""}
                       onChange={handleChange}
                       placeholder="Ej: RESOLUCIÓN NO.12098TL"
-                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <Select
                       label="Tipo de Documento"
@@ -813,16 +943,16 @@ const Paso1Obra: React.FC = () => {
                     onRemove={handleRemoveDocumento}
                   />
                 </div>
-              </div>
+              </section>
             </div>
-          </section>
+          </div>
 
           {/* ===== 2. DATOS DE LA OBRA ===== */}
-          <section className="bg-gray-50 p-4 md:p-6 rounded-lg">
-            <h2 className="text-lg font-bold mb-4 text-gray-800 border-b pb-2">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-gray-800 text-white px-6 py-3 font-semibold text-sm">
               2. DATOS DE LA OBRA
-            </h2>
-            <div className="space-y-6">
+            </div>
+            <div className="p-6 space-y-6">
               <NumerosOficiales
                 numeros={numerosOficiales}
                 onAdd={handleAddNumero}
@@ -948,14 +1078,14 @@ const Paso1Obra: React.FC = () => {
                 />
               </div>
             </div>
-          </section>
+          </div>
 
           {/* ===== 3. DATOS DEL PROYECTO ===== */}
-          <section className="bg-gray-50 p-4 md:p-6 rounded-lg">
-            <h2 className="text-lg font-bold mb-4 text-gray-800 border-b pb-2">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-gray-800 text-white px-6 py-3 font-semibold text-sm">
               3. DATOS DEL PROYECTO
-            </h2>
-            <div className="space-y-6">
+            </div>
+            <div className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   label="Destino Actual del Proyecto *"
@@ -981,8 +1111,8 @@ const Paso1Obra: React.FC = () => {
                 />
               </div>
 
-              <div className="bg-white p-4 rounded border">
-                <h3 className="font-medium text-gray-700 mb-3">Servicios</h3>
+              <section>
+                <h3 className="font-medium text-gray-800 mb-3">Servicios</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <Checkbox
                     name="aguaPotable"
@@ -1031,10 +1161,10 @@ const Paso1Obra: React.FC = () => {
                     placeholder="Seleccionar Valor"
                   />
                 </div>
-              </div>
+              </section>
 
-              <div className="bg-white p-4 rounded border">
-                <h3 className="font-medium text-gray-700 mb-3">RESTRICCIONES</h3>
+              <section>
+                <h3 className="font-medium text-gray-800 mb-3">RESTRICCIONES</h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <Input
                     label="Servidumbre Frontal (m)"
@@ -1075,9 +1205,9 @@ const Paso1Obra: React.FC = () => {
                     placeholder="1.6"
                   />
                 </div>
-              </div>
+              </section>
 
-              <div>
+              <section>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Descripción Proyecto
                 </label>
@@ -1088,48 +1218,52 @@ const Paso1Obra: React.FC = () => {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-32"
                   placeholder="Describa el proyecto..."
                 />
-              </div>
+              </section>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Select
-                  label="Usuario que recibió documentación"
-                  name="revisor"
-                  value={form.revisor}
-                  onChange={handleChange}
-                  options={usuarioRevisorOptions}
-                  placeholder="Seleccionar Valor"
-                />
-                <Select
-                  label="Cuantificador"
-                  name="cuantificador"
-                  value={form.cuantificador}
-                  onChange={handleChange}
-                  options={cuantificadorOptions}
-                  placeholder="Seleccionar Valor"
-                />
-              </div>
+              <section>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Select
+                    label="Usuario que recibió documentación"
+                    name="revisor"
+                    value={form.revisor}
+                    onChange={handleChange}
+                    options={usuarioRevisorOptions}
+                    placeholder="Seleccionar Valor"
+                  />
+                  <Select
+                    label="Cuantificador"
+                    name="cuantificador"
+                    value={form.cuantificador}
+                    onChange={handleChange}
+                    options={cuantificadorOptions}
+                    placeholder="Seleccionar Valor"
+                  />
+                </div>
+              </section>
             </div>
-          </section>
+          </div>
 
           {/* ===== BOTONES ===== */}
-          <div className="flex flex-col md:flex-row justify-end gap-4 pt-6 border-t">
-            <button
-              onClick={() => navigate("/obras")}
-              className="px-4 py-2 rounded border hover:bg-gray-100"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={esSupervisor}
-              className={`px-4 py-2 rounded-xl font-medium ${
-                esSupervisor 
-                  ? "bg-gray-400 text-gray-600 cursor-not-allowed" 
-                  : "bg-black text-white hover:bg-gray-800"
-              }`}
-            >
-              {esSupervisor ? "Solo lectura" : "Guardar Cambios"}
-            </button>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-6 flex flex-col md:flex-row justify-end gap-3">
+              <button
+                onClick={() => navigate("/obras")}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={esSupervisor}
+                className={`px-6 py-2 rounded-xl font-medium ${
+                  esSupervisor 
+                    ? "bg-gray-400 text-gray-600 cursor-not-allowed" 
+                    : "bg-black text-white hover:bg-gray-800"
+                }`}
+              >
+                {esSupervisor ? "Solo lectura" : "Guardar Cambios"}
+              </button>
+            </div>
           </div>
         </div>
         </div>
@@ -1138,6 +1272,98 @@ const Paso1Obra: React.FC = () => {
       </div>
       </main>
 
+
+      {/* Modal: elegir trámite para asignar consecutivo (solo al crear obra) */}
+      {showTramiteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-lg shadow-2xl max-w-lg w-full overflow-hidden">
+            {/* Header del modal */}
+            <div className="bg-gradient-to-r from-gray-700 to-gray-800 text-white px-6 py-4">
+              <h3 className="text-lg font-semibold">Seleccione el tramite a realizar</h3>
+            </div>
+
+            {/* Header de la tabla */}
+            <div className="bg-gray-100 border-b border-gray-200 px-6 py-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-700">Nombre Tramite</span>
+                <span className="text-sm font-medium text-gray-600">
+                  Total de tramites ({tramites.length})
+                </span>
+              </div>
+            </div>
+
+            {/* Lista de trámites */}
+            <div className="max-h-96 overflow-y-auto">
+              {tramites.length === 0 ? (
+                <div className="px-6 py-8 text-center">
+                  <p className="text-sm text-gray-500">No hay trámites disponibles.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-200">
+                  {tramites.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTramiteSeleccionado(t)}
+                      className={`w-full text-left px-6 py-4 hover:bg-blue-50 transition-colors ${
+                        tramiteSeleccionado?.id === t.id
+                          ? "bg-blue-100 border-l-4 border-blue-600"
+                          : "bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className={`text-sm ${
+                          tramiteSeleccionado?.id === t.id
+                            ? "font-semibold text-gray-900"
+                            : "text-gray-700"
+                        }`}>
+                          {t.nombre}
+                        </span>
+                        {tramiteSeleccionado?.id === t.id && (
+                          <svg
+                            className="w-5 h-5 text-blue-600"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer con botones */}
+            <div className="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={cerrarModalTramite}
+                className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarTramite}
+                disabled={!tramiteSeleccionado}
+                className={`px-6 py-2 text-sm font-medium text-white rounded-md transition-colors ${
+                  tramiteSeleccionado
+                    ? "bg-gray-700 hover:bg-gray-800 shadow-sm"
+                    : "bg-gray-400 cursor-not-allowed"
+                }`}
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FOOTER */}
 

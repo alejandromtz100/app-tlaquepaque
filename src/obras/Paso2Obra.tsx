@@ -74,30 +74,29 @@ export default function Paso2Obra({ obraId }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">
-         Conceptos de la obra
-      </h2>
-
-      <div className="overflow-x-auto">
-        <TablaConceptosObra
-          conceptos={conceptos}
-          onDelete={cargarConceptos}
-          onEdit={(c) => setEditingConcepto(c)}
-        />
-      </div>
-
-      <div className="mt-6 flex justify-end">
-        <div className="bg-gray-100 rounded-lg px-4 py-2 text-right">
-          <span className="text-sm text-gray-600 block">Total general</span>
-          <span className="text-lg font-bold text-gray-800">
-            ${totalGeneral.toFixed(2)}
-          </span>
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      {/* Conceptos */}
+      <div>
+        <div className="bg-gray-800 text-white text-center py-3 font-semibold text-sm">
+          CONCEPTOS
+        </div>
+        <div className="overflow-x-auto">
+          <TablaConceptosObra
+            conceptos={conceptos}
+            onDelete={cargarConceptos}
+            onEdit={(c) => setEditingConcepto(c)}
+          />
+        </div>
+        <div className="px-6 py-4 flex justify-end border-t border-slate-200 bg-slate-50">
+          <div className="text-right">
+            <span className="text-sm text-slate-600 block">Total general</span>
+            <span className="text-xl font-bold text-slate-800">${totalGeneral.toFixed(2)}</span>
+          </div>
         </div>
       </div>
 
       {/* Botón Continuar */}
-      <div className="mt-6 flex justify-center">
+      <div className="p-6 flex justify-end gap-3 border-t border-gray-200">
         <button
           type="button"
           onClick={handleContinuar}
@@ -108,7 +107,8 @@ export default function Paso2Obra({ obraId }: Props) {
         </button>
       </div>
 
-      <div className="mt-8">
+      {/* Formulario Agregar Concepto */}
+      <div className="border-t border-gray-200">
         <FormAgregarConcepto
           obraId={obraId}
           onSuccess={() => {

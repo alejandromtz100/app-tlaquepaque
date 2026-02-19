@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { DirectorObra } from '../services/directores.service';
 import { DirectoresService } from '../services/directores.service';
 
@@ -88,15 +88,7 @@ const PreviewDirectores: React.FC<PreviewDirectoresProps> = ({
   };
 
   const [texts, setTexts] = useState<PreviewTexts>(getDefaultTexts());
-  const [previewUrl, setPreviewUrl] = useState<string>('');
-
-  useEffect(() => {
-    if (director.imagen) {
-      setPreviewUrl(DirectoresService.getImagenUrl(director.imagen));
-    } else {
-      setPreviewUrl('');
-    }
-  }, [director.imagen]);
+  const previewUrl = director.imagen ? DirectoresService.getImagenUrl(director.imagen) : '';
 
   const handleTextChange = (field: keyof PreviewTexts, value: string) => {
     setTexts(prev => ({ ...prev, [field]: value }));

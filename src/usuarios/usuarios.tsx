@@ -267,7 +267,7 @@ const Usuarios: React.FC = () => {
               </div>
               <div className="text-right">
                 <div className="text-sm text-gray-300">Total de registros</div>
-                <div className="text-2xl font-bold">{usuarios.length}</div>
+                <div className="text-2xl font-bold">{filteredUsuarios.length}</div>
               </div>
             </div>
           </div>
@@ -276,41 +276,30 @@ const Usuarios: React.FC = () => {
           <div className="p-6 border-b bg-gray-50">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-800">Filtros de Búsqueda</h3>
-              <div className="flex gap-2">
+              {puedeModificar && (
                 <button
-                  onClick={limpiarFiltros}
-                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition text-sm font-medium"
+                  onClick={() => {
+                    setShowForm(true);
+                    setIsEditing(false);
+                    setNuevoUsuario({
+                      nombre: "",
+                      ap_paterno: "",
+                      ap_materno: "",
+                      telefono: "",
+                      usuario: "",
+                      clave: "",
+                      rol: "USUARIO",
+                      estado: "Activo",
+                      area: undefined,
+                      cargo: { nombre: "" },
+                      funcionEspecial: undefined,
+                    });
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium flex items-center gap-2"
                 >
-                  Limpiar Filtros
+                  + Agregar usuario
                 </button>
-                {puedeModificar && (
-                  <button
-                    onClick={() => {
-                      setShowForm(true);
-                      setIsEditing(false);
-                      setNuevoUsuario({
-                        nombre: "",
-                        ap_paterno: "",
-                        ap_materno: "",
-                        telefono: "",
-                        usuario: "",
-                        clave: "",
-                        rol: "USUARIO",
-                        estado: "Activo",
-                        area: undefined,
-                        cargo: { nombre: "" },
-                        funcionEspecial: undefined,
-                      });
-                    }}
-                    className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition text-sm font-medium flex items-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Agregar usuario
-                  </button>
-                )}
-              </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -350,196 +339,178 @@ const Usuarios: React.FC = () => {
                   ))}
                 </select>
               </div>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={limpiarFiltros}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-black outline-none"
+                >
+                  Limpiar filtros
+                </button>
+              </div>
             </div>
 
             <div className="mt-4 text-sm text-gray-600">
-              Mostrando <span className="font-semibold">{filteredUsuarios.length}</span> de <span className="font-semibold">{usuarios.length}</span> registros
+              Mostrando <span className="font-semibold">{filteredUsuarios.length}</span> registros
             </div>
           </div>
 
-          {/* TABLA O ESTADO DE CARGA */}
-          <div className="overflow-x-auto max-h-[calc(100vh-400px)] overflow-y-auto">
-            {loading ? (
-              <div className="min-h-[200px] flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                  <p className="text-gray-600 text-sm">Cargando usuarios...</p>
-                </div>
-              </div>
-            ) : (
-              <div className="min-w-full inline-block align-middle">
-                <table className="min-w-full text-xs border-collapse bg-white">
-                  <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
-                    <tr className="text-gray-700 uppercase">
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">ID</th>
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Nombre</th>
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Teléfono</th>
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Usuario</th>
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Rol</th>
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Estado</th>
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Área</th>
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Cargo</th>
-                      <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Función</th>
-                      {esAdmin && <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100 w-48">Opciones</th>}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {currentUsuarios.length === 0 && !loading ? (
-                      <tr>
-                        <td colSpan={esAdmin ? 10 : 9} className="px-4 py-12 text-center text-gray-500 bg-gray-50">
-                          <div className="flex flex-col items-center">
-                            <svg className="w-12 h-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
-                            <p className="text-base font-medium">
-                              {search || filtroRol !== "TODOS" || filtroEstado !== "TODOS"
-                                ? "No se encontraron resultados para los filtros aplicados"
-                                : "No hay usuarios registrados"}
-                            </p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      currentUsuarios.map((u) => (
-                        <tr
-                          key={u.id_usuarios}
-                          className="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-200"
-                        >
-                          <td className="px-4 py-3 border border-gray-300 whitespace-nowrap text-gray-700">{u.id_usuarios}</td>
-                          <td className="px-4 py-3 border border-gray-300 text-gray-700">
-                            {u.nombre} {u.ap_paterno} {u.ap_materno}
-                          </td>
-                          <td className="px-4 py-3 border border-gray-300 text-gray-700">{u.telefono || "-"}</td>
-                          <td className="px-4 py-3 border border-gray-300 text-gray-700">{u.usuario || "-"}</td>
-                          <td className="px-4 py-3 border border-gray-300">
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              u.rol === "ADMIN"
-                                ? "bg-purple-100 text-purple-800"
-                                : u.rol === "SUPERVISOR"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-gray-100 text-gray-800"
-                            }`}>
-                              {u.rol || "-"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 border border-gray-300">
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              u.estado === "Activo"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}>
-                              {u.estado || "-"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 border border-gray-300 text-gray-700">{u.area?.nombre || "-"}</td>
-                          <td className="px-4 py-3 border border-gray-300 text-gray-700">{u.cargo?.nombre || "-"}</td>
-                          <td className="px-4 py-3 border border-gray-300 text-gray-700">{u.funcionEspecial?.nombre || "-"}</td>
+          {/* TABLA - Sin scroll interno, contenido completo con saltos de línea */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse bg-white text-sm">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[60px]">ID</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[200px]">Nombre</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[110px]">Teléfono</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[130px]">Usuario</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[110px]">Rol</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[90px]">Estado</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[140px]">Área</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[120px]">Cargo</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[180px]">Función</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap w-[180px]">Opciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {currentUsuarios.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-3 py-10 text-center text-slate-500 bg-slate-50/50">
+                      <div className="flex flex-col items-center gap-2">
+                        <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <p className="font-medium text-slate-600">
+                          {search || filtroRol !== "TODOS" || filtroEstado !== "TODOS"
+                            ? "No se encontraron resultados para los filtros aplicados"
+                            : "No hay usuarios registrados"}
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  currentUsuarios.map((u) => (
+                    <tr key={u.id_usuarios} className="hover:bg-slate-50/80 transition-colors border-b border-slate-100 last:border-0">
+                      <td className="px-3 py-2 text-slate-700 align-top whitespace-nowrap">{u.id_usuarios}</td>
+                      <td className="px-3 py-2 text-slate-800 font-medium whitespace-normal break-words min-w-[150px]">
+                        {u.nombre} {u.ap_paterno} {u.ap_materno}
+                      </td>
+                      <td className="px-3 py-2 text-slate-700 align-top whitespace-nowrap">{u.telefono || "—"}</td>
+                      <td className="px-3 py-2 text-slate-700 align-top whitespace-nowrap">{u.usuario || "—"}</td>
+                      <td className="px-3 py-2 align-top">
+                        <div className="flex items-center">
+                          <span className={`inline-block px-2 py-1 rounded-full text-xs whitespace-nowrap text-center w-[100px] ${
+                            u.rol === "ADMIN"
+                              ? "bg-purple-100 text-purple-800"
+                              : u.rol === "SUPERVISOR"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}>
+                            {u.rol || "—"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 align-top">
+                        <div className="flex items-center">
+                          <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${
+                            u.estado === "Activo"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}>
+                            {u.estado || "—"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-slate-700 align-top whitespace-normal break-words min-w-[120px]">{u.area?.nombre || "—"}</td>
+                      <td className="px-3 py-2 text-slate-700 align-top whitespace-normal break-words min-w-[100px]">{u.cargo?.nombre || "—"}</td>
+                      <td className="px-3 py-2 text-slate-700 align-top whitespace-normal break-words min-w-[140px]">{u.funcionEspecial?.nombre || "—"}</td>
+                      <td className="px-3 py-2 align-top">
+                        <div className="flex items-center gap-x-2 text-sm whitespace-nowrap">
                           {puedeModificar && (
-                            <td className="px-4 py-3 border border-gray-300 space-x-2 text-sm">
-                              <button
-                                onClick={() => handleEditUsuario(u)}
-                                className="text-blue-600 hover:text-blue-800 font-medium px-1"
-                              >
-                                Editar
-                              </button>
-                              <span className="text-gray-300">|</span>
-                              <button
-                                onClick={() => cambiarEstado(u)}
-                                className="text-yellow-600 hover:text-yellow-800 font-medium px-1"
-                              >
+                            <>
+                              <button onClick={() => handleEditUsuario(u)} className="text-sky-600 hover:text-sky-800 font-medium">Editar</button>
+                              <span className="text-slate-300">|</span>
+                              <button onClick={() => cambiarEstado(u)} className="text-yellow-600 hover:text-yellow-800 font-medium">
                                 {u.estado === "Activo" ? "Desactivar" : "Activar"}
                               </button>
-                              <span className="text-gray-300">|</span>
-                              <button
-                                onClick={() => u.id_usuarios && handleDeleteUsuario(u.id_usuarios)}
-                                className="text-red-600 hover:text-red-800 font-medium px-1"
-                              >
-                                Eliminar
-                              </button>
-                            </td>
+                              <span className="text-slate-300">|</span>
+                              <button onClick={() => u.id_usuarios && handleDeleteUsuario(u.id_usuarios)} className="text-rose-600 hover:text-rose-800 font-medium">Eliminar</button>
+                            </>
                           )}
                           {!puedeModificar && (
-                            <td className="px-4 py-3 border border-gray-300 text-gray-400 text-sm">
-                              Solo lectura
-                            </td>
+                            <span className="text-slate-400 text-sm">Solo lectura</span>
                           )}
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
 
-          {/* PAGINACIÓN E INFORMACIÓN DE REGISTROS */}
-          {!loading && (
-            <div className="p-4 border-t bg-gray-50">
-              <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div className="text-sm text-gray-600 text-center sm:text-left">
-                  Mostrando <span className="font-semibold text-gray-900">
-                    {filteredUsuarios.length > 0 ? startIndex + 1 : 0}
-                  </span> - <span className="font-semibold text-gray-900">
-                    {Math.min(endIndex, filteredUsuarios.length)}
-                  </span> de <span className="font-semibold text-gray-900">{filteredUsuarios.length}</span> registros
-                  {usuarios.length !== filteredUsuarios.length && (
-                    <span className="text-gray-500"> (de {usuarios.length} totales)</span>
-                  )}
+          {/* PAGINACIÓN */}
+          <div className="px-4 py-3 border-t border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-slate-600 text-center sm:text-left order-2 sm:order-1">
+              <span className="font-medium text-slate-800">{filteredUsuarios.length > 0 ? startIndex + 1 : 0}</span>
+              <span className="mx-1">–</span>
+              <span className="font-medium text-slate-800">{Math.min(endIndex, filteredUsuarios.length)}</span>
+              <span className="mx-1">de</span>
+              <span className="font-medium text-slate-800">{filteredUsuarios.length}</span>
+              <span className="ml-1">registros</span>
+            </p>
+            {totalPages > 1 && (
+              <nav className="flex items-center justify-center gap-1 order-1 sm:order-2" aria-label="Paginación">
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                  aria-label="Primera página"
+                >
+                  <span className="sr-only">Primera</span>«
+                </button>
+                <button
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                  aria-label="Anterior"
+                >
+                  ‹
+                </button>
+                <div className="flex items-center gap-0.5 mx-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum = totalPages <= 5 ? i + 1 : currentPage <= 3 ? i + 1 : currentPage >= totalPages - 2 ? totalPages - 4 + i : currentPage - 2 + i;
+                    if (pageNum < 1) pageNum = i + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`min-w-[2.25rem] h-9 px-2 rounded-lg text-sm font-medium transition-colors ${currentPage === pageNum ? "bg-slate-800 text-white shadow-sm" : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
                 </div>
-
-                {totalPages > 1 && (
-                  <div className="flex items-center gap-1">
-                    <button
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage(1)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                    >
-                      ««
-                    </button>
-                    <button
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                      className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                    >
-                      &lt;
-                    </button>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: endPage - startPage + 1 }).map((_, i) => {
-                        const page = startPage + i;
-                        return (
-                          <button
-                            key={page}
-                            onClick={() => setCurrentPage(page)}
-                            className={`min-w-[36px] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              currentPage === page
-                                ? "bg-black text-white"
-                                : "border border-gray-300 bg-white hover:bg-gray-100"
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <button
-                      disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                      className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                    >
-                      &gt;
-                    </button>
-                    <button
-                      disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage(totalPages)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-                    >
-                      »»
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+                <button
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                  aria-label="Siguiente"
+                >
+                  ›
+                </button>
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white transition-colors"
+                  aria-label="Última página"
+                >
+                  »
+                </button>
+              </nav>
+            )}
+          </div>
         </div>
       </main>
 

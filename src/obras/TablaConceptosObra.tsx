@@ -47,7 +47,7 @@ export default function TablaConceptosObra({
           <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Costo</th>
           <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Medición</th>
           <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Cantidad</th>
-          <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Total</th>
+          <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Totales</th>
           <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100 w-24 text-center">Acciones</th>
         </tr>
       </thead>
@@ -61,9 +61,7 @@ export default function TablaConceptosObra({
                   {celdaNivel(niveles, i)}
                 </td>
               ))}
-              <td className="px-4 py-3 border border-gray-300 text-gray-700">
-                ${Number(c.costo_unitario ?? 0).toFixed(2)}
-              </td>
+              <td className="px-4 py-3 border border-gray-300 text-gray-700">{Number(c.costo_unitario ?? 0).toFixed(2)}</td>
               <td className="px-4 py-3 border border-gray-300 text-gray-700">{c.medicion ?? '—'}</td>
               <td className="px-4 py-3 border border-gray-300 text-gray-700">{c.cantidad}</td>
               <td className="px-4 py-3 border border-gray-300 font-medium text-gray-900">
@@ -71,24 +69,24 @@ export default function TablaConceptosObra({
               </td>
               <td className="px-4 py-3 border border-gray-300">
                 <div className="flex items-center justify-center gap-2">
-                {onEdit && (
+                  {onEdit && (
+                    <button
+                      type="button"
+                      onClick={() => onEdit(c)}
+                      className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+                      title="Editar"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => onEdit(c)}
-                    className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
-                    title="Editar"
+                    onClick={() => eliminar(c.id)}
+                    className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+                    title="Eliminar"
                   >
-                    <Pencil className="w-4 h-4" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => eliminar(c.id)}
-                  className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
-                  title="Eliminar"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
                 </div>
               </td>
             </tr>

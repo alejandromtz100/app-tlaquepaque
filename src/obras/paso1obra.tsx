@@ -349,10 +349,9 @@ const Paso1Obra: React.FC = () => {
 
   const handleChange = (e: any) => {
     const { name, value, type, checked } = e.target;
-    const cleanedValue = typeof value === 'string' ? value.trim() : value;
     setForm((prev: any) => ({
       ...prev,
-      [name]: type === "checkbox" ? (checked ? "Si" : "No") : cleanedValue,
+      [name]: type === "checkbox" ? (checked ? "Si" : "No") : value,
     }));
   };
 
@@ -400,6 +399,8 @@ const Paso1Obra: React.FC = () => {
           setForm((prev: any) => ({
             ...prev,
             ...data,
+            destinoActualProyecto: (data.destinoActualProyecto ?? data.destinoActualProyeto ?? '').toString().trim(),
+            destinoPropuestoProyecto: (data.destinoPropuestoProyecto ?? '').toString().trim(),
             aguaPotable: data.aguaPotable ?? prev.aguaPotable,
             drenaje: data.drenaje ?? prev.drenaje,
             electricidad: data.electricidad ?? prev.electricidad,
@@ -411,7 +412,12 @@ const Paso1Obra: React.FC = () => {
             cuantificador: data.cuantificador != null ? String(data.cuantificador) : prev.cuantificador,
           }));
           if (data.numerosOficiales && Array.isArray(data.numerosOficiales)) {
-            setNumerosOficiales(data.numerosOficiales);
+            setNumerosOficiales(
+              data.numerosOficiales.map((n: any) => ({
+                calle: (n.calle ?? '').toString().trim(),
+                numeroOficial: (n.numeroOficial ?? n.numerooficial ?? '').toString().trim(),
+              }))
+            );
           }
           if (data.nombreColoniaObra) {
             setColoniaBusqueda(data.nombreColoniaObra);
@@ -445,12 +451,31 @@ const Paso1Obra: React.FC = () => {
         return;
       }
 
-      // Validar campos obligatorios
-      if (!form.nombrePropietario || !form.tipoPropietario || 
-          !form.nombreColoniaObra || !form.idColoniaObra ||
-          !form.destinoActualProyecto || !form.destinoPropuestoProyecto ||
-          numerosOficiales.length === 0) {
-        alert("Por favor complete todos los campos obligatorios (*)");
+      // Validar campos obligatorios (usar trim para ignorar solo espacios)
+      const destinoActual = (form.destinoActualProyecto ?? form.destinoActualProyeto ?? "").toString().trim();
+      const destinoPropuesto = (form.destinoPropuestoProyecto ?? "").toString().trim();
+      if (!(form.nombrePropietario ?? "").toString().trim()) {
+        alert("Por favor complete el campo obligatorio: Nombre del propietario");
+        return;
+      }
+      if (!form.tipoPropietario) {
+        alert("Por favor seleccione el Tipo de propietario");
+        return;
+      }
+      if (!(form.nombreColoniaObra ?? "").toString().trim() || !form.idColoniaObra) {
+        alert("Por favor seleccione la Colonia de la obra");
+        return;
+      }
+      if (!destinoActual) {
+        alert("Por favor complete el campo obligatorio: Destino actual del proyecto");
+        return;
+      }
+      if (!destinoPropuesto) {
+        alert("Por favor complete el campo obligatorio: Destino propuesto del proyecto");
+        return;
+      }
+      if (numerosOficiales.length === 0) {
+        alert("Por favor agregue al menos un Calle y Número oficial");
         return;
       }
 
@@ -474,6 +499,9 @@ const Paso1Obra: React.FC = () => {
         fechaCaptura: id ? form.fechaCaptura : new Date(),
         ultimaModificacion: new Date(),
       };
+      obraData.destinoActualProyecto = destinoActual;
+      obraData.destinoPropuestoProyecto = destinoPropuesto;
+      delete obraData.numerosOficiales;
 
       // Si es creación nueva y no tiene idUsuarioCapturador, usar el usuario logueado
       if (!id && idUsuarioLogueado && !obraData.idUsuarioCapturador) {
@@ -493,26 +521,26 @@ const Paso1Obra: React.FC = () => {
         obraId = response.data.idObra || response.data.id;
       }
 
-      // Guardar números oficiales si hay endpoint especial
-      if (obraId && numerosOficiales.length > 0) {
-        try {
-          // Agregar ID del usuario logueado para el historial
-          const usuarioData = localStorage.getItem("usuario");
-          const payload: any = { numeros: numerosOficiales };
-          if (usuarioData) {
-            try {
-              const usuarioLogueado = JSON.parse(usuarioData);
-              if (usuarioLogueado.id) {
-                payload.idUsuarioLogueado = usuarioLogueado.id;
-              }
-            } catch (error) {
-              console.error('Error al parsear usuario de localStorage:', error);
-            }
+      // Siempre sincronizar números oficiales (crear o editar) para que no se pierdan al guardar
+      try {
+        const usuarioData = localStorage.getItem("usuario");
+        const payload: any = {
+          numeros: numerosOficiales.map((n: any) => ({
+            calle: (n.calle ?? '').toString().trim(),
+            numeroOficial: (n.numeroOficial ?? n.numerooficial ?? '').toString().trim(),
+          })),
+        };
+        if (usuarioData) {
+          try {
+            const usuarioLogueado = JSON.parse(usuarioData);
+            if (usuarioLogueado?.id) payload.idUsuarioLogueado = usuarioLogueado.id;
+          } catch (error) {
+            console.error('Error al parsear usuario de localStorage:', error);
           }
-          await axios.post(`${api}/${obraId}/numeros-manual`, payload);
-        } catch (error) {
-          console.warn("No se pudieron guardar los números oficiales:", error);
         }
+        await axios.post(`${api}/${obraId}/numeros-manual`, payload);
+      } catch (error) {
+        console.warn("No se pudieron guardar los números oficiales:", error);
       }
 
       alert("¡Obra guardada correctamente!");
@@ -932,16 +960,22 @@ const Paso1Obra: React.FC = () => {
                 <Input
                   label="Destino Actual del Proyecto *"
                   name="destinoActualProyecto"
-                  value={form.destinoActualProyecto}
-                  onChange={handleChange}
+                  value={form.destinoActualProyecto ?? ""}
+                  onChange={(e: any) => {
+                    const v = e.target.value;
+                    setForm((prev: any) => ({ ...prev, destinoActualProyecto: v }));
+                  }}
                   required
                   placeholder="Ej: LOTE"
                 />
                 <Input
                   label="Destino Propuesto Proyecto *"
                   name="destinoPropuestoProyecto"
-                  value={form.destinoPropuestoProyecto}
-                  onChange={handleChange}
+                  value={form.destinoPropuestoProyecto ?? ""}
+                  onChange={(e: any) => {
+                    const v = e.target.value;
+                    setForm((prev: any) => ({ ...prev, destinoPropuestoProyecto: v }));
+                  }}
                   required
                   placeholder="Ej: CONSTRUCCIÓN COMERCIAL"
                 />

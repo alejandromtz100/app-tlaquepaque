@@ -24,6 +24,8 @@ export default function Paso3ObraPage() {
     return <div>Obra no encontrada</div>;
   }
 
+  const obraIdNum = Number(id);
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <header className="bg-white shadow-md">
@@ -53,9 +55,9 @@ export default function Paso3ObraPage() {
           </div>
 
           <div className="flex-1 max-w-6xl mx-auto w-full px-6 py-8 flex gap-6">
-            <PasosObraNav obraId={obraId} pasoActual={3} />
+            <PasosObraNav obraId={obraIdNum} pasoActual={3} />
             <div className="flex-1 min-w-0">
-              <Paso3Obra obraId={obraId} />
+              <Paso3Obra obraId={obraIdNum} />
             </div>
           </div>
         </div>

@@ -159,20 +159,14 @@ export class PDFPreForma {
 
     // Dividir USO DEL PREDIO en líneas si es necesario
     const usoPredioLines = pdf.splitTextToSize(usoPredio, 40);
-    
-    // Calcular altura de fila basada en el contenido más alto
-    const alturaFila = Math.max(1, usoPredioLines.length, vigenciaLine2 ? 2 : 1) * 5 + 2;
+
     const alturaEncabezado = 6;
 
-    // Anchos de columnas
+    // Posiciones X de columnas
     const col1X = L;
-    const col1W = 35;
     const col2X = L + 38;
-    const col2W = 50;
     const col3X = L + 95;
-    const col3W = 45;
     const col4X = L + 145;
-    const col4W = 30;
 
     // Fila de encabezados con fondo gris
     pdf.setFillColor(220, 220, 220);

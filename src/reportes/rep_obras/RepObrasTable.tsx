@@ -9,12 +9,7 @@ interface Props {
   onPageChange: (page: number) => void;
 }
 
-const RepObrasTabla: React.FC<Props> = ({
-  data,
-  meta,
-  loading,
-  onPageChange,
-}) => {
+const RepObrasTabla: React.FC<Props> = ({ data, loading }) => {
   const [detalleObraId, setDetalleObraId] = useState<number | null>(null);
 
   if (loading) {

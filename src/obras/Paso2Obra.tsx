@@ -16,7 +16,6 @@ export default function Paso2Obra({ obraId }: Props) {
   const [conceptos, setConceptos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingConcepto, setEditingConcepto] = useState<any | null>(null);
-  const [actualizando, setActualizando] = useState(false);
 
   const cargarConceptos = async () => {
     setLoading(true);
@@ -33,7 +32,7 @@ export default function Paso2Obra({ obraId }: Props) {
 
       try {
         const totalValue = Number(total.toFixed(2));
-        await axios.put(`${API_OBRAS}/${obraId}`, {
+        await axios.put(`${API_OBRAS}/${obraId}/total-conceptos`, {
           totalCostoConceptos: totalValue,
         });
         console.log('Total actualizado automáticamente:', totalValue);
@@ -55,34 +54,12 @@ export default function Paso2Obra({ obraId }: Props) {
     0
   );
 
-  const actualizarTotal = async () => {
-    setActualizando(true);
-    try {
-      const totalValue = Number(totalGeneral.toFixed(2));
-      console.log('Enviando totalCostoConceptos:', totalValue, 'Tipo:', typeof totalValue);
-      const response = await axios.put(`${API_OBRAS}/${obraId}`, {
-        totalCostoConceptos: totalValue,
-      });
-      console.log('Respuesta del servidor:', response.data);
-      alert(`Total actualizado correctamente: $${totalValue.toFixed(2)}`);
-    } catch (error: any) {
-      console.error('Error al actualizar totalCostoConceptos:', error);
-      console.error('Detalles del error:', error.response?.data);
-      const errorMessage = error.response?.data?.message || error.message || 'Error desconocido';
-      alert(`Error al actualizar el total: ${errorMessage}`);
-    } finally {
-      setActualizando(false);
-    }
-  };
-
   const handleContinuar = () => {
-    navigate(`/obras/paso3/${obraId}`);
-  };
-
-  const handleCancelar = () => {
-    if (confirm('¿Desea cancelar y volver atrás?')) {
-      navigate(-1);
+    if (conceptos.length === 0) {
+      alert('No puede avanzar al siguiente apartado sin tener al menos un concepto ingresado.');
+      return;
     }
+    navigate(`/obras/paso3/${obraId}`);
   };
 
   if (loading) {
@@ -119,24 +96,8 @@ export default function Paso2Obra({ obraId }: Props) {
         </div>
       </div>
 
-      {/* Botones de acción */}
-      <div className="mt-6 flex justify-center gap-4">
-        <button
-          type="button"
-          onClick={actualizarTotal}
-          disabled={actualizando || loading}
-          className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          {actualizando ? 'Actualizando...' : 'Actualizar'}
-        </button>
-        <button
-          type="button"
-          onClick={handleCancelar}
-          disabled={loading}
-          className="px-6 py-2 bg-gray-500 text-white rounded-xl hover:bg-gray-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          Cancelar
-        </button>
+      {/* Botón Continuar */}
+      <div className="mt-6 flex justify-center">
         <button
           type="button"
           onClick={handleContinuar}

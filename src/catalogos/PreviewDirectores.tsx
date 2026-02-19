@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { DirectorObra } from '../services/directores.service';
 import { DirectoresService } from '../services/directores.service';
-import { PDFDirector } from '../services/pdfdirector';
 
-// Función auxiliar para obtener especialidades
+// Función auxiliar para obtener especialidades para obtener especialidades
 const getEspecialidades = (director: DirectorObra, formato: number): string[] => {
   const especialidades: string[] = [];
   if (formato === 1) {

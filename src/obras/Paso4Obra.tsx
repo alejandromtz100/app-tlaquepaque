@@ -152,10 +152,18 @@ export default function Paso4Obra({ obraId }: Props) {
   const totalGeneral = conceptos.reduce((sum, c) => sum + Number(c.total ?? (c.costo_unitario ?? 0) * (c.cantidad ?? 0)), 0);
 
   const estadoObraLower = obra.estadoObra ? String(obra.estadoObra).toLowerCase().trim() : '';
+  const estadoPagoLower = obra.estadoPago ? String(obra.estadoPago).toLowerCase().trim() : '';
+  const esVerificado = estadoObraLower === 'verificado';
   const esEnviadoAPago = estadoObraLower === 'enviado a pago' || estadoObraLower.includes('enviado a pago');
   const esEnviadoAFirmas = estadoObraLower === 'enviado a firmas' || estadoObraLower.includes('enviado a firmas');
-  const puedeGenerarPDFs = esEnviadoAPago || estadoObraLower === 'verificado' || esEnviadoAFirmas || estadoObraLower === 'concluido';
+  const esConcluido = estadoObraLower === 'concluido';
+  const puedeGenerarPDFs = esEnviadoAPago || esEnviadoAFirmas || esConcluido;
   const mostrarLugaresYConcluir = esEnviadoAPago || esEnviadoAFirmas;
+  const estadoSinPagar = estadoPagoLower === 'sin pagar' || estadoPagoLower.includes('sin pagar');
+  const todosLugaresEnSi =
+    recibidoSecretaria === 'Si' && recibidoPresidencia === 'Si' && recibidoPadron === 'Si';
+  const faltanLugaresParaConcluir =
+    esEnviadoAFirmas && nuevoEstado === 'Concluido' && !todosLugaresEnSi;
 
   const getAlertaPorTipo = (tipoPdf: string): AlertaPdf | null =>
     alertasObra.find((a) => a.tipoPdf === tipoPdf) || null;
@@ -198,10 +206,81 @@ export default function Paso4Obra({ obraId }: Props) {
     }
   };
 
+  const handleEnviarAFirmas = async () => {
+    const confirmar = window.confirm(
+      '¿Está seguro de cambiar el estado de la obra de Verificado a Enviado a Firmas?'
+    );
+    if (!confirmar) return;
+
+    setActualizandoEstado(true);
+    try {
+      const res = await fetch(`${API_OBRAS}/${obraId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estadoObra: 'Enviado a Firmas' }),
+      });
+      if (!res.ok) throw new Error('Error al actualizar el estado');
+      const resObra = await fetch(`${API_OBRAS}/${obraId}`);
+      if (resObra.ok) {
+        const obraActualizada = await resObra.json();
+        setObra(obraActualizada);
+        setNuevoEstado('Enviado a Firmas');
+        alert('Estado actualizado correctamente. La obra ha sido enviada a firmas.');
+      } else {
+        throw new Error('Error al recargar los datos');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error al actualizar el estado');
+    } finally {
+      setActualizandoEstado(false);
+    }
+  };
+
+  const handleConcluidoAEnviadoAFirmas = async () => {
+    const confirmar = window.confirm(
+      '¿Está seguro de cambiar el estado de la obra de Concluido a Enviado a Firmas?'
+    );
+    if (!confirmar) return;
+
+    setActualizandoEstado(true);
+    try {
+      const res = await fetch(`${API_OBRAS}/${obraId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ estadoObra: 'Enviado a Firmas' }),
+      });
+      if (!res.ok) throw new Error('Error al actualizar el estado');
+      const resObra = await fetch(`${API_OBRAS}/${obraId}`);
+      if (resObra.ok) {
+        const obraActualizada = await resObra.json();
+        setObra(obraActualizada);
+        setNuevoEstado('Enviado a Firmas');
+        alert('Estado actualizado correctamente. La obra ha vuelto a Enviado a Firmas.');
+      } else {
+        throw new Error('Error al recargar los datos');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error al actualizar el estado');
+    } finally {
+      setActualizandoEstado(false);
+    }
+  };
+
   const handleActualizarEstado = async () => {
     if (!nuevoEstado || nuevoEstado === obra.estadoObra) return;
 
     if (nuevoEstado === 'Concluido') {
+      const estadoActual = String(obra.estadoObra || '').toLowerCase().trim();
+      const vieneDeEnviadoAFirmas = estadoActual === 'enviado a firmas' || estadoActual.includes('enviado a firmas');
+      if (vieneDeEnviadoAFirmas) {
+        if (!todosLugaresEnSi) {
+          alert(
+            'Para cambiar el estado a Concluido, todos los lugares que recibieron deben estar en "Sí" (Secretaría obras públicas, Presidencia, Padrón y licencias). Guarde los datos en "Lugares que recibieron" y vuelva a intentar.'
+          );
+          return;
+        }
+      }
+
       const resAlertas = await fetch(`${API_ALERTAS}/obra/${obraId}`);
       const alertasActuales = resAlertas.ok ? (await resAlertas.json()) || [] : [];
       if (alertasActuales.length > 0) {
@@ -460,37 +539,56 @@ export default function Paso4Obra({ obraId }: Props) {
         </div>
       )}
 
-      {/* Sección de PDFs y gestión de estado */}
-      {(
+      {/* Solo cuando está Verificado: botón Enviar a Firmas (sin PDFs hasta cambiar estado) */}
+      {esVerificado && (
+        <div className="mt-6 px-6 py-6 bg-white border-2 border-gray-300 rounded-xl">
+          <p className="text-gray-700 mb-4">
+            La obra está en estado <strong>Verificado</strong>. Envíe a firmas para poder generar los PDFs.
+          </p>
+          <button
+            type="button"
+            onClick={handleEnviarAFirmas}
+            disabled={actualizandoEstado}
+            className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {actualizandoEstado ? 'Enviando...' : 'Enviar a Firmas'}
+          </button>
+        </div>
+      )}
+
+      {/* Sección de PDFs y gestión de estado (solo cuando NO está Verificado) */}
+      {!esVerificado && (
         <div className="mt-6 space-y-6">
-          {/* Botones de PDF */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {(['ALINEAMIENTO Y NUMERO OFICIAL', 'LICENCIA DE CONSTRUCCIÓN', 'CERTIFICADO DE HABITABILIDAD'] as const).map((tipo) => {
-              const tieneAlerta = !!getAlertaPorTipo(tipo);
-              return (
-                <button
-                  key={tipo}
-                  type="button"
-                  onClick={() => handleGenerarPDFClick(tipo)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition text-left ${
-                    tieneAlerta
-                      ? 'bg-red-50 border-red-300 hover:border-red-500 hover:bg-red-100'
-                      : 'bg-white border-gray-300 hover:border-blue-500 hover:bg-blue-50'
-                  }`}
-                >
-                  {tieneAlerta ? (
-                    <AlertCircle className="w-5 h-5 text-red-600 shrink-0" title="Este PDF tiene una alerta" />
-                  ) : (
-                    <Printer className="w-5 h-5 text-gray-700 shrink-0" />
-                  )}
-                  <span className={`text-sm font-medium ${tieneAlerta ? 'text-red-800' : 'text-gray-800'}`}>
-                    {tipo}
-                    {tieneAlerta && ' (con alerta)'}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          {/* Botones de PDF - solo cuando puede generar (Enviado a Firmas, Enviado a Pago, Concluido) */}
+          {puedeGenerarPDFs && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {(['ALINEAMIENTO Y NUMERO OFICIAL', 'LICENCIA DE CONSTRUCCIÓN', 'CERTIFICADO DE HABITABILIDAD'] as const).map((tipo) => {
+                const tieneAlerta = !!getAlertaPorTipo(tipo);
+                return (
+                  <button
+                    key={tipo}
+                    type="button"
+                    onClick={() => handleGenerarPDFClick(tipo)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition text-left ${
+                      tieneAlerta
+                        ? 'bg-red-50 border-red-300 hover:border-red-500 hover:bg-red-100'
+                        : 'bg-white border-gray-300 hover:border-blue-500 hover:bg-blue-50'
+                    }`}
+                  >
+                    {tieneAlerta ? (
+                      <span title="Este PDF tiene una alerta"><AlertCircle className="w-5 h-5 text-red-600 shrink-0" /></span>
+                    ) : (
+                      <Printer className="w-5 h-5 text-gray-700 shrink-0" />
+                    )}
+                    <span className={`text-sm font-medium ${tieneAlerta ? 'text-red-800' : 'text-gray-800'}`}>
+                      {tipo}
+                      {tieneAlerta && ' (con alerta)'}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Lugares que recibieron - cuando está Enviado a Pago o Enviado a Firmas */}
           {mostrarLugaresYConcluir && (
@@ -576,8 +674,18 @@ export default function Paso4Obra({ obraId }: Props) {
                   <button
                     type="button"
                     onClick={handleActualizarEstado}
-                    disabled={actualizandoEstado || !nuevoEstado || nuevoEstado === obra.estadoObra}
+                    disabled={
+                      actualizandoEstado ||
+                      !nuevoEstado ||
+                      nuevoEstado === obra.estadoObra ||
+                      faltanLugaresParaConcluir
+                    }
                     className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={
+                      faltanLugaresParaConcluir
+                        ? 'Para pasar a Concluido, todos los lugares que recibieron deben estar en "Sí"'
+                        : undefined
+                    }
                   >
                     {actualizandoEstado ? 'Enviando...' : 'Enviar'}
                   </button>
@@ -593,10 +701,35 @@ export default function Paso4Obra({ obraId }: Props) {
               </div>
             </div>
           )}
+
+          {/* Obra concluida - cuando el estado es Concluido: mensaje Sin pagar (si aplica) y opción de volver a Enviado a Firmas */}
+          {esConcluido && (
+            <div className="bg-white border-2 border-gray-300 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Obra concluida</h3>
+              {estadoSinPagar && (
+                <div className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-amber-800 text-sm font-medium">
+                    La obra sigue estando <strong>Sin pagar</strong>. Para cambiar el estado a Pagado debe llenar en el Paso 3 los detalles del pago (recibo de pago, folio, fechas, etc.). Una vez guardado en el Paso 3, el estado de pago cambiará a &quot;Pagado&quot;.
+                  </p>
+                </div>
+              )}
+              <p className="text-gray-700 text-sm mb-4">
+                Puede volver a enviar la obra a firmas si necesita realizar cambios.
+              </p>
+              <button
+                type="button"
+                onClick={handleConcluidoAEnviadoAFirmas}
+                disabled={actualizandoEstado}
+                className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {actualizandoEstado ? 'Cambiando...' : 'Cambiar a Enviado a Firmas'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Modal para editar información de autorización del PDF */}
+      {/* Modal para editar información de autorización del PDF (solo visible cuando no es Verificado y se abre el modal) */}
       {mostrarModalPDF && tipoPDFSeleccionado && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">

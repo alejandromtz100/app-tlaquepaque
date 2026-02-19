@@ -44,7 +44,6 @@ const Usuarios: React.FC = () => {
 
   const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
   const esAdmin = usuarioLogueado?.rol === "ADMIN";
-  const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const puedeModificar = esAdmin; // Solo ADMIN puede crear/modificar/eliminar usuarios
 
   /* ======================

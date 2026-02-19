@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import Menu from "../layout/menu";
 import type { ObraConNumerosOficiales } from "../services/numeros-oficiales.service";
 import { NumerosOficialesService } from "../services/numeros-oficiales.service";

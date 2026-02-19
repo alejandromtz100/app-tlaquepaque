@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { Printer } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -88,6 +88,10 @@ export default function Paso3Obra({ obraId }: Props) {
   const [descripcion, setDescripcion] = useState("");
   const [estadoAdjunto, setEstadoAdjunto] = useState("Activo");
 
+  const [directorInputValue, setDirectorInputValue] = useState("");
+  const [mostrarDirectorDropdown, setMostrarDirectorDropdown] = useState(false);
+  const directorDropdownRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     DirectoresService.getAll()
       .then((data) => setDirectores(data.filter((d) => d.activo !== false)))
@@ -121,6 +125,7 @@ export default function Paso3Obra({ obraId }: Props) {
           fechaPagoTesoreria: toDateLocal(d.fechaPagoTesoreria),
           otrosRecibos: d.otrosRecibos ?? "",
         });
+        setDirectorInputValue(d.directorObraLabel ?? "");
         
         // Usar siempre el estado que viene del servidor (no sobrescribir Concluido/Enviado a Firmas con Verificado)
         setEstadoObra(estadoObraValue);
@@ -319,6 +324,28 @@ export default function Paso3Obra({ obraId }: Props) {
     return clave ? `${clave}: ${d.nombre_completo}` : d.nombre_completo;
   };
 
+  const directoresFiltrados = directorInputValue.trim()
+    ? directores.filter((d) =>
+        formatDirectorLabel(d).toLowerCase().includes(directorInputValue.trim().toLowerCase())
+      )
+    : directores;
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (directorDropdownRef.current && !directorDropdownRef.current.contains(e.target as Node)) {
+        setMostrarDirectorDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectDirector = (d: { id: number; clave_director?: string; nombre_completo: string }) => {
+    setForm((prev) => ({ ...prev, idDirectorObra: d.id }));
+    setDirectorInputValue(formatDirectorLabel(d));
+    setMostrarDirectorDropdown(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-[200px] flex items-center justify-center">
@@ -348,21 +375,40 @@ export default function Paso3Obra({ obraId }: Props) {
           <section>
             <h3 className="font-medium text-gray-800 mb-3">Director de Obra</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div ref={directorDropdownRef} className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Director de Obra</label>
-                <select
-                  name="idDirectorObra"
-                  value={form.idDirectorObra}
-                  onChange={handleChange}
+                <input
+                  type="text"
+                  placeholder="Escriba para buscar y seleccionar director..."
+                  value={directorInputValue}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setDirectorInputValue(v);
+                    setMostrarDirectorDropdown(true);
+                    if (!v.trim()) {
+                      setForm((prev) => ({ ...prev, idDirectorObra: "" }));
+                    }
+                  }}
+                  onFocus={() => setMostrarDirectorDropdown(true)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                >
-                  <option value="">Seleccionar Valor</option>
-                  {directores.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {formatDirectorLabel(d)}
-                    </option>
-                  ))}
-                </select>
+                />
+                {mostrarDirectorDropdown && (
+                  <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-gray-300 rounded-lg shadow-lg">
+                    {directoresFiltrados.length === 0 ? (
+                      <li className="px-3 py-2 text-sm text-gray-500">No se encontraron directores</li>
+                    ) : (
+                      directoresFiltrados.map((d) => (
+                        <li
+                          key={d.id}
+                          onClick={() => handleSelectDirector(d)}
+                          className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0"
+                        >
+                          {formatDirectorLabel(d)}
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Bitácora</label>

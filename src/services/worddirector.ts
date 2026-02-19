@@ -137,7 +137,7 @@ export class WordDirector {
           ]
         : []),
     ];
-    const noBorder = { style: BorderStyle.NONE as const };
+    const noBorder = { style: BorderStyle.NONE };
     const headerTable = new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       columnWidths: [convertInchesToTwip(4), convertInchesToTwip(2.5)],

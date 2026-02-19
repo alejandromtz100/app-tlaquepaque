@@ -490,20 +490,21 @@ const conceptosFiltrados = filtrarArbol(conceptos, search);
             <option value="false">Inactivo</option>
           </select>
         </div>
+        {puedeModificar && (
         <button
-  onClick={() => {
-    setIsCreating(true);
-    setIsEditing(false);
-
-    setNuevo({
-      parent_id: selected.id,
-      estado: true,
-    });
-  }}
-  className="px-4 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700"
->
-  + Crear sub-concepto
-</button>
+          onClick={() => {
+            setIsCreating(true);
+            setIsEditing(false);
+            setNuevo({
+              parent_id: selected.id,
+              estado: true,
+            });
+          }}
+          className="px-4 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700"
+        >
+          + Crear sub-concepto
+        </button>
+        )}
 
 
       </div>

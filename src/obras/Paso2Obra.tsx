@@ -13,6 +13,8 @@ interface Props {
 
 export default function Paso2Obra({ obraId }: Props) {
   const navigate = useNavigate();
+  const usuarioLogueado = JSON.parse(localStorage.getItem('usuario') || 'null');
+  const esSupervisor = usuarioLogueado?.rol === 'SUPERVISOR';
   const [conceptos, setConceptos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingConcepto, setEditingConcepto] = useState<any | null>(null);
@@ -23,22 +25,21 @@ export default function Paso2Obra({ obraId }: Props) {
       const data = await getConceptosByObra(obraId);
       setConceptos(data);
 
-      // Calcular el total y enviarlo a op_obras.totalCostoConceptos
-      const total = data.reduce(
-        (sum: number, c: any) =>
-          sum + Number(c.total ?? c.costo_unitario * c.cantidad),
-        0,
-      );
-
-      try {
-        const totalValue = Number(total.toFixed(2));
-        await axios.put(`${API_OBRAS}/${obraId}/total-conceptos`, {
-          totalCostoConceptos: totalValue,
-        });
-        console.log('Total actualizado automáticamente:', totalValue);
-      } catch (error: any) {
-        console.error('Error al actualizar totalCostoConceptos:', error);
-        console.error('Detalles del error:', error.response?.data);
+      // Actualizar total en obra solo si no es supervisor (no modificar)
+      if (!esSupervisor) {
+        const total = data.reduce(
+          (sum: number, c: any) =>
+            sum + Number(c.total ?? c.costo_unitario * c.cantidad),
+          0,
+        );
+        try {
+          const totalValue = Number(total.toFixed(2));
+          await axios.put(`${API_OBRAS}/${obraId}/total-conceptos`, {
+            totalCostoConceptos: totalValue,
+          });
+        } catch (error: any) {
+          console.error('Error al actualizar totalCostoConceptos:', error);
+        }
       }
     } finally {
       setLoading(false);
@@ -84,7 +85,8 @@ export default function Paso2Obra({ obraId }: Props) {
           <TablaConceptosObra
             conceptos={conceptos}
             onDelete={cargarConceptos}
-            onEdit={(c) => setEditingConcepto(c)}
+            onEdit={esSupervisor ? undefined : (c) => setEditingConcepto(c)}
+            soloLectura={esSupervisor}
           />
         </div>
         <div className="px-6 py-4 flex justify-end border-t border-slate-200 bg-slate-50">
@@ -95,30 +97,34 @@ export default function Paso2Obra({ obraId }: Props) {
         </div>
       </div>
 
-      {/* Botón Continuar */}
-      <div className="p-6 flex justify-end gap-3 border-t border-gray-200">
-        <button
-          type="button"
-          onClick={handleContinuar}
-          disabled={loading}
-          className="px-6 py-2 bg-black text-white rounded-xl hover:bg-gray-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          Continuar
-        </button>
-      </div>
+      {/* Botón Continuar (oculto para supervisor) */}
+      {!esSupervisor && (
+        <div className="p-6 flex justify-end gap-3 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={handleContinuar}
+            disabled={loading}
+            className="px-6 py-2 bg-black text-white rounded-xl hover:bg-gray-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            Continuar
+          </button>
+        </div>
+      )}
 
-      {/* Formulario Agregar Concepto */}
-      <div className="border-t border-gray-200">
-        <FormAgregarConcepto
-          obraId={obraId}
-          onSuccess={() => {
-            cargarConceptos();
-            setEditingConcepto(null);
-          }}
-          editingConcepto={editingConcepto}
-          onCancelEdit={() => setEditingConcepto(null)}
-        />
-      </div>
+      {/* Formulario Agregar Concepto (oculto para supervisor) */}
+      {!esSupervisor && (
+        <div className="border-t border-gray-200">
+          <FormAgregarConcepto
+            obraId={obraId}
+            onSuccess={() => {
+              cargarConceptos();
+              setEditingConcepto(null);
+            }}
+            editingConcepto={editingConcepto}
+            onCancelEdit={() => setEditingConcepto(null)}
+          />
+        </div>
+      )}
     </div>
   );
 }

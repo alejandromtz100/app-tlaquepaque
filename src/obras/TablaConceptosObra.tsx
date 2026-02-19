@@ -8,10 +8,12 @@ export default function TablaConceptosObra({
   conceptos,
   onDelete,
   onEdit,
+  soloLectura = false,
 }: {
   conceptos: any[];
   onDelete: () => void;
   onEdit?: (concepto: any) => void;
+  soloLectura?: boolean;
 }) {
   const eliminar = async (id: number) => {
     if (!confirm('¿Eliminar concepto?')) return;
@@ -48,7 +50,9 @@ export default function TablaConceptosObra({
           <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Medición</th>
           <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Cantidad</th>
           <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100">Totales</th>
-          <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100 w-24 text-center">Acciones</th>
+          {!soloLectura && (
+            <th className="px-4 py-3 text-left border border-gray-300 font-semibold whitespace-nowrap bg-gray-100 w-24 text-center">Acciones</th>
+          )}
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-200">
@@ -67,28 +71,30 @@ export default function TablaConceptosObra({
               <td className="px-4 py-3 border border-gray-300 font-medium text-gray-900">
                 ${Number(c.total ?? (c.costo_unitario ?? 0) * (c.cantidad ?? 0)).toFixed(2)}
               </td>
-              <td className="px-4 py-3 border border-gray-300">
-                <div className="flex items-center justify-center gap-2">
-                  {onEdit && (
+              {!soloLectura && (
+                <td className="px-4 py-3 border border-gray-300">
+                  <div className="flex items-center justify-center gap-2">
+                    {onEdit && (
+                      <button
+                        type="button"
+                        onClick={() => onEdit(c)}
+                        className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
+                        title="Editar"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => onEdit(c)}
-                      className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded"
-                      title="Editar"
+                      onClick={() => eliminar(c.id)}
+                      className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
+                      title="Eliminar"
                     >
-                      <Pencil className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => eliminar(c.id)}
-                    className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded"
-                    title="Eliminar"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </td>
+                  </div>
+                </td>
+              )}
             </tr>
           );
         })}

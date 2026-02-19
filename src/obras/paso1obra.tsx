@@ -490,6 +490,48 @@ const Paso1Obra: React.FC = () => {
     return () => { cancelled = true; };
   }, [id]);
 
+  // Inicializar formulario desde datos de copia (sin crear obra en backend hasta Guardar cambios)
+  useEffect(() => {
+    const esCopia = location.state?.esCopia && location.state?.datosObraCopia;
+    if (id || !esCopia) return;
+    const data = location.state.datosObraCopia as Record<string, unknown>;
+    // Programar actualización fuera del flujo síncrono del effect para evitar cascadas de render
+    queueMicrotask(() => {
+      setForm((prev: Record<string, unknown>) => ({
+        ...prev,
+        ...data,
+        idObraSuperior: (data.idObraSuperior ?? '').toString().trim(),
+        destinoActualProyecto: prev.destinoActualProyecto,
+        destinoPropuestoProyecto: prev.destinoPropuestoProyecto,
+        descripcionProyecto: prev.descripcionProyecto,
+        revisor: prev.revisor,
+        cuantificador: prev.cuantificador,
+        aguaPotable: data.aguaPotable ?? prev.aguaPotable,
+        drenaje: data.drenaje ?? prev.drenaje,
+        electricidad: data.electricidad ?? prev.electricidad,
+        alumbradoPublico: data.alumbradoPublico ?? prev.alumbradoPublico,
+        machuelos: data.machuelos ?? prev.machuelos,
+        banquetas: data.banquetas ?? prev.banquetas,
+        pavimento: data.pavimento ?? prev.pavimento,
+      }));
+      if (data.nombreColoniaObra) {
+        setColoniaBusqueda(String(data.nombreColoniaObra));
+      }
+      if (data.documentosRequeridos) {
+        try {
+          const raw = data.documentosRequeridos;
+          const docs = typeof raw === 'string'
+            ? raw.split(',').map((d: string) => d.trim()).filter(Boolean)
+            : Array.isArray(raw) ? raw : [];
+          setDocumentosAdicionales(docs.map(String));
+        } catch {
+          setDocumentosAdicionales([]);
+        }
+      }
+    });
+    // numerosOficiales no se copian; el usuario debe agregar al menos uno
+  }, [id, location.state?.esCopia, location.state?.datosObraCopia]);
+
   const handleSave = async () => {
     try {
       // Verificar permisos: SUPERVISOR no puede crear/modificar obras
@@ -799,6 +841,7 @@ const Paso1Obra: React.FC = () => {
           </p>
 
         <div className="px-6 pb-6 space-y-6">
+          <div className={esSupervisor ? "pointer-events-none select-none opacity-95 space-y-6" : "space-y-6"}>
           {/* ===== 1. DATOS DEL PROPIETARIO ===== */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="bg-gray-800 text-white px-6 py-3 font-semibold text-sm">
@@ -1242,6 +1285,7 @@ const Paso1Obra: React.FC = () => {
               </section>
             </div>
           </div>
+          </div>
 
           {/* ===== BOTONES ===== */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -1250,19 +1294,16 @@ const Paso1Obra: React.FC = () => {
                 onClick={() => navigate("/obras")}
                 className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium"
               >
-                Cancelar
+                {esSupervisor ? "Volver" : "Cancelar"}
               </button>
-              <button
-                onClick={handleSave}
-                disabled={esSupervisor}
-                className={`px-6 py-2 rounded-xl font-medium ${
-                  esSupervisor 
-                    ? "bg-gray-400 text-gray-600 cursor-not-allowed" 
-                    : "bg-black text-white hover:bg-gray-800"
-                }`}
-              >
-                {esSupervisor ? "Solo lectura" : "Guardar Cambios"}
-              </button>
+              {!esSupervisor && (
+                <button
+                  onClick={handleSave}
+                  className="px-6 py-2 rounded-xl font-medium bg-black text-white hover:bg-gray-800"
+                >
+                  Guardar Cambios
+                </button>
+              )}
             </div>
           </div>
         </div>

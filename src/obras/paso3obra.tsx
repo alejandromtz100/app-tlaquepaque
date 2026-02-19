@@ -59,6 +59,8 @@ function toDateLocal(date: Date | string | null): string {
 
 export default function Paso3Obra({ obraId }: Props) {
   const navigate = useNavigate();
+  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -359,8 +361,8 @@ export default function Paso3Obra({ obraId }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* ===== DATOS DE ADICIONALES ===== */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      {/* ===== DATOS DE ADICIONALES ===== (solo lectura para supervisor) */}
+      <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${esSupervisor ? "pointer-events-none select-none opacity-95" : ""}`}>
         <div className="bg-gray-800 text-white px-6 py-3 font-semibold text-sm">
           Datos de Adicionales
         </div>
@@ -598,27 +600,31 @@ export default function Paso3Obra({ obraId }: Props) {
           </section>
 
           <div className="flex justify-end gap-3 pt-4">
-            <button
-              type="button"
-              onClick={handleGuardarCambios}
-              disabled={guardando}
-              className="px-6 py-2 bg-black text-white rounded-xl hover:bg-gray-800 font-medium disabled:opacity-50"
-            >
-              {guardando ? "Guardando..." : "Guardar Cambios"}
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate(`/obras/paso4/${obraId}`)}
-              disabled={form.estadoVerificacion !== "Si"}
-              className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Continuar
-            </button>
+            {!esSupervisor && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleGuardarCambios}
+                  disabled={guardando}
+                  className="px-6 py-2 bg-black text-white rounded-xl hover:bg-gray-800 font-medium disabled:opacity-50"
+                >
+                  {guardando ? "Guardando..." : "Guardar Cambios"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/obras/paso4/${obraId}`)}
+                  disabled={form.estadoVerificacion !== "Si"}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Continuar
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Botón Pre Forma */}
+      {/* Botón Pre Forma - visible para todos (supervisor solo puede descargar PDF) */}
       <div className="mt-6 flex justify-center">
         <button
           type="button"
@@ -631,7 +637,8 @@ export default function Paso3Obra({ obraId }: Props) {
         </button>
       </div>
 
-      {/* ===== AGREGAR/EDITAR DATOS ADJUNTOS ===== */}
+      {/* ===== AGREGAR/EDITAR DATOS ADJUNTOS ===== (oculto para supervisor) */}
+      {!esSupervisor && (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="bg-gray-800 text-white px-6 py-3 font-semibold text-sm">Agregar/Editar Datos Adjuntos de la Obra</div>
         <div className="p-6 space-y-4">
@@ -688,6 +695,7 @@ export default function Paso3Obra({ obraId }: Props) {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

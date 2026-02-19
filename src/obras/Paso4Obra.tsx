@@ -27,6 +27,8 @@ function formatFecha(fecha: string | Date | null | undefined): string {
 }
 
 export default function Paso4Obra({ obraId }: Props) {
+  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const [obra, setObra] = useState<any>(null);
   const [conceptos, setConceptos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -539,8 +541,8 @@ export default function Paso4Obra({ obraId }: Props) {
         </div>
       )}
 
-      {/* Solo cuando está Verificado: botón Enviar a Firmas (sin PDFs hasta cambiar estado) */}
-      {esVerificado && (
+      {/* Solo cuando está Verificado: botón Enviar a Firmas (oculto para supervisor) */}
+      {!esSupervisor && esVerificado && (
         <div className="mt-6 px-6 py-6 bg-white border-2 border-gray-300 rounded-xl">
           <p className="text-gray-700 mb-4">
             La obra está en estado <strong>Verificado</strong>. Envíe a firmas para poder generar los PDFs.
@@ -590,8 +592,8 @@ export default function Paso4Obra({ obraId }: Props) {
             </div>
           )}
 
-          {/* Lugares que recibieron - cuando está Enviado a Pago o Enviado a Firmas */}
-          {mostrarLugaresYConcluir && (
+          {/* Lugares que recibieron (oculto para supervisor) */}
+          {!esSupervisor && mostrarLugaresYConcluir && (
             <div className="bg-white border-2 border-gray-300 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Lugares que recibieron</h3>
               <div className="space-y-4">
@@ -645,8 +647,8 @@ export default function Paso4Obra({ obraId }: Props) {
             </div>
           )}
 
-          {/* Dar por concluida la obra - cuando está Enviado a Pago o Enviado a Firmas */}
-          {mostrarLugaresYConcluir && (
+          {/* Dar por concluida la obra (oculto para supervisor) */}
+          {!esSupervisor && mostrarLugaresYConcluir && (
             <div className="bg-white border-2 border-gray-300 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Dar por concluida la obra</h3>
               <div className="space-y-4">
@@ -702,8 +704,8 @@ export default function Paso4Obra({ obraId }: Props) {
             </div>
           )}
 
-          {/* Obra concluida - cuando el estado es Concluido: mensaje Sin pagar (si aplica) y opción de volver a Enviado a Firmas */}
-          {esConcluido && (
+          {/* Obra concluida (oculto para supervisor) */}
+          {!esSupervisor && esConcluido && (
             <div className="bg-white border-2 border-gray-300 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Obra concluida</h3>
               {estadoSinPagar && (

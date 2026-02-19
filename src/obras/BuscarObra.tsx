@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Menu from "../layout/menu";
-import { Pencil, Copy, Printer, Paperclip } from "lucide-react";
+import { Pencil, Copy, Printer, Paperclip, Eye } from "lucide-react";
 import { getConceptosByObra } from "../services/obraConceptos.service";
 
 interface Obra {
@@ -39,6 +39,8 @@ const ESTADOS_OBRA = [
 
 const BuscarObra: React.FC = () => {
   const navigate = useNavigate();
+  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const [obras, setObras] = useState<Obra[]>([]);
   const [totalRegistros, setTotalRegistros] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -137,35 +139,12 @@ const BuscarObra: React.FC = () => {
 
   const handleCopiarObra = async (obraId: number) => {
     try {
-      setLoading(true);
-      
-      // Obtener datos completos de la obra original
+      // Solo obtener datos de la obra original; no se crea nada hasta que el usuario guarde en paso 1
       const response = await axios.get(`${API_OBRA}/${obraId}`);
       const obraOriginal = response.data;
 
-      // Obtener usuario logueado
-      const usuarioData = localStorage.getItem("usuario");
-      let idUsuarioLogueado: number | undefined;
-      if (usuarioData) {
-        try {
-          const usuarioLogueado = JSON.parse(usuarioData);
-          if (usuarioLogueado.id) {
-            idUsuarioLogueado = usuarioLogueado.id;
-          }
-        } catch (error) {
-          console.error('Error al parsear usuario de localStorage:', error);
-        }
-      }
-
-      // Crear nueva obra copiando todos los campos del paso 1 EXCEPTO:
-      // - numerosOficiales (no se copian)
-      // - destinoActualProyecto
-      // - destinoPropuestoProyecto
-      // - descripcionProyecto
-      // - revisor
-      // - cuantificador
-      const obraNueva: any = {
-        // Datos del propietario
+      // Armar datos para precargar el formulario del paso 1 (sin crear obra en backend)
+      const datosObraCopia: any = {
         tipoPropietario: obraOriginal.tipoPropietario || "",
         nombrePropietario: obraOriginal.nombrePropietario || "",
         representanteLegal: obraOriginal.representanteLegal || "",
@@ -181,9 +160,8 @@ const BuscarObra: React.FC = () => {
         documentoAcreditaPropiedad: obraOriginal.documentoAcreditaPropiedad || "",
         tipoDocumentoAcreditaPropiedad: obraOriginal.tipoDocumentoAcreditaPropiedad || "",
         documentosRequeridos: obraOriginal.documentosRequeridos || "",
-        
-        // Datos de la obra
         idColoniaObra: obraOriginal.idColoniaObra || null,
+        nombreColoniaObra: obraOriginal.nombreColoniaObra || "",
         idDensidadColoniaObra: obraOriginal.idDensidadColoniaObra || "",
         manzanaObra: obraOriginal.manzanaObra || "",
         loteObra: obraOriginal.loteObra || "",
@@ -192,8 +170,6 @@ const BuscarObra: React.FC = () => {
         numerosPrediosContiguosObra: obraOriginal.numerosPrediosContiguosObra || "",
         entreCalle1Obra: obraOriginal.entreCalle1Obra || "",
         entreCalle2Obra: obraOriginal.entreCalle2Obra || "",
-        
-        // Servicios
         aguaPotable: obraOriginal.aguaPotable || "Si",
         drenaje: obraOriginal.drenaje || "Si",
         electricidad: obraOriginal.electricidad || "Si",
@@ -201,42 +177,19 @@ const BuscarObra: React.FC = () => {
         machuelos: obraOriginal.machuelos || "Si",
         banquetas: obraOriginal.banquetas || "Si",
         pavimento: obraOriginal.pavimento || "No Definido",
-        
-        // Restricciones
         servidumbreFrontal: obraOriginal.servidumbreFrontal || "",
         servidumbreLateral: obraOriginal.servidumbreLateral || "",
         servidumbrePosterior: obraOriginal.servidumbrePosterior || "",
         coeficienteOcupacion: obraOriginal.coeficienteOcupacion || "",
         coeficienteUtilizacion: obraOriginal.coeficienteUtilizacion || "",
-        
-        // El consecutivo de la obra original va en idObraSuperior
         idObraSuperior: obraOriginal.consecutivo || "",
-        
-        // Campos que NO se copian (se dejan vacíos):
-        // destinoActualProyecto: NO se copia
-        // destinoPropuestoProyecto: NO se copia
-        // descripcionProyecto: NO se copia
-        // revisor: NO se copia
-        // cuantificador: NO se copia
-        
-        // Campos del sistema
-        consecutivo: "", // Se asignará después con el trámite
-        fechaCaptura: new Date(),
-        ultimaModificacion: new Date(),
-        idUsuarioCapturador: idUsuarioLogueado,
       };
 
-      // Crear la nueva obra
-      const responseNueva = await axios.post(API_OBRA, obraNueva);
-      const nuevaObraId = responseNueva.data.idObra || responseNueva.data.id;
-
-      // Navegar al paso 1 de la nueva obra (el modal de trámite aparecerá cuando guarde)
-      navigate("/obras/paso1", { state: { id: nuevaObraId, esCopia: true } });
+      // Navegar al paso 1 con datos precargados; la obra solo se crea al hacer "Guardar cambios"
+      navigate("/obras/paso1", { state: { esCopia: true, datosObraCopia } });
     } catch (error: any) {
-      console.error("Error al copiar obra:", error);
-      alert(`Error al copiar la obra: ${error.response?.data?.message || error.message || "Error desconocido"}`);
-    } finally {
-      setLoading(false);
+      console.error("Error al cargar obra para copiar:", error);
+      alert(`Error al cargar la obra: ${error.response?.data?.message || error.message || "Error desconocido"}`);
     }
   };
 
@@ -492,53 +445,66 @@ const BuscarObra: React.FC = () => {
                         </td>
                         <td className="px-3 py-2 align-top">
                           <div className="flex justify-center gap-2">
-                            <button
-                              onClick={() => navigate("/paso1obras", { state: { id: obra.idObra || obra.id } })}
-                              className="p-1 hover:bg-gray-200 rounded transition-colors"
-                              title="Editar"
-                            >
-                              <Pencil size={18} />
-                            </button>
-                            <button 
-                              onClick={() => handleCopiarObra(obra.idObra || obra.id)}
-                              className="p-1 hover:bg-gray-200 rounded transition-colors" 
-                              title="Copiar"
-                            >
-                              <Copy size={18} />
-                            </button>
-                            <button
-                              className="p-1 hover:bg-gray-200 rounded transition-colors"
-                              title="Imprimir"
-                              onClick={() => {
-                                const id = obra.idObra ?? obra.id;
-                                if (obra.estadoObra === "En Proceso") {
-                                  alert("No se puede imprimir: la obra está en proceso. Debe estar verificada o en un estado posterior para acceder al paso 4 (Imprimir).");
-                                  return;
-                                }
-                                navigate(`/obras/paso4/${id}`);
-                              }}
-                            >
-                              <Printer size={18} />
-                            </button>
-                            <button
-                              className="p-1 hover:bg-gray-200 rounded transition-colors"
-                              title="Documentos"
-                              onClick={async () => {
-                                const id = obra.idObra ?? obra.id;
-                                try {
-                                  const conceptos = await getConceptosByObra(id);
-                                  if (!Array.isArray(conceptos) || conceptos.length === 0) {
-                                    alert("No se puede acceder a Documentos: la obra no tiene conceptos registrados en el paso 2. Debe agregar al menos un concepto antes.");
-                                    return;
-                                  }
-                                  navigate(`/obras/paso3/${id}`);
-                                } catch {
-                                  alert("No se pudo verificar los datos de la obra. Intente de nuevo.");
-                                }
-                              }}
-                            >
-                              <Paperclip size={18} />
-                            </button>
+                            {esSupervisor ? (
+                              <button
+                                onClick={() => navigate("/obras/paso1", { state: { id: obra.idObra || obra.id } })}
+                                className="flex items-center gap-1 px-2 py-1.5 bg-gray-100 hover:bg-gray-200 rounded transition-colors text-sm font-medium"
+                                title="Ver obra"
+                              >
+                                <Eye size={18} />
+                                Ver obra
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => navigate("/paso1obras", { state: { id: obra.idObra || obra.id } })}
+                                  className="p-1 hover:bg-gray-200 rounded transition-colors"
+                                  title="Editar"
+                                >
+                                  <Pencil size={18} />
+                                </button>
+                                <button 
+                                  onClick={() => handleCopiarObra(obra.idObra || obra.id)}
+                                  className="p-1 hover:bg-gray-200 rounded transition-colors" 
+                                  title="Copiar"
+                                >
+                                  <Copy size={18} />
+                                </button>
+                                <button
+                                  className="p-1 hover:bg-gray-200 rounded transition-colors"
+                                  title="Imprimir"
+                                  onClick={() => {
+                                    const id = obra.idObra ?? obra.id;
+                                    if (obra.estadoObra === "En Proceso") {
+                                      alert("No se puede imprimir: la obra está en proceso. Debe estar verificada o en un estado posterior para acceder al paso 4 (Imprimir).");
+                                      return;
+                                    }
+                                    navigate(`/obras/paso4/${id}`);
+                                  }}
+                                >
+                                  <Printer size={18} />
+                                </button>
+                                <button
+                                  className="p-1 hover:bg-gray-200 rounded transition-colors"
+                                  title="Documentos"
+                                  onClick={async () => {
+                                    const id = obra.idObra ?? obra.id;
+                                    try {
+                                      const conceptos = await getConceptosByObra(id);
+                                      if (!Array.isArray(conceptos) || conceptos.length === 0) {
+                                        alert("No se puede acceder a Documentos: la obra no tiene conceptos registrados en el paso 2. Debe agregar al menos un concepto antes.");
+                                        return;
+                                      }
+                                      navigate(`/obras/paso3/${id}`);
+                                    } catch {
+                                      alert("No se pudo verificar los datos de la obra. Intente de nuevo.");
+                                    }
+                                  }}
+                                >
+                                  <Paperclip size={18} />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>

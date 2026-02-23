@@ -392,16 +392,18 @@ const Paso1Obra: React.FC = () => {
     setDocumentosAdicionales(documentosAdicionales.filter((_, i) => i !== index));
   };
 
-  /** Al crear obra: usuario confirmó trámite → consecutivo = letra-idObra, actualizar obra y continuar */
+  /** Al crear obra: usuario confirmó trámite → consecutivo, idTramite al backend (inserta conceptos en obra_conceptos) y continuar a Paso 2 */
   const confirmarTramite = async () => {
     if (!tramiteSeleccionado) return;
     const idObra = obraIdPendiente;
     if (idObra == null) return;
     try {
-      // Solo actualizar el consecutivo (los números oficiales ya se guardaron antes del modal)
       const consecutivo = `${tramiteSeleccionado.letra}-${idObra}`;
-      await axios.put(`${api}/${idObra}`, { consecutivo });
-      
+      await axios.put(`${api}/${idObra}`, {
+        consecutivo,
+        idTramite: tramiteSeleccionado.id,
+      });
+
       setShowTramiteModal(false);
       setObraIdPendiente(null);
       setTramiteSeleccionado(null);

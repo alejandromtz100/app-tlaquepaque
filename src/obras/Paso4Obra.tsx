@@ -137,10 +137,9 @@ export default function Paso4Obra({ obraId }: Props) {
     return arr;
   };
 
+  // Alinear a la izquierda: Abuelo en col 0, Padre en col 1, Hijo en col 2, Nieto en col 3.
   const celdaNivel = (niveles: string[], colIndex: number): string => {
-    const offset = MAX_NIVELES - niveles.length;
-    const idx = colIndex - offset;
-    return idx >= 0 && idx < niveles.length ? niveles[idx] : '—';
+    return colIndex < niveles.length ? niveles[colIndex] : '—';
   };
 
   const direccionObra = obra.numerosOficiales?.length

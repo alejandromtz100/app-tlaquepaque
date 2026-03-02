@@ -392,17 +392,53 @@ const Paso1Obra: React.FC = () => {
     setDocumentosAdicionales(documentosAdicionales.filter((_, i) => i !== index));
   };
 
-  /** Al crear obra: usuario confirmó trámite → consecutivo, idTramite al backend (inserta conceptos en obra_conceptos) y continuar a Paso 2 */
+  /** Al crear/cargar copia de obra: usuario confirmó trámite → guardar números oficiales, asignar consecutivo e idTramite y continuar a Paso 2 */
   const confirmarTramite = async () => {
     if (!tramiteSeleccionado) return;
     const idObra = obraIdPendiente;
     if (idObra == null) return;
     try {
+      // Primero guardar/actualizar los números oficiales de la obra
+      try {
+        const usuarioData = localStorage.getItem("usuario");
+        const payload: any = {
+          numeros: numerosOficiales.map((n: any) => ({
+            calle: (n.calle ?? '').toString().trim(),
+            numeroOficial: (n.numeroOficial ?? n.numerooficial ?? '').toString().trim(),
+          })),
+        };
+        if (usuarioData) {
+          try {
+            const usuarioLogueado = JSON.parse(usuarioData);
+            if (usuarioLogueado?.id) payload.idUsuarioLogueado = usuarioLogueado.id;
+          } catch (error) {
+            console.error('Error al parsear usuario de localStorage:', error);
+          }
+        }
+        await axios.post(`${api}/${idObra}/numeros-manual`, payload);
+      } catch (error) {
+        console.warn("No se pudieron guardar los números oficiales al confirmar el trámite:", error);
+      }
+
       const consecutivo = `${tramiteSeleccionado.letra}-${idObra}`;
-      await axios.put(`${api}/${idObra}`, {
+
+      const body: any = {
         consecutivo,
         idTramite: tramiteSeleccionado.id,
-      });
+      };
+
+      // Incluir usuario modificador para historial si está disponible
+      try {
+        const usuarioData = localStorage.getItem("usuario");
+        if (usuarioData) {
+          const usuarioLogueado = JSON.parse(usuarioData);
+          if (usuarioLogueado?.id) body.idUsuarioLogueado = usuarioLogueado.id;
+        }
+      } catch (error) {
+        console.error('Error al parsear usuario de localStorage al confirmar trámite:', error);
+      }
+
+      await axios.put(`${api}/${idObra}`, body);
 
       setShowTramiteModal(false);
       setObraIdPendiente(null);
@@ -415,10 +451,27 @@ const Paso1Obra: React.FC = () => {
     }
   };
 
-  const cerrarModalTramite = () => {
+  const cerrarModalTramite = async () => {
     setShowTramiteModal(false);
+
+    // Si es creación nueva (sin id en la URL) y ya se creó la obra en backend,
+    // al cancelar eliminamos esa obra para que "no se haga la obra".
+    if (!id && obraIdPendiente != null) {
+      try {
+        await axios.delete(`${api}/${obraIdPendiente}`);
+      } catch (error) {
+        console.error("Error al cancelar obra pendiente:", error);
+        alert("No se pudo cancelar completamente la obra en el servidor. Verifique en el listado.");
+      }
+    }
+
     setObraIdPendiente(null);
     setTramiteSeleccionado(null);
+
+    // Para nuevas obras / copias regresamos al listado de obras
+    if (!id) {
+      navigate("/obras");
+    }
   };
 
   const handleSelectColonia = (colonia: { id_colonia: number; nombre: string; densidad: string | null }) => {
@@ -631,28 +684,6 @@ const Paso1Obra: React.FC = () => {
         // Verificar si el consecutivo está vacío en el form (después de cargar)
         const tieneConsecutivo = form.consecutivo && form.consecutivo.trim() !== '';
         if (esCopia && !tieneConsecutivo) {
-          // Guardar números oficiales primero
-          try {
-            const usuarioData = localStorage.getItem("usuario");
-            const payload: any = {
-              numeros: numerosOficiales.map((n: any) => ({
-                calle: (n.calle ?? '').toString().trim(),
-                numeroOficial: (n.numeroOficial ?? n.numerooficial ?? '').toString().trim(),
-              })),
-            };
-            if (usuarioData) {
-              try {
-                const usuarioLogueado = JSON.parse(usuarioData);
-                if (usuarioLogueado?.id) payload.idUsuarioLogueado = usuarioLogueado.id;
-              } catch (error) {
-                console.error('Error al parsear usuario de localStorage:', error);
-              }
-            }
-            await axios.post(`${api}/${obraId}/numeros-manual`, payload);
-          } catch (error) {
-            console.warn("No se pudieron guardar los números oficiales:", error);
-          }
-          
           // Guardar referencia para el modal de trámite
           setObraIdPendiente(obraId);
           setTramiteSeleccionado(null); // Resetear selección al abrir modal
@@ -664,27 +695,7 @@ const Paso1Obra: React.FC = () => {
       } else {
         const response = await axios.post(api, obraData);
         obraId = response.data.idObra || response.data.id;
-        
-        // Al crear: guardar números oficiales INMEDIATAMENTE después de crear la obra
-        try {
-          const usuarioData = localStorage.getItem("usuario");
-          const numerosPayload: any = {
-            numeros: numerosOficiales.map((n: any) => ({
-              calle: (n.calle ?? '').toString().trim(),
-              numeroOficial: (n.numeroOficial ?? n.numerooficial ?? '').toString().trim(),
-            })),
-          };
-          if (usuarioData) {
-            try {
-              const usuarioLogueado = JSON.parse(usuarioData);
-              if (usuarioLogueado?.id) numerosPayload.idUsuarioLogueado = usuarioLogueado.id;
-            } catch (_) {}
-          }
-          await axios.post(`${api}/${obraId}/numeros-manual`, numerosPayload);
-        } catch (error) {
-          console.warn("No se pudieron guardar los números oficiales:", error);
-        }
-        
+
         // Guardar referencia para el modal de trámite
         setObraIdPendiente(obraId);
         setTramiteSeleccionado(null); // Resetear selección al abrir modal

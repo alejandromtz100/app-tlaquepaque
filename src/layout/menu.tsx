@@ -1,19 +1,15 @@
 import React, { useState } from "react";
 import { FaChevronDown } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { getSession } from "../auth/session";
 
 const Menu: React.FC = () => {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [permisos] = useState(() => {
-    try {
-      const usuarioData = localStorage.getItem("usuario");
-      if (!usuarioData) return { esAdmin: false, puedeVerEstadisticas: false };
-      const usuario = JSON.parse(usuarioData);
-      const esAdminUser = usuario.rol === "ADMIN";
-      return { esAdmin: esAdminUser, puedeVerEstadisticas: esAdminUser };
-    } catch {
-      return { esAdmin: false, puedeVerEstadisticas: false };
-    }
+    const usuario = getSession() as { rol?: string } | null;
+    if (!usuario) return { esAdmin: false, puedeVerEstadisticas: false };
+    const esAdminUser = usuario.rol === "ADMIN";
+    return { esAdmin: esAdminUser, puedeVerEstadisticas: esAdminUser };
   });
   const { esAdmin, puedeVerEstadisticas } = permisos;
   const navigate = useNavigate();

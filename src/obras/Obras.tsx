@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Pencil, Copy, Printer, Paperclip, Plus, Eye } from "lucide-react";
 import axios from "axios";
 import Menu from "../layout/menu";
+import { getSession } from "../auth/session";
 import { getConceptosByObra } from "../services/obraConceptos.service";
 
 interface Obra {
@@ -33,8 +34,8 @@ const Obras: React.FC = () => {
   const [searchTrigger, setSearchTrigger] = useState(0); // Incrementar al hacer Buscar para forzar recarga
   const filtrosRef = useRef({ consecutivo: "", fecha: "", nombrePropietario: "", calle: "" });
   
-  // Verificar permisos del usuario logueado
-  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  // Verificar permisos del usuario logueado (usa sesión con expiración)
+  const usuarioLogueado = getSession() as { rol?: string } | null;
   const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const puedeModificarObras = !esSupervisor; // SUPERVISOR solo puede leer
   const [filtros, setFiltros] = useState({

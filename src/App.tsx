@@ -1,7 +1,8 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 
 import Login from "./auth/login";
+import { getSession, clearSession } from "./auth/session";
 import Home from "./inicio/home";
 import Tramites from "./catalogos/tramites";
 import Menu from "./layout/menu";
@@ -23,36 +24,227 @@ import Administradores from "./administradores/Administradores";
 import Estadisticas from "./estadisticas/Estadisticas";
 import Alertas from "./alertas/Alertas";
 
+const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const usuarioData = getSession();
+
+  if (!usuarioData) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <SessionChecker>{children}</SessionChecker>;
+};
+
+/** Verifica cada minuto si la sesión expiró (1h) y redirige a login si aplica */
+const SessionChecker: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      const current = getSession();
+      if (!current) {
+        clearSession();
+        navigate("/", { replace: true });
+      }
+    }, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [navigate]);
+
+  return <>{children}</>;
+};
+
 const App: React.FC = () => {
+  const isAuthenticated = !!getSession();
+
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route path="/home" element={<Home />} />
+        <Route
+          path="/home"
+          element={
+            <PrivateRoute>
+              <Home />
+            </PrivateRoute>
+          }
+        />
 
-        <Route path="/catalogos/tramites" element={<Tramites />} />
-        <Route path="/catalogos/colonias" element={<Colonias />} />
-        <Route path="/catalogos/conceptos" element={<Conceptos />} />
+        <Route
+          path="/catalogos/tramites"
+          element={
+            <PrivateRoute>
+              <Tramites />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/catalogos/colonias"
+          element={
+            <PrivateRoute>
+              <Colonias />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/catalogos/conceptos"
+          element={
+            <PrivateRoute>
+              <Conceptos />
+            </PrivateRoute>
+          }
+        />
 
-        <Route path="/menu" element={<Menu />} />
+        <Route
+          path="/menu"
+          element={
+            <PrivateRoute>
+              <Menu />
+            </PrivateRoute>
+          }
+        />
 
-        <Route path="/usuarios" element={<Usuarios />} />
-        <Route path="/catalogos/directores" element={<Directores />} />
-        <Route path="/obras" element={<Obras />} />
-        <Route path="/obras/paso1" element={<Paso1Obra />} />
-        <Route path="/paso1obras" element={<Paso1Obra />} />
-        <Route path="/obras/paso2/:id" element={<Paso2ObraPage />} />
-        <Route path="/obras/paso3/:id" element={<Paso3ObraPage />} />
-        <Route path="/obras/paso4/:id" element={<Paso4ObraPage />} />
+        <Route
+          path="/usuarios"
+          element={
+            <PrivateRoute>
+              <Usuarios />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/catalogos/directores"
+          element={
+            <PrivateRoute>
+              <Directores />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/obras"
+          element={
+            <PrivateRoute>
+              <Obras />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/obras/paso1"
+          element={
+            <PrivateRoute>
+              <Paso1Obra />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/paso1obra"
+          element={
+            <PrivateRoute>
+              <Paso1Obra />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/paso1obras"
+          element={
+            <PrivateRoute>
+              <Paso1Obra />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/obras/paso2/:id"
+          element={
+            <PrivateRoute>
+              <Paso2ObraPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/obras/paso3/:id"
+          element={
+            <PrivateRoute>
+              <Paso3ObraPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/obras/paso4/:id"
+          element={
+            <PrivateRoute>
+              <Paso4ObraPage />
+            </PrivateRoute>
+          }
+        />
 
-        <Route path="/reportes/numero-oficiales-obra" element={<ReporteNumeroOficialesObra />} />
-        <Route path="/reportes/rep_Licencias/RepLicenciasPage" element={<RepLicenciasPage />} />
-        <Route path="/reportes/rep_obras/RepObrasPage" element={<RepObrasPage />} />
-        <Route path="/estadisticas" element={<Estadisticas />} />
-        <Route path="/administradores" element={<Administradores />} />
-        <Route path="/buscar-obra" element={<BuscarObra />} />
-        <Route path="/cambiar-clave" element={<CambiarClave />} />
-        <Route path="/alertas" element={<Alertas />} />
+        <Route
+          path="/reportes/numero-oficiales-obra"
+          element={
+            <PrivateRoute>
+              <ReporteNumeroOficialesObra />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/reportes/rep_Licencias/RepLicenciasPage"
+          element={
+            <PrivateRoute>
+              <RepLicenciasPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/reportes/rep_obras/RepObrasPage"
+          element={
+            <PrivateRoute>
+              <RepObrasPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/estadisticas"
+          element={
+            <PrivateRoute>
+              <Estadisticas />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/administradores"
+          element={
+            <PrivateRoute>
+              <Administradores />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/buscar-obra"
+          element={
+            <PrivateRoute>
+              <BuscarObra />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/cambiar-clave"
+          element={
+            <PrivateRoute>
+              <CambiarClave />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/alertas"
+          element={
+            <PrivateRoute>
+              <Alertas />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="*"
+          element={
+            <Navigate to={isAuthenticated ? "/home" : "/"} replace />
+          }
+        />
       </Routes>
     </Router>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getSession } from '../auth/session';
 import { getConceptosByObra } from '../services/obraConceptos.service';
 import { Printer, AlertCircle, X } from 'lucide-react';
 import { PDFObra } from '../services/pdfobra';
@@ -27,7 +28,7 @@ function formatFecha(fecha: string | Date | null | undefined): string {
 }
 
 export default function Paso4Obra({ obraId }: Props) {
-  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const usuarioLogueado = getSession() as { rol?: string } | null;
   const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const [obra, setObra] = useState<any>(null);
   const [conceptos, setConceptos] = useState<any[]>([]);

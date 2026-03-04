@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Menu from "../layout/menu";
+import { getSession } from "../auth/session";
 import { Eye, EyeOff, Lock, User } from "lucide-react";
 
 interface UsuarioSesion {
@@ -44,12 +45,11 @@ const CambiarClave: React.FC = () => {
   const [exitoCambiar, setExitoCambiar] = useState(false);
 
   useEffect(() => {
-    const data = localStorage.getItem("usuario");
-    if (!data) {
+    const usuarioData = getSession() as UsuarioSesion | null;
+    if (!usuarioData) {
       navigate("/");
       return;
     }
-    const usuarioData = JSON.parse(data);
     setUsuario(usuarioData);
     setUsuarioSeleccionado(usuarioData.id);
 

@@ -2,11 +2,11 @@ import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { setSession } from "./session";
 
 const Login: React.FC = () => {
   const [usuario, setUsuario] = useState("");
   const [clave, setClave] = useState("");
-  const [recordar, setRecordar] = useState(false);
   const [mostrarClave, setMostrarClave] = useState(false);
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -29,6 +29,12 @@ const Login: React.FC = () => {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Usuario o contraseña incorrectos.");
+        }
+        if (response.status >= 500) {
+          throw new Error("Error del servidor. Intenta más tarde.");
+        }
         throw new Error("Tu usuario está inactivo. Contacta al administrador.");
       }
 
@@ -37,22 +43,23 @@ const Login: React.FC = () => {
       /* ======================
          VALIDAR ESTADO
       ====================== */
-      if (data.usuario.estado !== "Activo") {
+      if (data.usuario?.estado !== "Activo") {
         throw new Error("Tu usuario está inactivo. Contacta al administrador.");
       }
 
       /* ======================
-         GUARDAR SESIÓN
+         GUARDAR SESIÓN (expira en 1 hora)
       ====================== */
-      localStorage.setItem("usuario", JSON.stringify(data.usuario));
+      setSession(data.usuario);
 
       /* ======================
          REDIRECCIÓN
       ====================== */
       navigate("/home");
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error de conexión. Verifica que el servidor esté activo.";
+      setError(msg);
     } finally {
       setCargando(false);
     }
@@ -123,20 +130,6 @@ const Login: React.FC = () => {
                 {mostrarClave ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
-          </div>
-
-          {/* Recordar y Mensaje de error */}
-          <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 text-gray-600 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={recordar}
-                onChange={() => setRecordar(!recordar)}
-                className="rounded border-gray-300 text-black focus:ring-black"
-                disabled={cargando}
-              />
-              Recordarme
-            </label>
           </div>
 
           {/* Mensaje de error */}

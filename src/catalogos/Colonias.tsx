@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Menu from "../layout/menu";
+import { getSession } from "../auth/session";
 import {
   getColonias,
   createColonia,
@@ -24,8 +25,8 @@ const Colonias: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // Verificar permisos del usuario logueado
-  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  // Verificar permisos del usuario logueado (usa sesión con expiración)
+  const usuarioLogueado = getSession() as { rol?: string } | null;
   const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const puedeModificar = !esSupervisor; // SUPERVISOR solo puede leer
 

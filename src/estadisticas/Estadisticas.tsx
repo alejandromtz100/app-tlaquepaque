@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import Menu from "../layout/menu";
+import { getSession } from "../auth/session";
 import { FaChartBar, FaDollarSign, FaFileInvoiceDollar } from "react-icons/fa";
 import { getColonias } from "../services/colonias.service";
 import { DirectoresService } from "../services/directores.service";
@@ -49,12 +50,11 @@ const Estadisticas: React.FC = () => {
   const [datosCargados, setDatosCargados] = useState(false);
 
   useEffect(() => {
-    const usuario = localStorage.getItem("usuario");
-    if (!usuario) {
+    const usuarioData = getSession() as { rol?: string } | null;
+    if (!usuarioData) {
       navigate("/");
       return;
     }
-    const usuarioData = JSON.parse(usuario);
     // Solo ADMIN puede ver estadísticas
     if (usuarioData.rol !== "ADMIN") {
       alert("No tienes permisos para acceder a esta sección");

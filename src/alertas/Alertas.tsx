@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle, Trash2, X, Save, Search } from "lucide-react";
 import Menu from "../layout/menu";
+import { getSession } from "../auth/session";
 
 interface Obra {
   id: number;
@@ -49,7 +50,7 @@ const Alertas: React.FC = () => {
     numerosPrediosContiguos: "",
   });
 
-  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const usuarioLogueado = getSession() as { rol?: string; id?: number } | null;
   const esAdmin = usuarioLogueado?.rol === "ADMIN";
   const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const puedeModificar = !esSupervisor;

@@ -8,7 +8,7 @@ import usuariosService from "../services/usuarios.service";
 import { getConceptosByObra } from "../services/obraConceptos.service";
 import { TramitesService } from "../services/tramites.service";
 import type { Tramite } from "../services/tramites.service";
-
+import { getSession } from "../auth/session";
 import Menu from "../layout/menu";
 
 const api = "http://localhost:3001/op_obras";
@@ -245,8 +245,8 @@ const Paso1Obra: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Verificar permisos del usuario logueado
-  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  // Verificar permisos del usuario logueado (usa sesión con expiración)
+  const usuarioLogueado = getSession() as { rol?: string } | null;
   const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const id = location.state?.id || null;
 
@@ -400,21 +400,14 @@ const Paso1Obra: React.FC = () => {
     try {
       // Primero guardar/actualizar los números oficiales de la obra
       try {
-        const usuarioData = localStorage.getItem("usuario");
-        const payload: any = {
+        const usuarioLogueado = getSession() as { id?: number } | null;
+        const payload: Record<string, unknown> = {
           numeros: numerosOficiales.map((n: any) => ({
             calle: (n.calle ?? '').toString().trim(),
             numeroOficial: (n.numeroOficial ?? n.numerooficial ?? '').toString().trim(),
           })),
         };
-        if (usuarioData) {
-          try {
-            const usuarioLogueado = JSON.parse(usuarioData);
-            if (usuarioLogueado?.id) payload.idUsuarioLogueado = usuarioLogueado.id;
-          } catch (error) {
-            console.error('Error al parsear usuario de localStorage:', error);
-          }
-        }
+        if (usuarioLogueado?.id) (payload as any).idUsuarioLogueado = usuarioLogueado.id;
         await axios.post(`${api}/${idObra}/numeros-manual`, payload);
       } catch (error) {
         console.warn("No se pudieron guardar los números oficiales al confirmar el trámite:", error);
@@ -428,15 +421,8 @@ const Paso1Obra: React.FC = () => {
       };
 
       // Incluir usuario modificador para historial si está disponible
-      try {
-        const usuarioData = localStorage.getItem("usuario");
-        if (usuarioData) {
-          const usuarioLogueado = JSON.parse(usuarioData);
-          if (usuarioLogueado?.id) body.idUsuarioLogueado = usuarioLogueado.id;
-        }
-      } catch (error) {
-        console.error('Error al parsear usuario de localStorage al confirmar trámite:', error);
-      }
+      const usuarioLogueadoHist = getSession() as { id?: number } | null;
+      if (usuarioLogueadoHist?.id) body.idUsuarioLogueado = usuarioLogueadoHist.id;
 
       await axios.put(`${api}/${idObra}`, body);
 
@@ -467,11 +453,6 @@ const Paso1Obra: React.FC = () => {
 
     setObraIdPendiente(null);
     setTramiteSeleccionado(null);
-
-    // Para nuevas obras / copias regresamos al listado de obras
-    if (!id) {
-      navigate("/obras");
-    }
   };
 
   const handleSelectColonia = (colonia: { id_colonia: number; nombre: string; densidad: string | null }) => {
@@ -624,18 +605,8 @@ const Paso1Obra: React.FC = () => {
       }
 
       // Agregar ID del usuario logueado para el historial y como capturador
-      const usuarioData = localStorage.getItem("usuario");
-      let idUsuarioLogueado: number | undefined;
-      if (usuarioData) {
-        try {
-          const usuarioLogueado = JSON.parse(usuarioData);
-          if (usuarioLogueado.id) {
-            idUsuarioLogueado = usuarioLogueado.id;
-          }
-        } catch (error) {
-          console.error('Error al parsear usuario de localStorage:', error);
-        }
-      }
+      const usuarioLogueadoPayload = getSession() as { id?: number } | null;
+      const idUsuarioLogueado = usuarioLogueadoPayload?.id;
 
       // Construir obraData asegurando que destinoActualProyecto y destinoPropuestoProyecto se envíen explícitamente
       const obraData: any = {
@@ -707,21 +678,14 @@ const Paso1Obra: React.FC = () => {
 
       // Edición normal: sincronizar números oficiales y salir
       try {
-        const usuarioData = localStorage.getItem("usuario");
+        const usuarioLogueadoNum = getSession() as { id?: number } | null;
         const payload: any = {
           numeros: numerosOficiales.map((n: any) => ({
             calle: (n.calle ?? '').toString().trim(),
             numeroOficial: (n.numeroOficial ?? n.numerooficial ?? '').toString().trim(),
           })),
         };
-        if (usuarioData) {
-          try {
-            const usuarioLogueado = JSON.parse(usuarioData);
-            if (usuarioLogueado?.id) payload.idUsuarioLogueado = usuarioLogueado.id;
-          } catch (error) {
-            console.error('Error al parsear usuario de localStorage:', error);
-          }
-        }
+        if (usuarioLogueadoNum?.id) payload.idUsuarioLogueado = usuarioLogueadoNum.id;
         await axios.post(`${api}/${obraId}/numeros-manual`, payload);
       } catch (error) {
         console.warn("No se pudieron guardar los números oficiales:", error);

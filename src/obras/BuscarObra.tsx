@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Menu from "../layout/menu";
+import { getSession } from "../auth/session";
 import { Pencil, Copy, Printer, Paperclip, Eye } from "lucide-react";
 import { getConceptosByObra } from "../services/obraConceptos.service";
 
@@ -39,7 +40,7 @@ const ESTADOS_OBRA = [
 
 const BuscarObra: React.FC = () => {
   const navigate = useNavigate();
-  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const usuarioLogueado = getSession() as { rol?: string } | null;
   const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const [obras, setObras] = useState<Obra[]>([]);
   const [totalRegistros, setTotalRegistros] = useState(0);

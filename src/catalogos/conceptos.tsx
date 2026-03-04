@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Menu from "../layout/menu";
+import { getSession } from "../auth/session";
 import { getConceptosArbol } from "../services/conceptos.service";
 import type { Concepto } from "../types/concepto";
 import { updateConcepto } from "../services/conceptos.service";
@@ -20,7 +21,7 @@ const Conceptos: React.FC = () => {
   const [deleting, setDeleting] = useState(false);
 
   // Verificar permisos del usuario logueado
-  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const usuarioLogueado = getSession() as { rol?: string } | null;
   const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const puedeModificar = !esSupervisor; // SUPERVISOR solo puede leer
 

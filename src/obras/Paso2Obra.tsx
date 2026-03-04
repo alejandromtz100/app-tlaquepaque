@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { getSession } from '../auth/session';
 import { getConceptosByObra, addConceptoToObra } from '../services/obraConceptos.service';
 import { getConceptosArbol } from '../services/conceptos.service';
 import { getConceptosByTramite } from '../services/tramitesConceptos.service';
@@ -16,7 +17,7 @@ interface Props {
 export default function Paso2Obra({ obraId }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
-  const usuarioLogueado = JSON.parse(localStorage.getItem('usuario') || 'null');
+  const usuarioLogueado = getSession() as { rol?: string } | null;
   const idTramiteDesdeState = (location.state as { idTramite?: number } | null)?.idTramite;
   const esSupervisor = usuarioLogueado?.rol === 'SUPERVISOR';
   const [conceptos, setConceptos] = useState<any[]>([]);

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import ExcelJS from 'exceljs';
 import Menu from '../layout/menu';
+import { getSession } from '../auth/session';
 
 // Importar tipos por separado
 import type { DirectorObra } from '../services/directores.service';
@@ -17,7 +18,7 @@ const Directores: React.FC = () => {
   const [success, setSuccess] = useState(false);
 
   // Verificar permisos del usuario logueado
-  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const usuarioLogueado = getSession() as { rol?: string } | null;
   const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const puedeModificar = !esSupervisor; // SUPERVISOR solo puede leer
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { Printer } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getSession } from "../auth/session";
 import { DirectoresService } from "../services/directores.service";
 import { PDFPreForma } from "../services/pdfPreForma";
 import { getConceptosByObra } from "../services/obraConceptos.service";
@@ -59,7 +60,7 @@ function toDateLocal(date: Date | string | null): string {
 
 export default function Paso3Obra({ obraId }: Props) {
   const navigate = useNavigate();
-  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const usuarioLogueado = getSession() as { rol?: string } | null;
   const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Menu from "../layout/menu";
+import { getSession } from "../auth/session";
 import usuariosService, { 
   type Usuario, 
   type Area, 
@@ -42,7 +43,7 @@ const Usuarios: React.FC = () => {
     funcionEspecial: undefined,
   });
 
-  const usuarioLogueado = JSON.parse(localStorage.getItem("usuario") || "null");
+  const usuarioLogueado = getSession() as { rol?: string } | null;
   const esAdmin = usuarioLogueado?.rol === "ADMIN";
   const puedeModificar = esAdmin; // Solo ADMIN puede crear/modificar/eliminar usuarios
 

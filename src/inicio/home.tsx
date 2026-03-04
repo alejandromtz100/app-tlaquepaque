@@ -16,6 +16,7 @@ import {
   FaPencilAlt,
 } from "react-icons/fa";
 import Menu from "../layout/menu";
+import { getSession, clearSession } from "../auth/session";
 
 
 interface Usuario {
@@ -35,12 +36,8 @@ interface Usuario {
 
 const Home: React.FC = () => {
   const [usuario] = useState<Usuario | null>(() => {
-    try {
-      const data = localStorage.getItem("usuario");
-      return data ? JSON.parse(data) : null;
-    } catch {
-      return null;
-    }
+    const data = getSession();
+    return data ? (data as Usuario) : null;
   });
   const navigate = useNavigate();
 
@@ -49,7 +46,7 @@ const Home: React.FC = () => {
   }, [usuario, navigate]);
 
   const logout = () => {
-    localStorage.removeItem("usuario");
+    clearSession();
     navigate("/");
   };
 

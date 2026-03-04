@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Menu from "../layout/menu";
+import { getSession } from "../auth/session";
 import usuariosService, { type Usuario } from "../services/usuarios.service";
 import HistorialUsuario from "./HistorialUsuario";
 import { History } from "lucide-react";
@@ -14,14 +15,12 @@ const Administradores: React.FC = () => {
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
 
   useEffect(() => {
-    // Verificar si es administrador
-    const usuarioData = localStorage.getItem("usuario");
-    if (!usuarioData) {
+    // Verificar si es administrador (usa sesión con expiración)
+    const usuario = getSession() as { rol?: string } | null;
+    if (!usuario) {
       navigate("/");
       return;
     }
-
-    const usuario = JSON.parse(usuarioData);
     if (usuario.rol !== "ADMIN") {
       navigate("/home");
       return;

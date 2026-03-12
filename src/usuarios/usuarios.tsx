@@ -609,20 +609,22 @@ const Usuarios: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  {isEditing ? "Nueva clave (dejar vacío para mantener)" : "Clave *"}
-                </label>
-                <input
-                  type="password"
-                  value={nuevoUsuario.clave || ""}
-                  onChange={(e) =>
-                    setNuevoUsuario({ ...nuevoUsuario, clave: e.target.value })
-                  }
-                  className="border rounded-xl px-3 py-2 w-full focus:ring-2 focus:ring-black outline-none"
-                  placeholder={isEditing ? "Dejar vacío para no cambiar" : "Contraseña"}
-                />
-              </div>
+              {!isEditing && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Clave <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={nuevoUsuario.clave || ""}
+                    onChange={(e) =>
+                      setNuevoUsuario({ ...nuevoUsuario, clave: e.target.value })
+                    }
+                    className="border rounded-xl px-3 py-2 w-full focus:ring-2 focus:ring-black outline-none"
+                    placeholder="Contraseña"
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>

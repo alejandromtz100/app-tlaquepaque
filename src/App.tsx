@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 
 import Login from "./auth/login";
-import { getSession, clearSession } from "./auth/session";
+import { getSession, clearSession, refreshSessionExpiration } from "./auth/session";
 import Home from "./inicio/home";
 import Tramites from "./catalogos/tramites";
 import Menu from "./layout/menu";
@@ -34,11 +34,36 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   return <SessionChecker>{children}</SessionChecker>;
 };
 
-/** Verifica cada minuto si la sesión expiró (1h) y redirige a login si aplica */
+/** Verifica cada minuto si la sesión expiró (45 min inactividad) y redirige a login si aplica.
+ * Además, escucha actividad del usuario para renovar la expiración.
+ */
 const SessionChecker: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
 
   React.useEffect(() => {
+    const activityEvents: (keyof WindowEventMap)[] = [
+      "mousemove",
+      "keydown",
+      "click",
+      "scroll",
+    ];
+
+    const handleActivity = () => {
+      refreshSessionExpiration();
+    };
+
+    activityEvents.forEach((eventName) =>
+      window.addEventListener(eventName, handleActivity)
+    );
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refreshSessionExpiration();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     const interval = setInterval(() => {
       const current = getSession();
       if (!current) {
@@ -46,7 +71,13 @@ const SessionChecker: React.FC<{ children: React.ReactNode }> = ({ children }) =
         navigate("/", { replace: true });
       }
     }, 60 * 1000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      activityEvents.forEach((eventName) =>
+        window.removeEventListener(eventName, handleActivity)
+      );
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [navigate]);
 
   return <>{children}</>;

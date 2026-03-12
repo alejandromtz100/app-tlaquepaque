@@ -1,16 +1,17 @@
 /**
- * Sesión en localStorage con expiración de 1 hora.
+ * Sesión en localStorage con expiración de 45 minutos de inactividad.
  * - setSession: guarda usuario y timestamp de expiración
  * - getSession: devuelve usuario solo si no ha expirado; si expiró, limpia y devuelve null
+ * - refreshSessionExpiration: renueva la expiración si la sesión sigue activa
  * - clearSession: borra usuario y expiración (logout)
  */
 
 const STORAGE_USUARIO = "usuario";
 const STORAGE_EXPIRES_AT = "sessionExpiresAt";
-const UNA_HORA_MS = 60 * 60 * 1000;
+const CUARENTA_Y_CINCO_MINUTOS_MS = 45 * 60 * 1000;
 
 export function setSession(usuario: object): void {
-  const expiresAt = Date.now() + UNA_HORA_MS;
+  const expiresAt = Date.now() + CUARENTA_Y_CINCO_MINUTOS_MS;
   localStorage.setItem(STORAGE_USUARIO, JSON.stringify(usuario));
   localStorage.setItem(STORAGE_EXPIRES_AT, String(expiresAt));
 }
@@ -29,6 +30,13 @@ export function getSession(): unknown {
     clearSession();
     return null;
   }
+}
+
+export function refreshSessionExpiration(): void {
+  const raw = localStorage.getItem(STORAGE_USUARIO);
+  if (!raw) return;
+  const expiresAt = Date.now() + CUARENTA_Y_CINCO_MINUTOS_MS;
+  localStorage.setItem(STORAGE_EXPIRES_AT, String(expiresAt));
 }
 
 export function clearSession(): void {

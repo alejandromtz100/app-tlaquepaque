@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import Menu from "../layout/menu";
+import { AppPageHeader } from "../layout/AppPageHeader";
 import { getSession } from "../auth/session";
 import { FaChartBar, FaDollarSign, FaFileInvoiceDollar } from "react-icons/fa";
 import { getColonias } from "../services/colonias.service";
@@ -154,14 +155,7 @@ const Estadisticas: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <h1 className="text-xl font-bold text-gray-800">
-            Sistema de Control de la Edificación ALCH
-          </h1>
-          <p className="text-sm text-gray-500">H. Ayuntamiento de Tlaquepaque</p>
-        </div>
-      </header>
+      <AppPageHeader />
 
       <Menu />
 

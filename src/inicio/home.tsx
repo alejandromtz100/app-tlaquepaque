@@ -16,6 +16,7 @@ import {
   FaPencilAlt,
 } from "react-icons/fa";
 import Menu from "../layout/menu";
+import { AppPageHeader } from "../layout/AppPageHeader";
 import { getSession, clearSession } from "../auth/session";
 
 
@@ -85,17 +86,8 @@ const Home: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-bold text-gray-800">
-              Sistema de Control de la Edificación ALCH
-            </h1>
-            <p className="text-sm text-gray-500">
-              H. Ayuntamiento de Tlaquepaque
-            </p>
-          </div>
-
+      <AppPageHeader
+        right={
           <button
             onClick={logout}
             className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm bg-gray-100 text-gray-700 hover:bg-red-600 hover:text-white transition"
@@ -103,8 +95,8 @@ const Home: React.FC = () => {
             <FaSignOutAlt />
             <span className="hidden sm:inline">Salir</span>
           </button>
-        </div>
-      </header>
+        }
+      />
 
       <Menu />
 

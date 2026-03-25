@@ -4,6 +4,8 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  // Muy importante para que funcione con file:// en Electron
+  base: './',
   server: {
     proxy: {
       '/uploads': { target: 'http://localhost:3001', changeOrigin: true },

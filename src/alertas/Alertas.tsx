@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertCircle, Trash2, X, Save, Search } from "lucide-react";
 import Menu from "../layout/menu";
+import { AppPageHeader } from "../layout/AppPageHeader";
 import { getSession } from "../auth/session";
 
 interface Obra {
@@ -33,6 +34,7 @@ const REGISTROS_POR_PAGINA = 10;
 
 const Alertas: React.FC = () => {
   const navigate = useNavigate();
+  const formularioRef = useRef<HTMLDivElement | null>(null);
   const [obras, setObras] = useState<Obra[]>([]);
   const [totalRegistros, setTotalRegistros] = useState(0);
   const [alertas, setAlertas] = useState<Alerta[]>([]);
@@ -54,6 +56,15 @@ const Alertas: React.FC = () => {
   const esAdmin = usuarioLogueado?.rol === "ADMIN";
   const esSupervisor = usuarioLogueado?.rol === "SUPERVISOR";
   const puedeModificar = !esSupervisor;
+
+  useEffect(() => {
+    if (mostrarFormulario && formularioRef.current) {
+      formularioRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [mostrarFormulario, obraSeleccionada, tipoPdfSeleccionado]);
 
   useEffect(() => {
     if (!esAdmin) {
@@ -265,18 +276,7 @@ const Alertas: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* HEADER */}
-      <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-bold text-gray-800">
-              Sistema de Control de la Edificación ALCH
-            </h1>
-            <p className="text-sm text-gray-500">
-              H. Ayuntamiento de Tlaquepaque
-            </p>
-          </div>
-        </div>
-      </header>
+      <AppPageHeader />
 
       <Menu />
 
@@ -359,7 +359,7 @@ const Alertas: React.FC = () => {
 
           {/* FORMULARIO DE ALERTA */}
           {mostrarFormulario && (
-            <div className="p-6 border-b bg-yellow-50">
+            <div ref={formularioRef} className="p-6 border-b bg-yellow-50">
               <div className="bg-white rounded-lg p-6 shadow-md">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-gray-800">

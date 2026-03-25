@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import { Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
+import { APP_LOGO_SRC } from "../layout/AppPageHeader";
 import { useNavigate } from "react-router-dom";
 import { setSession } from "./session";
 
@@ -70,9 +71,11 @@ const Login: React.FC = () => {
       <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-8">
         {/* Logo y Título */}
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-gradient-to-br from-black to-gray-800 p-4 rounded-full mb-4 shadow-lg">
-            <Lock className="text-white" size={40} />
-          </div>
+          <img
+            src={APP_LOGO_SRC}
+            alt="Logo de Tlaquepaque - Ciudad de la Esperanza"
+            className="h-40 w-auto max-w-full object-contain mb-4 drop-shadow-md"
+          />
           <h1 className="text-2xl font-bold text-gray-900 text-center">
             Sistema de Control ALCH
           </h1>

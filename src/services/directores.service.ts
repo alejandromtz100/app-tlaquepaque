@@ -38,8 +38,14 @@ export interface DirectorFormData extends Partial<DirectorObra> {
 }
 
 // Base vacía = mismo origen; las peticiones pasan por el proxy de Vite al backend (dev)
-// En producción puedes usar: VITE_API_URL=http://tu-backend
-const API_BASE = import.meta.env.VITE_API_URL ?? '';
+// En producción normal puedes usar: VITE_API_URL=http://tu-backend
+// En Electron (file://) forzamos localhost:3001 para que no intente file:///directores-obra
+const isFileProtocol =
+  typeof window !== 'undefined' && window.location.protocol === 'file:';
+
+const API_BASE = isFileProtocol
+  ? 'http://localhost:3001'
+  : (import.meta.env.VITE_API_URL ?? '');
 const API_URL = `${API_BASE}/directores-obra`;
 // Imágenes siempre al backend (evita 404 por proxy); mismo origen que el resto del API
 const API_IMAGENES_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';

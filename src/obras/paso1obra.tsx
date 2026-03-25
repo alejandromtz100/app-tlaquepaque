@@ -10,6 +10,7 @@ import { TramitesService } from "../services/tramites.service";
 import type { Tramite } from "../services/tramites.service";
 import { getSession } from "../auth/session";
 import Menu from "../layout/menu";
+import { AppPageHeader } from "../layout/AppPageHeader";
 
 const api = "http://localhost:3001/op_obras";
 
@@ -734,18 +735,7 @@ const Paso1Obra: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* HEADER */}
-      <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-bold text-gray-800">
-              Sistema de Control de la Edificación ALCH
-            </h1>
-            <p className="text-sm text-gray-500">
-              H. Ayuntamiento de Tlaquepaque
-            </p>
-          </div>
-        </div>
-      </header>
+      <AppPageHeader />
 
       <Menu />
 

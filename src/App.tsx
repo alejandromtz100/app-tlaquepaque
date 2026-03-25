@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { HashRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 
 import Login from "./auth/login";
 import { getSession, clearSession, refreshSessionExpiration } from "./auth/session";
@@ -37,10 +37,22 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 /** Verifica cada minuto si la sesión expiró (45 min inactividad) y redirige a login si aplica.
  * Además, escucha actividad del usuario para renovar la expiración.
  */
+/** Evita escribir en localStorage en cada mousemove/scroll (cientos de veces/s); eso congela la UI. */
+const SESSION_REFRESH_MIN_INTERVAL_MS = 30_000;
+
 const SessionChecker: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
 
   React.useEffect(() => {
+    let lastRefreshAt = 0;
+
+    const bumpSessionIfDue = () => {
+      const now = Date.now();
+      if (now - lastRefreshAt < SESSION_REFRESH_MIN_INTERVAL_MS) return;
+      lastRefreshAt = now;
+      refreshSessionExpiration();
+    };
+
     const activityEvents: (keyof WindowEventMap)[] = [
       "mousemove",
       "keydown",
@@ -48,16 +60,13 @@ const SessionChecker: React.FC<{ children: React.ReactNode }> = ({ children }) =
       "scroll",
     ];
 
-    const handleActivity = () => {
-      refreshSessionExpiration();
-    };
-
     activityEvents.forEach((eventName) =>
-      window.addEventListener(eventName, handleActivity)
+      window.addEventListener(eventName, bumpSessionIfDue, { passive: true })
     );
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
+        lastRefreshAt = 0;
         refreshSessionExpiration();
       }
     };
@@ -74,7 +83,7 @@ const SessionChecker: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return () => {
       clearInterval(interval);
       activityEvents.forEach((eventName) =>
-        window.removeEventListener(eventName, handleActivity)
+        window.removeEventListener(eventName, bumpSessionIfDue)
       );
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };

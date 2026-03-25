@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import Menu from "../layout/menu";
+import { AppPageHeader } from "../layout/AppPageHeader";
 import type { ObraConNumerosOficiales } from "../services/numeros-oficiales.service";
 import { NumerosOficialesService } from "../services/numeros-oficiales.service";
 import * as XLSX from "xlsx";
@@ -178,16 +179,7 @@ const ReporteNumeroOficialesObra: React.FC = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-100 flex flex-col">
-        <header className="bg-white shadow-md">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <h1 className="text-xl font-bold text-gray-800">
-              Sistema de Control de la Edificación ALCH
-            </h1>
-            <p className="text-sm text-gray-500">
-              H. Ayuntamiento de Tlaquepaque
-            </p>
-          </div>
-        </header>
+        <AppPageHeader />
         <Menu />
         <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6">
@@ -208,18 +200,7 @@ const ReporteNumeroOficialesObra: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* HEADER */}
-      <header className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-bold text-gray-800">
-              Sistema de Control de la Edificación ALCH
-            </h1>
-            <p className="text-sm text-gray-500">
-              H. Ayuntamiento de Tlaquepaque
-            </p>
-          </div>
-        </div>
-      </header>
+      <AppPageHeader />
 
       <Menu />
 

@@ -1,6 +1,6 @@
 // src/services/repLicencias.service.ts
 
-const API_URL = "http://localhost:3001/reportes/licencias";
+const API_URL = "http://10.50.4.207:3001/reportes/licencias";
 
 export interface RepLicenciasParams {
   page?: number;

@@ -1,5 +1,5 @@
 // colonias.service.ts
-const API_URL = "http://localhost:3001/colonias";
+const API_URL = "http://10.50.4.207:3001/colonias";
 
 export interface Colonia {
   id_colonia: number;

@@ -1,6 +1,6 @@
 // src/services/repObras.service.ts
 
-const API_URL = "http://localhost:3001/reportes/obras";
+const API_URL = "http://10.50.4.207:3001/reportes/obras";
 
 export interface RepObrasParams {
   page?: number;

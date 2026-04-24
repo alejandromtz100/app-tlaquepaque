@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3001/tramites-conceptos";
+const API_URL = "http://10.50.4.207:3001/tramites-conceptos";
 
 /* ================================
    Tipos

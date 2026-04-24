@@ -30,7 +30,7 @@ interface Obra {
 }
 
 const REGISTROS_POR_PAGINA = 10;
-const API_OBRA = "http://localhost:3001/op_obras";
+const API_OBRA = "http://10.50.4.207:3001/op_obras";
 const ESTADOS_OBRA = [
   { value: "", label: "Todos" },
   { value: "En Proceso", label: "En Proceso" },

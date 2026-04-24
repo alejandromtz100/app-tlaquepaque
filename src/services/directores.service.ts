@@ -44,11 +44,11 @@ const isFileProtocol =
   typeof window !== 'undefined' && window.location.protocol === 'file:';
 
 const API_BASE = isFileProtocol
-  ? 'http://localhost:3001'
+  ? 'http://10.50.4.207:3001'
   : (import.meta.env.VITE_API_URL ?? '');
 const API_URL = `${API_BASE}/directores-obra`;
 // Imágenes siempre al backend (evita 404 por proxy); mismo origen que el resto del API
-const API_IMAGENES_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_IMAGENES_BASE = import.meta.env.VITE_API_URL || 'http://10.50.4.207:3001';
 
 // Placeholder cuando no hay imagen (data URL para no depender de /no-image.png)
 const NO_IMAGE_SRC =

@@ -5,7 +5,7 @@ import { AppPageHeader } from '../layout/AppPageHeader';
 import Paso4Obra from './Paso4Obra';
 import PasosObraNav from './PasosObraNav';
 
-const API_OBRAS = 'http://localhost:3001/op_obras';
+const API_OBRAS = 'http://10.50.4.207:3001/op_obras';
 
 export default function Paso4ObraPage() {
   const { id } = useParams();

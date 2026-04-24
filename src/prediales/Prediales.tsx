@@ -47,7 +47,7 @@ const Prediales: React.FC = () => {
       const params = new URLSearchParams();
       params.append('numerosPrediosContiguos', numerosPrediosContiguos.trim());
 
-      const url = `http://localhost:3001/op_obras/listado-filtrado?${params.toString()}`;
+      const url = `http://10.50.4.207:3001/op_obras/listado-filtrado?${params.toString()}`;
       const response = await fetch(url);
       if (!response.ok) throw new Error("Error al cargar obras");
       const data = await response.json();

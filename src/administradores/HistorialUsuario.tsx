@@ -31,7 +31,7 @@ const HistorialUsuario: React.FC<HistorialUsuarioProps> = ({ usuario, onClose })
   const cargarHistorial = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:3001/usuarios/${usuario.id_usuarios}/historial`);
+      const response = await fetch(`http://10.50.4.207:3001/usuarios/${usuario.id_usuarios}/historial`);  
       if (!response.ok) {
         throw new Error('Error al cargar historial');
       }

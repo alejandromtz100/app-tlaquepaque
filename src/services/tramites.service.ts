@@ -8,7 +8,7 @@ export interface Tramite {
   created_at?: string;
 }
 
-const API_URL = "http://localhost:3001/tramites";
+const API_URL = "http://10.50.4.207:3001/tramites";  
 
 export const TramitesService = {
   async getAll(): Promise<Tramite[]> {

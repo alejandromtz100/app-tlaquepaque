@@ -7,7 +7,7 @@ import { DirectoresService } from "../services/directores.service";
 import { PDFPreForma } from "../services/pdfPreForma";
 import { getConceptosByObra } from "../services/obraConceptos.service";
 
-const API_OBRAS = "http://localhost:3001/op_obras";
+const API_OBRAS = "http://10.50.4.207:3001/op_obras";
 
 interface Props {
   obraId: number;

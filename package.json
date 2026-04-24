@@ -1,5 +1,5 @@
 {
-  "name": "Sistema de Control ALCH",
+  "name": "sistema-de-control-alch",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -15,7 +15,7 @@
   },
   "build": {
     "appId": "com.tuempresa.tlaquepaque",
-    "productName": "App Tlaquepaque",
+    "productName": "Sistema de Control ALCH",
     "directories": {
       "output": "release"
     },

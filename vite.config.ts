@@ -8,8 +8,8 @@ export default defineConfig({
   base: './',
   server: {
     proxy: {
-      '/uploads': { target: 'http://localhost:3001', changeOrigin: true },
-      '/directores-obra': { target: 'http://localhost:3001', changeOrigin: true },
+      '/uploads': { target: 'http://10.50.4.207:3001', changeOrigin: true },
+      '/directores-obra': { target: 'http://10.50.4.207:3001', changeOrigin: true },
     },
   },
 })

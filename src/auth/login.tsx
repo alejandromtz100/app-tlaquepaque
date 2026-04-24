@@ -20,7 +20,7 @@ const Login: React.FC = () => {
     setCargando(true);
 
     try {
-      const response = await fetch("http://localhost:3001/usuarios/login", {
+      const response = await fetch("http://10.50.4.207:3001/usuarios/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -169,7 +169,7 @@ const Login: React.FC = () => {
         {/* Información adicional */}
         <div className="mt-8 pt-6 border-t border-gray-200">
           <p className="text-xs text-gray-400 text-center mt-2">
-            Versión 1.0 · © 2024 H. Ayuntamiento de Tlaquepaque
+            Versión 1.0 · © 2026 H. Ayuntamiento de Tlaquepaque
           </p>
         </div>
       </div>

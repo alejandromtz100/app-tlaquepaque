@@ -21,8 +21,7 @@ function createWindow() {
 
   mainWindow.loadURL(indexPath);
 
-  // Abre las herramientas de desarrollador
-  mainWindow.webContents.openDevTools();
+  
 }
 
 app.whenReady().then(() => {

@@ -1,5 +1,5 @@
 // src/services/obraConceptos.service.ts
-const API_URL = 'http://localhost:3001/obra-conceptos';
+const API_URL = 'http://10.50.4.207:3001/obra-conceptos';
 
 export const getConceptosByObra = async (obraId: number) => {
   const res = await fetch(`${API_URL}/obra/${obraId}`);

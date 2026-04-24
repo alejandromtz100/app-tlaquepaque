@@ -20,8 +20,8 @@ interface Obra {
   estadoPago: string;
 }
 
-const API_OBRAS = "http://localhost:3001/op_obras/listado-filtrado";
-const API_OBRA = "http://localhost:3001/op_obras";
+const API_OBRAS = "http://10.50.4.207:3001/op_obras/listado-filtrado";
+const API_OBRA = "http://10.50.4.207:3001/op_obras";
 const registrosPorPagina = 10;
 
 const Obras: React.FC = () => {

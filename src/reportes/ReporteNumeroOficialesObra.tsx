@@ -81,6 +81,20 @@ const ReporteNumeroOficialesObra: React.FC = () => {
 
   // Función para exportar a Excel
   const exportarAExcel = () => {
+    // Excel (y SheetJS) limitan el texto por celda a 32,767 caracteres.
+    const EXCEL_CELL_MAX_CHARS = 32767;
+    const truncarTextoParaExcel = (value: unknown): unknown => {
+      if (value === null || value === undefined) return value;
+      if (typeof value === "string") {
+        if (value.length <= EXCEL_CELL_MAX_CHARS) return value;
+        // Dejamos un indicador corto para evitar confusión.
+        const sufijo = "… (truncado)";
+        const maxLen = Math.max(0, EXCEL_CELL_MAX_CHARS - sufijo.length);
+        return value.slice(0, maxLen) + sufijo;
+      }
+      return value;
+    };
+
     const datosParaExcel = filtradas.map((obra) => {
       // Construir el domicilio del predio: Calle + Número Oficial + Colonia
       const partesDomicilio = [];
@@ -89,7 +103,7 @@ const ReporteNumeroOficialesObra: React.FC = () => {
       if (obra.nombreColoniaObra && obra.nombreColoniaObra.trim() !== '') partesDomicilio.push(obra.nombreColoniaObra);
       const domicilioPredio = partesDomicilio.length > 0 ? partesDomicilio.join(', ') : "-";
 
-      return {
+      const fila = {
         "Fecha": formatearFecha(obra.fechaCaptura),
         "Consecutivo": obra.consecutivo || "-",
         "Número Oficial": obra.numeroOficial || "-",
@@ -109,6 +123,11 @@ const ReporteNumeroOficialesObra: React.FC = () => {
         "Destino Actual": obra.destinoActual || "-",
         "Destino Propuesto": obra.destinoPropuesto || "-",
       };
+
+      // Sanitizar para evitar que SheetJS falle por longitudes extremas.
+      return Object.fromEntries(
+        Object.entries(fila).map(([k, v]) => [k, truncarTextoParaExcel(v)])
+      );
     });
 
     const worksheet = XLSX.utils.json_to_sheet(datosParaExcel);

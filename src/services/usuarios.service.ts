@@ -38,7 +38,7 @@ import { getSession } from "../auth/session";
    USUARIOS SERVICE
 ====================== */
 class UsuariosService {
-  private baseUrl = "http://localhost:3001";
+  private baseUrl = "http://10.50.4.207:3001";
 
   // Obtener todos los usuarios
   async obtenerUsuarios(): Promise<Usuario[]> {

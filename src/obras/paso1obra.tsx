@@ -12,7 +12,7 @@ import { getSession } from "../auth/session";
 import Menu from "../layout/menu";
 import { AppPageHeader } from "../layout/AppPageHeader";
 
-const api = "http://localhost:3001/op_obras";
+const api = "http://10.50.4.207:3001/op_obras";
 
 // Componente Input reutilizable
 const Input = ({ 

@@ -1,17 +1,21 @@
 {
   "name": "sistema-de-control-alch",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "main": "electron-main.cjs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alejandromtz100/app-tlaquepaque.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-
     "electron:dev": "npm run build && electron .",
-    "electron:build": "npm run build && electron-builder"
+    "electron:build": "npm run build && electron-builder",
+    "electron:publish": "npm run build && electron-builder --publish always"
   },
   "build": {
     "appId": "com.tuempresa.tlaquepaque",
@@ -26,12 +30,21 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "public/assets/icono.png"
-    }
+      "icon": "public/assets/icono.png",
+      "signAndEditExecutable": false
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "alejandromtz100",
+        "repo": "app-tlaquepaque"
+      }
+    ]
   },
   "dependencies": {
     "axios": "^1.13.3",
     "docx": "^9.5.3",
+    "electron-updater": "^6.8.3",
     "exceljs": "^4.4.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.0.0",

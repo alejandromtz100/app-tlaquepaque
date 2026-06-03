@@ -1,7 +1,7 @@
 // src/services/conceptos.service.ts
 import type { Concepto } from "../types/concepto";
 
-const API_URL = "http://10.50.4.207:3001/conceptos";
+const API_URL = "https://apiobraspublicas.tlaquepaque.gob.mx/conceptos";
 
 // 🌳 Árbol completo
 export const getConceptosArbol = async (): Promise<Concepto[]> => {

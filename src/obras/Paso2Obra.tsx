@@ -8,7 +8,7 @@ import { getConceptosByTramite } from '../services/tramitesConceptos.service';
 import TablaConceptosObra from './TablaConceptosObra';
 import FormAgregarConcepto from './FormAgregarConcepto';
 
-const API_OBRAS = 'http://10.50.4.207:3001/op_obras';
+const API_OBRAS = 'https://apiobraspublicas.tlaquepaque.gob.mx/op_obras';
 
 interface Props {
   obraId: number;

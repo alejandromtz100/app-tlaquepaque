@@ -26,7 +26,7 @@ interface UsuarioCompleto {
   estado?: string;
 }
 
-const API = "http://10.50.4.207:3001/usuarios";
+const API = "https://apiobraspublicas.tlaquepaque.gob.mx/usuarios";
 
 const CambiarClave: React.FC = () => {
   const navigate = useNavigate();

@@ -28,8 +28,8 @@ const TIPOS_PDF = [
   "CERTIFICADO DE HABITABILIDAD",
 ] as const;
 
-const API_OBRAS = "http://10.50.4.207:3001/op_obras";
-const API_ALERTAS = "http://10.50.4.207:3001/alertas";
+const API_OBRAS = "https://apiobraspublicas.tlaquepaque.gob.mx/op_obras";
+const API_ALERTAS = "https://apiobraspublicas.tlaquepaque.gob.mx/alertas";
 const REGISTROS_POR_PAGINA = 10;
 
 const Alertas: React.FC = () => {

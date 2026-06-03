@@ -80,7 +80,7 @@ const RepLicenciasPage: React.FC = () => {
       });
 
       const res = await fetch(
-        `http://localhost:3001/reportes/licencias/export?${query.toString()}`,
+        `https://apiobraspublicas.tlaquepaque.gob.mx/reportes/licencias/export?${query.toString()}`,
         { method: "GET" }
       );
 

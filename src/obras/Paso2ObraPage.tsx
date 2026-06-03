@@ -6,7 +6,7 @@ import { AppPageHeader } from "../layout/AppPageHeader";
 import Paso2Obra from "./Paso2Obra";
 import PasosObraNav from "./PasosObraNav";
 
-const API_OBRAS = "http://10.50.4.207:3001/op_obras";
+const API_OBRAS = "https://apiobraspublicas.tlaquepaque.gob.mx/op_obras";
 
 export default function Paso2ObraPage() {
   const { id } = useParams();

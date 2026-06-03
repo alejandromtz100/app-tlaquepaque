@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { addConceptoToObra, updateConceptoObra } from '../services/obraConceptos.service';
 import { Plus, CheckCircle2, AlertCircle } from 'lucide-react';
 
-const API_CONCEPTOS = 'http://10.50.4.207:3001/conceptos/select';
+const API_CONCEPTOS = 'https://apiobraspublicas.tlaquepaque.gob.mx/conceptos/select';
 
 const NIVELES_LABELS = ['Abuelo', 'Padre', 'Hijo', 'Nieto'];
 

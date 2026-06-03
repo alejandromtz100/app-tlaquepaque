@@ -30,7 +30,7 @@ interface Obra {
 }
 
 const REGISTROS_POR_PAGINA = 10;
-const API_OBRA = "http://10.50.4.207:3001/op_obras";
+const API_OBRA = "https://apiobraspublicas.tlaquepaque.gob.mx/op_obras";
 const ESTADOS_OBRA = [
   { value: "", label: "Todos" },
   { value: "En Proceso", label: "En Proceso" },
@@ -79,7 +79,7 @@ const BuscarObra: React.FC = () => {
       if (filtros.nombrePropietario.trim()) params.set("nombrePropietario", filtros.nombrePropietario.trim());
       if (filtros.estado.trim()) params.set("estadoObra", filtros.estado.trim());
 
-      const url = `http://localhost:3001/op_obras/listado-filtrado-paginado?${params.toString()}`;
+      const url = `https://apiobraspublicas.tlaquepaque.gob.mx/op_obras/listado-filtrado-paginado?${params.toString()}`;
       const response = await fetch(url);
       if (!response.ok) throw new Error("Error al cargar obras");
       const { data, total } = await response.json();

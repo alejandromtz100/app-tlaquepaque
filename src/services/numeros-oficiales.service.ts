@@ -32,7 +32,7 @@ export interface ObraConNumerosOficiales {
   calle?: string;
 }
 
-const API_URL = "http://10.50.4.207:3001/op-numeros-oficiales";
+const API_URL = "https://apiobraspublicas.tlaquepaque.gob.mx/op-numeros-oficiales";
 
 export const NumerosOficialesService = {
   async getReporte(filtros?: { consecutivo?: string; numeroOficial?: string; calle?: string }): Promise<ObraConNumerosOficiales[]> {

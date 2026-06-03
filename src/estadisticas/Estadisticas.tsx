@@ -8,7 +8,7 @@ import { FaChartBar, FaDollarSign, FaFileInvoiceDollar } from "react-icons/fa";
 import { getColonias } from "../services/colonias.service";
 import { DirectoresService } from "../services/directores.service";
 
-const API = "http://localhost:3001/estadisticas";
+const API = "https://apiobraspublicas.tlaquepaque.gob.mx/estadisticas";
 
 interface EstadisticaPago {
   estadoPago: string;

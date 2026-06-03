@@ -62,7 +62,7 @@ const RepObrasPage: React.FC = () => {
       });
 
       const res = await fetch(
-        `http://localhost:3001/reportes/obras/export?${query.toString()}`,
+        `https://apiobraspublicas.tlaquepaque.gob.mx/reportes/obras/export?${query.toString()}`,
         { method: "GET" }
       );
 
